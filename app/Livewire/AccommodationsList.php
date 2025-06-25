@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Models\Accommodation;
+use App\Services\AccommodationService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -34,19 +34,19 @@ class AccommodationsList extends Component
     'hasWebsite' => ['except' => false],
   ];
 
-  public function mount()
+  public function mount(AccommodationService $accommodationService)
   {
     // Charger les options pour les filtres
-    $this->loadFilterOptions();
+    $this->loadFilterOptions($accommodationService);
   }
 
-  public function loadFilterOptions()
+  public function loadFilterOptions(AccommodationService $accommodationService)
   {
-    $accommodations = Accommodation::all();
+    $filterOptions = $accommodationService->getFilterOptions();
 
-    $this->statusOptions = $accommodations->pluck('status')->unique()->filter()->values()->toArray();
-    $this->cityOptions = $accommodations->pluck('city')->unique()->filter()->values()->sort()->toArray();
-    $this->typeOptions = $accommodations->pluck('type')->unique()->filter()->values()->sort()->toArray();
+    $this->statusOptions = $filterOptions['statusOptions'];
+    $this->cityOptions = $filterOptions['cityOptions'];
+    $this->typeOptions = $filterOptions['typeOptions'];
   }
 
   public function updatedSearch()
@@ -98,64 +98,23 @@ class AccommodationsList extends Component
     $this->resetPage();
   }
 
-  public function render()
+  public function render(AccommodationService $accommodationService)
   {
-    $query = Accommodation::query();
-
-    // Filtre par recherche (nom)
-    if (!empty($this->search)) {
-      $query->where('name', 'like', '%' . $this->search . '%');
-    }
-
-    // Filtre par statut
-    if (!empty($this->statusFilter)) {
-      $query->where('status', $this->statusFilter);
-    }
-
-    // Filtre par ville
-    if (!empty($this->cityFilter)) {
-      $query->where('city', $this->cityFilter);
-    }
-
-    // Filtre par type
-    if (!empty($this->typeFilter)) {
-      $query->where('type', $this->typeFilter);
-    }
-
-    // Filtres pour les informations de contact
-    if ($this->hasEmail) {
-      $query->whereNotNull('email');
-    }
-
-    if ($this->hasPhone) {
-      $query->whereNotNull('phone');
-    }
-
-    if ($this->hasWebsite) {
-      $query->whereNotNull('website');
-    }
-
-    $accommodations = $query->orderBy('name')->paginate(100);
-
-    // Calcul des statistiques pour les résultats filtrés
-    $filteredQuery = clone $query;
-    $stats = [
-      'total' => $filteredQuery->count(),
-      'by_status' => $filteredQuery->get()->groupBy('status')->map->count(),
-      'by_type' => $filteredQuery->get()->whereNotNull('type')->groupBy('type')->map->count(),
-      'by_city' => $filteredQuery->get()->whereNotNull('city')->groupBy('city')->map->count(),
-      'with_email' => $filteredQuery->get()->whereNotNull('email')->count(),
-      'with_phone' => $filteredQuery->get()->whereNotNull('phone')->count(),
-      'with_website' => $filteredQuery->get()->whereNotNull('website')->count(),
+    // Préparer les filtres
+    $filters = [
+      'search' => $this->search,
+      'status' => $this->statusFilter,
+      'city' => $this->cityFilter,
+      'type' => $this->typeFilter,
+      'has_email' => $this->hasEmail,
+      'has_phone' => $this->hasPhone,
+      'has_website' => $this->hasWebsite,
     ];
 
-    // Top 5 des villes pour les résultats filtrés
-    $topCities = $filteredQuery->get()
-      ->whereNotNull('city')
-      ->groupBy('city')
-      ->map->count()
-      ->sortDesc()
-      ->take(5);
+    // Récupérer les données via le service
+    $accommodations = $accommodationService->getFilteredPaginated($filters, 100);
+    $stats = $accommodationService->getFilteredStats($filters);
+    $topCities = $accommodationService->getFilteredTopCities($filters, 5);
 
     return view('livewire.accommodations-list', [
       'accommodations' => $accommodations,

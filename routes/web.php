@@ -4,6 +4,7 @@ use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AccommodationController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -23,29 +24,11 @@ Route::middleware(['auth'])->group(function () {
     // Nouvelle route pour la page de test
     Route::view('test', 'test')->name('test');
 
-    // Route pour afficher les hébergements
-    Route::get('accommodations', function () {
-        $accommodations = \App\Models\Accommodation::orderBy('name')->get();
-
-        // Calcul des statistiques
-        $stats = [
-            'total' => $accommodations->count(),
-            'by_status' => $accommodations->groupBy('status')->map->count(),
-            'by_type' => $accommodations->whereNotNull('type')->groupBy('type')->map->count(),
-            'by_city' => $accommodations->whereNotNull('city')->groupBy('city')->map->count(),
-            'with_email' => $accommodations->whereNotNull('email')->count(),
-            'with_phone' => $accommodations->whereNotNull('phone')->count(),
-            'with_website' => $accommodations->whereNotNull('website')->count(),
-        ];
-
-        // Top 5 des villes
-        $topCities = $accommodations->whereNotNull('city')
-            ->groupBy('city')
-            ->map->count()
-            ->sortDesc()
-            ->take(5);
-        return view('accommodations', compact('accommodations', 'stats', 'topCities'));
-    })->name('accommodations');
+    // Routes pour les hébergements
+    Route::get('accommodations', [AccommodationController::class, 'index'])->name('accommodations');
+    Route::get('accommodations/{id}', [AccommodationController::class, 'show'])->name('accommodations.show');
+    Route::get('accommodations/active', [AccommodationController::class, 'active'])->name('accommodations.active');
+    Route::get('accommodations/stats', [AccommodationController::class, 'stats'])->name('accommodations.stats');
 });
 
 require __DIR__ . '/auth.php';
