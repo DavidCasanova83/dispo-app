@@ -44,7 +44,6 @@ Route::middleware(['auth'])->group(function () {
             ->map->count()
             ->sortDesc()
             ->take(5);
-
         return view('accommodations', compact('accommodations', 'stats', 'topCities'));
     })->name('accommodations');
 });
