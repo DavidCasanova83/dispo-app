@@ -49,6 +49,15 @@ class Accommodation extends Model
   }
 
   /**
+   * Get the translated status for the current accommodation.
+   */
+  public function getStatusLabelAttribute(): string
+  {
+    return self::getStatusOptions()[$this->status] ?? ucfirst($this->status);
+  }
+
+
+  /**
    * Scope a query to only include active accommodations.
    */
   public function scopeActive($query)
@@ -69,10 +78,7 @@ class Accommodation extends Model
    */
   public function getDisplayNameAttribute(): string
   {
-    if ($this->type) {
-      return "{$this->name} ({$this->type})";
-    }
-    return $this->name;
+    return "{$this->name}";
   }
 
   /**
