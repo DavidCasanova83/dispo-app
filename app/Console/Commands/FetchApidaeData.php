@@ -14,7 +14,7 @@ class FetchApidaeData extends Command
      *
      * @var string
      */
-    protected $signature = 'apidae:fetch {--test : Utiliser des données de test au lieu de l\'API} {--limit=50 : Limite du nombre d\'hébergements à récupérer}';
+    protected $signature = 'apidae:fetch {--test : Utiliser des données de test au lieu de l\'API} {--limit=150 : Limite du nombre d\'hébergements à récupérer} {--simple : Utiliser une requête simple sans critères}';
 
     /**
      * The console command description.
@@ -43,41 +43,52 @@ class FetchApidaeData extends Command
 
         try {
             $limit = $this->option('limit');
+            $simple = $this->option('simple');
 
             $this->info("Configuration utilisée :");
             $this->line("  - Project ID: " . env('APIDAE_PROJECT_ID'));
             $this->line("  - Selection ID: " . env('APIDAE_SELECTION_ID'));
             $this->line("  - Limite: {$limit} hébergements");
+            $this->line("  - Mode simple: " . ($simple ? 'Oui' : 'Non'));
             $this->line("");
 
-            $response = Http::timeout(60)->post('https://api.apidae-tourisme.com/api/v002/objet-touristique/list-objets-touristiques', [
-                'apiKey' => env('APIDAE_API_KEY'),
-                'projectId' => env('APIDAE_PROJECT_ID'),
-                'selectionIds' => [env('APIDAE_SELECTION_ID')],
-                'projetId' => env('APIDAE_PROJECT_ID'),
+            // Préparer les paramètres de la requête
+            $requestData = [
                 'query' => [
-                    "criterias" => [
-                        [
-                            "criteriaType" => "critereSimple",
-                            "criteriaId" => 2211, // Critères "ouvert aujourd'hui"
-                            "values" => ["true"]
-                        ]
-                    ]
-                ],
-                'responseFields' => [
-                    "nom",
-                    "commune",
-                    "moyensCommunications",
-                    "identifiant",
-                    "adresse",
-                    "telephone",
-                    "siteWeb",
-                    "description",
-                    "type"
-                ],
-                'count' => $limit,
-                'first' => 0
-            ]);
+                    'selectionIds' => [env('APIDAE_SELECTION_ID')],
+                    'searchFields' => 'NOM_DESCRIPTION_CRITERES',
+                    'first' => 0,
+                    'count' => $limit,
+                    'order' => 'IDENTIFIANT',
+                    'asc' => true,
+                    'apiKey' => env('APIDAE_API_KEY'),
+                    'projetId' => env('APIDAE_PROJECT_ID')
+                ]
+            ];
+
+            // // Ajouter les critères seulement si pas en mode simple
+            // if (!$simple) {
+            //     $requestData['query']['criteresQuery'] = json_encode([
+            //         [
+            //             "id" => 2211,
+            //             "type" => "Selection",
+            //             "valeurs" => ["true"]
+            //         ]
+            //     ]);
+            // }
+
+
+            $url = 'https://api.apidae-tourisme.com/api/v002/recherche/list-objets-touristiques';
+
+            $this->line("Payload envoyé :");
+            $this->line(json_encode($requestData['query'], JSON_PRETTY_PRINT));
+
+            $response = Http::timeout(60)
+                ->asForm()
+                ->post($url, [
+                    'query' => json_encode($requestData['query'])
+                ]);
+
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -172,30 +183,34 @@ class FetchApidaeData extends Command
         foreach ($results as $item) {
             // Extraction de l'email de manière plus sûre
             $email = null;
-            if (isset($item['moyensCommunications']) && is_array($item['moyensCommunications'])) {
-                $emailCommunication = collect($item['moyensCommunications'])
-                    ->firstWhere('type', 'EMAIL');
-                $email = $emailCommunication['coordonnees'] ?? null;
-            }
-
-            // Extraction du téléphone
             $phone = null;
-            if (isset($item['moyensCommunications']) && is_array($item['moyensCommunications'])) {
-                $phoneCommunication = collect($item['moyensCommunications'])
-                    ->firstWhere('type', 'TELEPHONE');
-                $phone = $phoneCommunication['coordonnees'] ?? null;
+            $website = null;
+
+            if (isset($item['informations']['moyensCommunication']) && is_array($item['informations']['moyensCommunication'])) {
+                foreach ($item['informations']['moyensCommunication'] as $communication) {
+                    $type = $communication['type']['libelleFr'] ?? '';
+                    $coordonnees = $communication['coordonnees']['fr'] ?? '';
+
+                    if (str_contains(strtolower($type), 'mél') || str_contains(strtolower($type), 'email')) {
+                        $email = $coordonnees;
+                    } elseif (str_contains(strtolower($type), 'téléphone') || str_contains(strtolower($type), 'phone')) {
+                        $phone = $coordonnees;
+                    } elseif (str_contains(strtolower($type), 'site web') || str_contains(strtolower($type), 'url')) {
+                        $website = $coordonnees;
+                    }
+                }
             }
 
             $accommodation = Accommodation::updateOrCreate(
-                ['apidae_id' => $item['identifiant'] ?? $item['id'] ?? null],
+                ['apidae_id' => $item['identifier'] ?? $item['id'] ?? null],
                 [
                     'name' => $item['nom']['libelleFr'] ?? $item['nom'] ?? 'Nom inconnu',
-                    'city' => $item['commune']['nom'] ?? $item['commune'] ?? null,
+                    'city' => $item['localisation']['adresse']['commune']['nom'] ?? null,
                     'email' => $email,
                     'phone' => $phone,
-                    'website' => $item['siteWeb'] ?? null,
-                    'description' => $item['description']['libelleFr'] ?? $item['description'] ?? null,
-                    'type' => $item['type']['libelleFr'] ?? $item['type'] ?? null,
+                    'website' => $website,
+                    'description' => $item['presentation']['descriptifCourt']['libelleFr'] ?? null,
+                    'type' => $item['type'] ?? null,
                     'status' => $item['status'] ?? 'pending',
                 ]
             );
