@@ -14,6 +14,110 @@
             </div>
         </div>
 
+        <!-- Section Statistiques -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total des établissements -->
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-90">Total établissements</p>
+                        <p class="text-2xl font-bold">{{ $stats['total'] }}</p>
+                    </div>
+                    <div class="text-3xl">🏨</div>
+                </div>
+            </div>
+
+            <!-- Par statut -->
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-90">Statuts</p>
+                        <div class="text-sm">
+                            @foreach ($stats['by_status'] as $status => $count)
+                                <div class="flex justify-between">
+                                    <span>{{ ucfirst($status) }}:</span>
+                                    <span class="font-semibold">{{ $count }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="text-3xl">📊</div>
+                </div>
+            </div>
+
+            <!-- Par type -->
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-90">Types</p>
+                        <p class="text-2xl font-bold">{{ $stats['by_type']->count() }}</p>
+                        <p class="text-xs opacity-90">{{ $stats['by_type']->sum() }} établissements</p>
+                    </div>
+                    <div class="text-3xl">🏷️</div>
+                </div>
+            </div>
+
+            <!-- Par ville -->
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-90">Villes</p>
+                        <p class="text-2xl font-bold">{{ $stats['by_city']->count() }}</p>
+                        <p class="text-xs opacity-90">{{ $stats['by_city']->sum() }} établissements</p>
+                    </div>
+                    <div class="text-3xl">🏙️</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations de contact -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4">
+                <div class="flex items-center">
+                    <div class="text-2xl mr-3">📧</div>
+                    <div>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ $stats['with_email'] }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Avec email</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4">
+                <div class="flex items-center">
+                    <div class="text-2xl mr-3">📞</div>
+                    <div>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ $stats['with_phone'] }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Avec téléphone</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4">
+                <div class="flex items-center">
+                    <div class="text-2xl mr-3">🌐</div>
+                    <div>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ $stats['with_website'] }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Avec site web</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 5 des villes -->
+        @if ($topCities->count() > 0)
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 des villes</h3>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    @foreach ($topCities as $city => $count)
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $count }}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300">{{ $city }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
             @if ($accommodations->count() > 0)
                 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
