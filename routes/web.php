@@ -22,6 +22,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Nouvelle route pour la page de test
     Route::view('test', 'test')->name('test');
+
+    // Route pour afficher les hébergements
+    Route::get('accommodations', function () {
+        $accommodations = \App\Models\Accommodation::orderBy('name')->get();
+        return view('accommodations', compact('accommodations'));
+    })->name('accommodations');
 });
 
 require __DIR__ . '/auth.php';
