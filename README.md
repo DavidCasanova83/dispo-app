@@ -12,7 +12,7 @@ Application Laravel moderne pour la gestion des hébergements touristiques avec 
 - 🏨 **Gestion d'hébergements** - Système complet de gestion des accommodations
 - 🔍 **Filtrage avancé** - Recherche multi-critères avec validation centralisée
 - 📊 **Statistiques temps réel** - Dashboard avec données mises en cache
-- 🌐 **Intégration API Apidae** - Synchronisation automatique des données touristiques
+- 🌐 **Intégration API Apidae** - Synchronisation automatique quotidienne (5h00)
 - 🔐 **Authentification sécurisée** - Système de connexion avec vérification email
 - ⚡ **Performance optimisée** - Index de base de données et cache intelligent
 - 📱 **Interface responsive** - Design moderne avec Tailwind CSS + DaisyUI
@@ -135,6 +135,46 @@ php artisan apidae:fetch --limit=50
 php artisan apidae:fetch
 ```
 
+### 🕐 Planification Automatique
+
+La synchronisation Apidae s'exécute automatiquement tous les matins à 5h via le scheduler Laravel.
+
+```bash
+# Vérifier les tâches planifiées
+php artisan schedule:list
+
+# Tester la planification manuellement
+php artisan schedule:run
+
+# Démarrer le worker pour les jobs de queue
+php artisan queue:work --queue=apidae-sync
+```
+
+#### Configuration Serveur (Production)
+
+Ajoutez cette ligne au crontab du serveur pour activer le scheduler Laravel :
+
+```bash
+# Éditer le crontab
+sudo crontab -e
+
+# Ajouter cette ligne (remplacez /path/to/dispo-app par le chemin réel)
+* * * * * cd /path/to/dispo-app && php artisan schedule:run >> /dev/null 2>&1
+```
+
+#### Surveillance des Synchronisations
+
+```bash
+# Logs de synchronisation
+grep "Apidae" storage/logs/laravel.log | tail -20
+
+# Status des jobs de queue
+php artisan queue:monitor
+
+# Nettoyer les jobs échoués
+php artisan queue:flush
+```
+
 ### Tests
 ```bash
 composer run test              # Suite complète
@@ -168,7 +208,9 @@ vendor/bin/pint               # Formatage automatique
 - ✅ Authentification complète
 - ✅ Dashboard et settings
 - ✅ Tests de base pour accommodations
-- 🔄 Tests des services (en cours)
+- ✅ Tests de synchronisation automatique Apidae
+- ✅ Tests de planification des tâches
+- ✅ Tests des services métier
 
 ### Lancer les Tests
 ```bash
@@ -180,6 +222,8 @@ vendor/bin/pest --coverage
 
 # Tests spécifiques
 vendor/bin/pest tests/Feature/AccommodationTest.php
+vendor/bin/pest tests/Feature/ApidaeSyncTest.php
+vendor/bin/pest tests/Feature/ScheduledTasksTest.php
 ```
 
 ## 🔧 API Reference
@@ -218,6 +262,8 @@ grep "Slow" storage/logs/laravel.log
 - Performance des requêtes SQL
 - Utilisation du cache
 - Erreurs d'authentification
+- Statut des jobs de synchronisation
+- Fréquence des synchronisations automatiques
 
 ## 🤝 Contribution
 
@@ -238,6 +284,7 @@ grep "Slow" storage/logs/laravel.log
 
 - **[CLAUDE.md](CLAUDE.md)** - Guide pour Claude Code
 - **[ANALYSE_APPLICATION.md](ANALYSE_APPLICATION.md)** - Analyse technique complète
+- **[CONFIG-PROD.md](CONFIG-PROD.md)** - Configuration serveur et production
 - **[APIDAE_SETUP.md](APIDAE_SETUP.md)** - Configuration API Apidae
 
 ## 🚀 Déploiement
