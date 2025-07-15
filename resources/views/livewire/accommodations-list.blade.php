@@ -132,7 +132,7 @@
                 <select wire:model.live="statusFilter"
                     class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                     <option value="">Tous les statuts</option>
-                    @foreach ($statusOptions as $status)
+                    @foreach ($filterOptions['statuses'] ?? [] as $status)
                         <option value="{{ $status }}">{{ ucfirst($status) }}</option>
                     @endforeach
                 </select>
@@ -146,7 +146,7 @@
                 <select wire:model.live="cityFilter"
                     class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                     <option value="">Toutes les villes</option>
-                    @foreach ($cityOptions as $city)
+                    @foreach ($filterOptions['cities'] ?? [] as $city)
                         <option value="{{ $city }}">{{ $city }}</option>
                     @endforeach
                 </select>
@@ -160,7 +160,7 @@
                 <select wire:model.live="typeFilter"
                     class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                     <option value="">Tous les types</option>
-                    @foreach ($typeOptions as $type)
+                    @foreach ($filterOptions['types'] ?? [] as $type)
                         <option value="{{ $type }}">{{ $type }}</option>
                     @endforeach
                 </select>
