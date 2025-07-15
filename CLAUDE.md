@@ -63,13 +63,40 @@ php artisan apidae:fetch --limit=50 # Limit number of accommodations
 php artisan apidae:fetch --simple   # Simple query without criteria
 ```
 
+### 🕐 Synchronisation Automatique
+La synchronisation Apidae est maintenant automatisée via le scheduler Laravel :
+
+```bash
+# Vérifier les tâches planifiées
+php artisan schedule:list
+
+# Tester la planification manuellement
+php artisan schedule:run
+
+# Dispatcher un job de synchronisation manuellement
+php artisan tinker
+>>> App\Jobs\SyncApidaeData::dispatch(100);
+
+# Surveiller les workers de queue
+php artisan queue:work --queue=apidae-sync
+
+# Vérifier les logs de synchronisation
+grep "Apidae" storage/logs/laravel.log | tail -20
+```
+
 ## Application Architecture
 
 ### Core Models
 - **Accommodation**: Main model representing tourism accommodations with Apidae integration
   - Fields: apidae_id, name, city, email, phone, website, description, type, status
-  - Scopes: active(), pending()
+  - Scopes: active(), pending(), withContact(), search()
   - Location: `app/Models/Accommodation.php`
+
+### MVC Architecture (Refactorisé - Juillet 2025)
+- **Controllers**: `AccommodationController` avec injection de dépendances
+- **Services**: `AccommodationService` et `ApidaeService` pour la logique métier
+- **Requests**: `AccommodationFilterRequest` pour validation centralisée
+- **Jobs**: `SyncApidaeData` pour synchronisation automatique en queue
 
 ### Livewire Components
 - **AccommodationsList**: Main component for displaying and filtering accommodations
@@ -80,16 +107,21 @@ php artisan apidae:fetch --simple   # Simple query without criteria
 
 ### Key Features
 - **Apidae API Integration**: Fetches accommodation data from French tourism API
+- **Synchronisation Automatique**: Quotidienne à 5h00 via scheduler Laravel
 - **Advanced Filtering**: Multiple filter options for accommodations
 - **User Authentication**: Laravel Breeze-style authentication with Livewire
 - **Dashboard**: Statistics and management interface
 - **Settings**: User profile, password, appearance management
+- **Performance**: Cache intelligent et index de base de données
 
 ### API Integration
 The application integrates with the Apidae API for French tourism data:
 - **Command**: `FetchApidaeData` in `app/Console/Commands/`
+- **Service**: `ApidaeService` in `app/Services/`
+- **Job**: `SyncApidaeData` in `app/Jobs/` pour synchronisation automatique
 - **Configuration**: Requires APIDAE_API_KEY, APIDAE_PROJECT_ID, APIDAE_SELECTION_ID in .env
 - **Data Processing**: Handles accommodation data parsing and contact information extraction
+- **Scheduler**: Synchronisation automatique quotidienne à 5h00 et hebdomadaire le dimanche
 
 ### Database Schema
 - **Users**: Standard Laravel authentication
@@ -121,6 +153,28 @@ The application uses Livewire Flux for UI components with Tailwind CSS styling:
 
 Tests are organized using Pest PHP:
 - **Feature Tests**: Authentication, dashboard, settings functionality
+- **Apidae Sync Tests**: Tests complets pour synchronisation automatique
+- **Scheduled Tasks Tests**: Tests de planification Laravel
 - **Unit Tests**: Model logic and business rules
 - **Database**: In-memory SQLite for testing
 - **Configuration**: `phpunit.xml` with proper test environment setup
+
+### Tests de Synchronisation Automatique
+```bash
+# Tests de synchronisation Apidae
+vendor/bin/pest tests/Feature/ApidaeSyncTest.php
+
+# Tests de planification
+vendor/bin/pest tests/Feature/ScheduledTasksTest.php
+
+# Tous les tests
+vendor/bin/pest
+```
+
+### Couverture de Tests
+- ✅ **Job SyncApidaeData** : Création, exécution, gestion d'erreurs
+- ✅ **Service ApidaeService** : Traitement et sanitisation des données
+- ✅ **Cache management** : Nettoyage automatique après sync
+- ✅ **Queue system** : Configuration et dispatch des jobs
+- ✅ **Data validation** : Validation email, téléphone, URL
+- ✅ **Update vs Create** : Logique d'upsert des accommodations
