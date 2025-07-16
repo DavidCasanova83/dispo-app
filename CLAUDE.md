@@ -25,8 +25,18 @@ composer run dev
 
 # Alternative: Start individual services
 php artisan serve                    # Start Laravel server
-php artisan queue:listen --tries=1  # Start queue worker
+php artisan queue:work --tries=3     # Start queue worker (recommended)
 npm run dev                         # Start Vite for asset compilation
+
+# For email functionality, make sure queue worker is running:
+php artisan queue:work --queue=emails --tries=3 --timeout=300
+
+# Queue maintenance commands:
+php artisan queue:clear                                    # Clear all pending jobs
+php artisan queue:clear --queue=emails                     # Clear emails queue only
+php artisan queue:restart                                  # Restart all workers  
+php artisan queue:work --once --queue=emails               # Process one email job only
+php artisan queue:work --once --queue=default,emails       # Process from both queues
 ```
 
 ### Database
@@ -62,6 +72,78 @@ php artisan apidae:fetch --test     # Use test data instead of API
 php artisan apidae:fetch --limit=50 # Limit number of accommodations
 php artisan apidae:fetch --simple   # Simple query without criteria
 ```
+
+### 📧 Système d'Email Automatique
+Après chaque synchronisation Apidae, le système envoie automatiquement des emails de notification aux hébergements avec leurs liens de gestion unique.
+
+**Configuration Mailjet** (requise pour l'envoi d'emails réels) :
+```bash
+# Dans votre fichier .env
+MAIL_MAILER=mailjet
+MAILJET_APIKEY=your-mailjet-api-key
+MAILJET_APISECRET=your-mailjet-secret-key
+MAIL_FROM_ADDRESS="your-verified-email@domain.com"
+MAIL_FROM_NAME="Votre Organisation"
+
+# Et dans config/services.php, ajouter :
+'mailjet' => [
+    'key' => env('MAILJET_APIKEY'),
+    'secret' => env('MAILJET_APISECRET'),
+],
+```
+
+**🚀 Envoi d'emails - Instructions complètes** :
+
+**Méthode 1 : Interface web**
+1. Aller sur `/accommodations`
+2. Cliquer sur "📧 Envoyer emails"
+3. Confirmer dans la modal
+4. **IMPORTANT** : Lancer le worker pour traiter les jobs :
+   ```bash
+   php artisan queue:work --once --queue=emails
+   ```
+
+**Méthode 2 : Ligne de commande**
+```bash
+# 1. Créer les jobs
+php artisan accommodation:send-notifications
+
+# 2. Traiter les jobs créés
+php artisan queue:work --once --queue=emails
+
+# Ou en mode test
+php artisan accommodation:send-notifications --test
+php artisan queue:work --once --queue=emails
+```
+
+**🔧 Workers de queue** :
+```bash
+# Développement - traiter un job à la fois
+php artisan queue:work --once --queue=emails
+
+# Développement - worker permanent
+php artisan queue:work --queue=emails --tries=3 --timeout=300
+
+# Vérifier les jobs en attente
+php artisan tinker --execute="echo 'Jobs emails: ' . DB::table('jobs')->where('queue', 'emails')->count();"
+
+# Diagnostics complets
+php artisan queue:failed                # Vérifier les jobs en échec
+php artisan tinker --execute="
+\$pending = DB::table('jobs')->count();
+\$emails = DB::table('jobs')->where('queue', 'emails')->count();
+\$failed = DB::table('failed_jobs')->count();
+echo 'Jobs total: ' . \$pending . PHP_EOL;
+echo 'Jobs emails: ' . \$emails . PHP_EOL;
+echo 'Jobs failed: ' . \$failed . PHP_EOL;
+"
+```
+
+**⚠️ Points importants** :
+- Les jobs d'emails sont dans la queue **"emails"**, pas "default"
+- Toujours spécifier `--queue=emails` pour traiter les emails
+- En production, utiliser Supervisor pour maintenir les workers actifs
+- Les emails sont envoyés via Mailjet API v3.1 avec tracking et métadonnées
 
 ### 🕐 Synchronisation Automatique
 La synchronisation Apidae est maintenant automatisée via le scheduler Laravel :
@@ -218,3 +300,8 @@ vendor/bin/pest
 - ✅ **Queue system** : Configuration et dispatch des jobs
 - ✅ **Data validation** : Validation email, téléphone, URL
 - ✅ **Update vs Create** : Logique d'upsert des accommodations
+
+## Memory Management
+
+- Added a memory to memorize key project details and guidelines
+- Added support for storing project-specific memories in this document

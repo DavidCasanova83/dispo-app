@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AccommodationFilterRequest;
+use App\Jobs\SendAccommodationNotificationEmails;
 use App\Models\Accommodation;
 use App\Models\ActivityLog;
 use App\Services\AccommodationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -118,5 +120,69 @@ class AccommodationController extends Controller
         $statusLabel = $newStatus === 'active' ? 'Actif' : 'Inactif';
         
         return redirect()->back()->with('success', "Statut mis à jour avec succès : {$statusLabel}");
+    }
+
+    /**
+     * Send notification emails to all accommodations (manual trigger).
+     */
+    public function sendEmails(): JsonResponse
+    {
+        try {
+            // Get count of accommodations with emails
+            $accommodationsWithEmails = Accommodation::whereNotNull('email')
+                ->where('email', '!=', '')
+                ->count();
+
+            if ($accommodationsWithEmails === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun hébergement avec adresse email trouvé'
+                ]);
+            }
+
+            // Log the manual trigger
+            ActivityLog::logActivity(
+                'email_notification',
+                'manual_trigger',
+                'system',
+                null,
+                [
+                    'accommodations_count' => $accommodationsWithEmails,
+                    'user_id' => auth()->user()->id,
+                    'user_name' => auth()->user()->name,
+                ],
+                "Envoi d'emails déclenché manuellement par " . auth()->user()->name . " pour {$accommodationsWithEmails} hébergements"
+            );
+
+            // Dispatch the email job
+            SendAccommodationNotificationEmails::dispatch();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Job d'envoi d'emails dispatché avec succès pour {$accommodationsWithEmails} hébergements. Consultez les logs pour suivre le progrès."
+            ]);
+
+        } catch (\Exception $e) {
+            // Log the error
+            $user = auth()->user();
+            ActivityLog::logActivity(
+                'email_notification',
+                'manual_trigger_error',
+                'system',
+                null,
+                [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user ? $user->id : null,
+                    'user_name' => $user ? $user->name : 'Unknown',
+                ],
+                "Erreur lors du déclenchement manuel d'emails par " . ($user ? $user->name : 'Unknown') . ": " . $e->getMessage(),
+                'error'
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du déclenchement de l\'envoi des emails: ' . $e->getMessage()
+            ]);
+        }
     }
 }

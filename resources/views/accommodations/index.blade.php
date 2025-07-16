@@ -61,12 +61,18 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 mb-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
-                @if (request()->hasAny(['search', 'status', 'city', 'type', 'has_email', 'has_phone', 'has_website']))
-                    <a href="{{ route('accommodations') }}" 
-                       class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                        🔄 Effacer les filtres
-                    </a>
-                @endif
+                <div class="flex space-x-2">
+                    @if (request()->hasAny(['search', 'status', 'city', 'type', 'has_email', 'has_phone', 'has_website']))
+                        <a href="{{ route('accommodations') }}" 
+                           class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            🔄 Effacer les filtres
+                        </a>
+                    @endif
+                    <button onclick="openEmailModal()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        📧 Envoyer emails
+                    </button>
+                </div>
             </div>
 
             <form method="GET" action="{{ route('accommodations') }}" class="space-y-4">
@@ -281,4 +287,123 @@
             @endif
         </div>
     </div>
+
+    <!-- Modal de confirmation pour l'envoi d'emails -->
+    <div id="emailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900">
+                    <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Envoi des emails de notification</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 dark:text-gray-300">
+                        Vous êtes sur le point d'envoyer des emails de notification à tous les hébergements avec une adresse email valide.
+                    </p>
+                    <div class="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                            ⚠️ Cette action enverra des emails à tous les hébergements de la base de données. Assurez-vous que c'est bien ce que vous souhaitez faire.
+                        </p>
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                            ℹ️ Les emails seront traités en arrière-plan par le système de queue. Assurez-vous que le worker de queue est en cours d'exécution avec : <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">php artisan queue:work</code>
+                        </p>
+                    </div>
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input id="confirmCheckbox" type="checkbox" class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">
+                                Je confirme vouloir envoyer les emails de notification
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center space-x-2 px-4 py-3">
+                    <button id="cancelButton" type="button" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Annuler
+                    </button>
+                    <button id="confirmButton" type="button" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Envoyer les emails
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openEmailModal() {
+            document.getElementById('emailModal').classList.remove('hidden');
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.add('hidden');
+            document.getElementById('confirmCheckbox').checked = false;
+            document.getElementById('confirmButton').disabled = true;
+        }
+
+        // Gestion du checkbox
+        document.getElementById('confirmCheckbox').addEventListener('change', function() {
+            document.getElementById('confirmButton').disabled = !this.checked;
+        });
+
+        // Gestion des boutons
+        document.getElementById('cancelButton').addEventListener('click', closeEmailModal);
+        
+        document.getElementById('confirmButton').addEventListener('click', function() {
+            // Désactiver le bouton pour éviter les clics multiples
+            this.disabled = true;
+            this.textContent = 'Envoi en cours...';
+            
+            // Envoyer la requête
+            fetch('/accommodations/send-emails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message + '\n\nLes emails seront traités en arrière-plan. Consultez les logs pour suivre le progrès.');
+                    closeEmailModal();
+                    // Recharger la page pour voir les logs mis à jour
+                    window.location.reload();
+                } else {
+                    alert('❌ ' + data.message);
+                    // Réactiver le bouton
+                    document.getElementById('confirmButton').disabled = false;
+                    document.getElementById('confirmButton').textContent = 'Confirmer l\'envoi';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                let errorMessage = 'Une erreur est survenue lors de l\'envoi des emails';
+                if (error.message.includes('CSRF')) {
+                    errorMessage = 'Erreur CSRF - Veuillez recharger la page et réessayer';
+                } else if (error.message.includes('HTTP')) {
+                    errorMessage = 'Erreur de connexion: ' + error.message;
+                }
+                alert('❌ ' + errorMessage);
+                // Réactiver le bouton
+                document.getElementById('confirmButton').disabled = false;
+                document.getElementById('confirmButton').textContent = 'Confirmer l\'envoi';
+            });
+        });
+
+        // Fermer la modal en cliquant en dehors
+        document.getElementById('emailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEmailModal();
+            }
+        });
+    </script>
 </x-layouts.app>
