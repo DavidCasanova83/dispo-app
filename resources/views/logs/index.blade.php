@@ -52,13 +52,13 @@
         </div>
 
         <!-- Section Filtres -->
-        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-adaptive-accent dark:bg-gray-800 rounded-xl border border-adaptive-secondary dark:border-neutral-700 p-6 mb-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
                 <div class="flex space-x-2">
                     @if (request()->hasAny(['event_type', 'status', 'entity_type', 'date_from', 'date_to', 'search']))
                         <a href="{{ route('logs.index') }}" 
-                           class="px-4 py-2 bg-custom-secondary text-white rounded-lg hover:bg-custom-primary transition-colors">
+                           class="px-4 py-2 bg-adaptive-secondary text-white rounded-lg hover:bg-adaptive-primary transition-colors">
                             🔄 Effacer les filtres
                         </a>
                     @endif

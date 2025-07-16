@@ -82,18 +82,18 @@
 
             <!-- Actions -->
             <div class="flex items-center gap-4 pt-6">
-                <flux:button type="submit" variant="primary">
+                <button type="submit" class="px-6 py-2 bg-adaptive-primary text-white font-semibold rounded-lg hover:bg-adaptive-secondary transition-colors">
                     Enregistrer les couleurs
-                </flux:button>
+                </button>
                 
-                <flux:button type="button" variant="outline" wire:click="resetToDefault">
+                <button type="button" wire:click="resetToDefault" class="px-6 py-2 border-2 border-adaptive-primary text-adaptive-primary font-semibold rounded-lg hover:bg-adaptive-primary hover:text-white transition-colors">
                     Réinitialiser par défaut
-                </flux:button>
+                </button>
             </div>
 
             <!-- Message de succès -->
             @if (session('status'))
-                <div class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                <div class="mt-4 p-3 bg-green-100 dark:bg-green-900/20 border border-adaptive-primary dark:border-green-700 text-adaptive-primary dark:text-green-300 rounded">
                     {{ session('status') }}
                 </div>
             @endif

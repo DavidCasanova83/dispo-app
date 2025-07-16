@@ -27,7 +27,7 @@
 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full">{{ __('Save') }}</flux:button>
+                    <button type="submit" class="w-full px-6 py-2 bg-adaptive-primary text-white font-semibold rounded-lg hover:bg-adaptive-secondary transition-colors">{{ __('Save') }}</button>
                 </div>
 
                 <x-action-message class="me-3" on="password-updated">

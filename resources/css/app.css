@@ -41,8 +41,15 @@
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-primary);
-        --color-accent-content: var(--color-primary);
+        /* Couleurs personnalisées pour le mode sombre */
+        --color-primary-dark: #4DAAA0;
+        --color-secondary-dark: #8CC4B8;
+        --color-accent-dark: #2A2A2A;
+        --color-background-dark: #1A1A1A;
+        
+        /* Override des couleurs pour Flux en mode sombre */
+        --color-accent: var(--color-primary-dark);
+        --color-accent-content: var(--color-primary-dark);
         --color-accent-foreground: var(--color-white);
     }
 }
@@ -115,5 +122,203 @@ select:focus[data-flux-control] {
     
     .hover\:text-custom-primary:hover {
         color: var(--color-primary);
+    }
+    
+    /* Styles pour le mode sombre */
+    .dark .bg-custom-primary-dark {
+        background-color: var(--color-primary-dark);
+    }
+    
+    .dark .bg-custom-secondary-dark {
+        background-color: var(--color-secondary-dark);
+    }
+    
+    .dark .bg-custom-accent-dark {
+        background-color: var(--color-accent-dark);
+    }
+    
+    .dark .bg-custom-background-dark {
+        background-color: var(--color-background-dark);
+    }
+    
+    .dark .text-custom-primary-dark {
+        color: var(--color-primary-dark);
+    }
+    
+    .dark .text-custom-secondary-dark {
+        color: var(--color-secondary-dark);
+    }
+    
+    .dark .border-custom-primary-dark {
+        border-color: var(--color-primary-dark);
+    }
+    
+    .dark .border-custom-secondary-dark {
+        border-color: var(--color-secondary-dark);
+    }
+    
+    /* Classes adaptatives pour les deux thèmes */
+    .bg-adaptive-primary {
+        background-color: var(--color-primary);
+    }
+    .dark .bg-adaptive-primary {
+        background-color: var(--color-primary-dark);
+    }
+    
+    .bg-adaptive-secondary {
+        background-color: var(--color-secondary);
+    }
+    .dark .bg-adaptive-secondary {
+        background-color: var(--color-secondary-dark);
+    }
+    
+    .bg-adaptive-accent {
+        background-color: var(--color-accent);
+    }
+    .dark .bg-adaptive-accent {
+        background-color: var(--color-accent-dark);
+    }
+    
+    .bg-adaptive-background {
+        background-color: var(--color-background);
+    }
+    .dark .bg-adaptive-background {
+        background-color: var(--color-background-dark);
+    }
+    
+    .text-adaptive-primary {
+        color: var(--color-primary);
+    }
+    .dark .text-adaptive-primary {
+        color: var(--color-primary-dark);
+    }
+    
+    .text-adaptive-secondary {
+        color: var(--color-secondary);
+    }
+    .dark .text-adaptive-secondary {
+        color: var(--color-secondary-dark);
+    }
+    
+    .border-adaptive-primary {
+        border-color: var(--color-primary);
+    }
+    .dark .border-adaptive-primary {
+        border-color: var(--color-primary-dark);
+    }
+    
+    .border-adaptive-secondary {
+        border-color: var(--color-secondary);
+    }
+    .dark .border-adaptive-secondary {
+        border-color: var(--color-secondary-dark);
+    }
+    
+    /* Override des boutons Flux pour utiliser notre palette */
+    button[data-flux-button][data-variant="primary"],
+    [data-flux-button][data-variant="primary"] {
+        background-color: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+        color: white !important;
+    }
+    
+    button[data-flux-button][data-variant="primary"]:hover,
+    [data-flux-button][data-variant="primary"]:hover {
+        background-color: var(--color-secondary) !important;
+        border-color: var(--color-secondary) !important;
+        color: white !important;
+    }
+    
+    .dark button[data-flux-button][data-variant="primary"],
+    .dark [data-flux-button][data-variant="primary"] {
+        background-color: var(--color-primary-dark) !important;
+        border-color: var(--color-primary-dark) !important;
+        color: white !important;
+    }
+    
+    .dark button[data-flux-button][data-variant="primary"]:hover,
+    .dark [data-flux-button][data-variant="primary"]:hover {
+        background-color: var(--color-secondary-dark) !important;
+        border-color: var(--color-secondary-dark) !important;
+        color: white !important;
+    }
+    
+    /* Sélecteurs encore plus spécifiques pour forcer les styles */
+    .bg-accent,
+    .bg-blue-600,
+    button.bg-accent,
+    button.bg-blue-600 {
+        background-color: var(--color-primary) !important;
+    }
+    
+    .bg-accent:hover,
+    .bg-blue-600:hover,
+    button.bg-accent:hover,
+    button.bg-blue-600:hover {
+        background-color: var(--color-secondary) !important;
+    }
+    
+    .dark .bg-accent,
+    .dark .bg-blue-600,
+    .dark button.bg-accent,
+    .dark button.bg-blue-600 {
+        background-color: var(--color-primary-dark) !important;
+    }
+    
+    .dark .bg-accent:hover,
+    .dark .bg-blue-600:hover,
+    .dark button.bg-accent:hover,
+    .dark button.bg-blue-600:hover {
+        background-color: var(--color-secondary-dark) !important;
+    }
+    
+    [data-flux-button][data-variant="outline"] {
+        border-color: var(--color-primary) !important;
+        color: var(--color-primary) !important;
+    }
+    
+    [data-flux-button][data-variant="outline"]:hover {
+        background-color: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+        color: white !important;
+    }
+    
+    .dark [data-flux-button][data-variant="outline"] {
+        border-color: var(--color-primary-dark) !important;
+        color: var(--color-primary-dark) !important;
+    }
+    
+    .dark [data-flux-button][data-variant="outline"]:hover {
+        background-color: var(--color-primary-dark) !important;
+        border-color: var(--color-primary-dark) !important;
+        color: white !important;
+    }
+    
+    /* Override des liens Flux pour utiliser notre palette */
+    [data-flux-link] {
+        color: var(--color-primary) !important;
+    }
+    
+    [data-flux-link]:hover {
+        color: var(--color-secondary) !important;
+    }
+    
+    .dark [data-flux-link] {
+        color: var(--color-primary-dark) !important;
+    }
+    
+    .dark [data-flux-link]:hover {
+        color: var(--color-secondary-dark) !important;
+    }
+    
+    /* Override des inputs focus pour utiliser notre palette */
+    [data-flux-control]:focus {
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 0 0 1px var(--color-primary) !important;
+    }
+    
+    .dark [data-flux-control]:focus {
+        border-color: var(--color-primary-dark) !important;
+        box-shadow: 0 0 0 1px var(--color-primary-dark) !important;
     }
 }

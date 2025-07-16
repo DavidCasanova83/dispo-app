@@ -58,18 +58,18 @@
         </div>
 
         <!-- Section Filtres -->
-        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-adaptive-accent dark:bg-gray-800 rounded-xl border border-adaptive-secondary dark:border-neutral-700 p-6 mb-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
                 <div class="flex space-x-2">
                     @if (request()->hasAny(['search', 'status', 'city', 'type', 'has_email', 'has_phone', 'has_website']))
                         <a href="{{ route('accommodations') }}" 
-                           class="px-4 py-2 bg-custom-secondary text-white rounded-lg hover:bg-custom-primary transition-colors">
+                           class="px-4 py-2 bg-adaptive-secondary text-white rounded-lg hover:bg-adaptive-primary transition-colors">
                             🔄 Effacer les filtres
                         </a>
                     @endif
                     <button onclick="openEmailModal()" 
-                            class="px-4 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
+                            class="px-4 py-2 bg-adaptive-primary text-white rounded-lg hover:bg-adaptive-secondary transition-colors">
                         📧 Envoyer emails
                     </button>
                 </div>
@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
+                    <button type="submit" class="px-6 py-2 bg-adaptive-primary text-white rounded-lg hover:bg-adaptive-secondary transition-colors">
                         Filtrer
                     </button>
                 </div>
@@ -162,12 +162,12 @@
 
         @if (!empty($topCities))
         <!-- Top 5 des villes -->
-        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-adaptive-accent dark:bg-gray-800 rounded-xl border border-adaptive-secondary dark:border-neutral-700 p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 des villes</h3>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 @foreach ($topCities as $city => $count)
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-custom-primary dark:text-custom-secondary">{{ $count }}</div>
+                        <div class="text-2xl font-bold text-adaptive-primary dark:text-adaptive-secondary">{{ $count }}</div>
                         <div class="text-sm text-gray-600 dark:text-gray-300">{{ $city }}</div>
                     </div>
                 @endforeach
@@ -180,7 +180,7 @@
             @if ($accommodations->count() > 0)
                 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     @foreach ($accommodations as $accommodation)
-                        <div class="bg-custom-background dark:bg-gray-700 rounded-lg p-4 border border-custom-secondary dark:border-gray-600">
+                        <div class="bg-adaptive-background dark:bg-gray-700 rounded-lg p-4 border border-adaptive-secondary dark:border-gray-600">
                             <div class="flex items-start justify-between mb-3">
                                 <div class="flex items-center space-x-3">
                                     <h3 class="font-semibold text-gray-900 dark:text-white">{{ $accommodation->name }}</h3>
@@ -222,7 +222,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">📧</span>
                                         <a href="mailto:{{ $accommodation->email }}"
-                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
+                                            class="text-adaptive-primary dark:text-adaptive-secondary hover:underline">
                                             {{ $accommodation->email }}
                                         </a>
                                     </div>
@@ -232,7 +232,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">📞</span>
                                         <a href="tel:{{ $accommodation->phone }}"
-                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
+                                            class="text-adaptive-primary dark:text-adaptive-secondary hover:underline">
                                             {{ $accommodation->formatted_phone ?? $accommodation->phone }}
                                         </a>
                                     </div>
@@ -242,7 +242,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">🌐</span>
                                         <a href="{{ $accommodation->safe_website }}" target="_blank" rel="noopener noreferrer"
-                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
+                                            class="text-adaptive-primary dark:text-adaptive-secondary hover:underline">
                                             Site web
                                         </a>
                                     </div>
@@ -280,7 +280,7 @@
                         Aucun hébergement ne correspond aux critères de recherche.
                     </p>
                     <a href="{{ route('accommodations') }}"
-                        class="px-4 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
+                        class="px-4 py-2 bg-adaptive-primary text-white rounded-lg hover:bg-adaptive-secondary transition-colors">
                         Effacer les filtres
                     </a>
                 </div>
