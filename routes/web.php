@@ -27,6 +27,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('accommodations', [App\Http\Controllers\AccommodationController::class, 'index'])->name('accommodations');
     Route::get('accommodations/create', [App\Http\Controllers\AccommodationController::class, 'create'])->name('accommodations.create');
     Route::get('accommodations/{id}', [App\Http\Controllers\AccommodationController::class, 'show'])->name('accommodations.show');
+    
+    // Routes pour les logs d'activité
+    Route::get('logs', [App\Http\Controllers\LogController::class, 'index'])->name('logs.index');
+    Route::get('logs/{log}', [App\Http\Controllers\LogController::class, 'show'])->name('logs.show');
+    Route::post('logs/clear', [App\Http\Controllers\LogController::class, 'clear'])->name('logs.clear');
 });
 
 // Routes publiques pour la gestion des statuts d'hébergement (pas d'authentification requise)

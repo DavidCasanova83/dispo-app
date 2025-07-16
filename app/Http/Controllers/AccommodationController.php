@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AccommodationFilterRequest;
 use App\Models\Accommodation;
+use App\Models\ActivityLog;
 use App\Services\AccommodationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,6 +68,19 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
         
+        // Log the access to the management page
+        ActivityLog::logActivity(
+            'status_change',
+            'management_page_accessed',
+            'accommodation',
+            $accommodation->apidae_id,
+            [
+                'accommodation_name' => $accommodation->name,
+                'accommodation_status' => $accommodation->status,
+            ],
+            "Page de gestion consultée pour l'hébergement: {$accommodation->name}"
+        );
+        
         return view('accommodation.manage', compact('accommodation'));
     }
 
@@ -82,9 +96,26 @@ class AccommodationController extends Controller
         $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
         
         $oldStatus = $accommodation->status;
-        $accommodation->update(['status' => $request->status]);
+        $newStatus = $request->status;
         
-        $statusLabel = $request->status === 'active' ? 'Actif' : 'Inactif';
+        // Update the status
+        $accommodation->update(['status' => $newStatus]);
+        
+        // Log the status change
+        ActivityLog::logActivity(
+            'status_change',
+            $newStatus === 'active' ? 'activated' : 'deactivated',
+            'accommodation',
+            $accommodation->apidae_id,
+            [
+                'accommodation_name' => $accommodation->name,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+            ],
+            "Statut de l'hébergement '{$accommodation->name}' changé de '{$oldStatus}' vers '{$newStatus}'"
+        );
+        
+        $statusLabel = $newStatus === 'active' ? 'Actif' : 'Inactif';
         
         return redirect()->back()->with('success', "Statut mis à jour avec succès : {$statusLabel}");
     }
