@@ -29,4 +29,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('accommodations/{id}', [App\Http\Controllers\AccommodationController::class, 'show'])->name('accommodations.show');
 });
 
+// Routes publiques pour la gestion des statuts d'hébergement (pas d'authentification requise)
+Route::get('accommodation/{apidae_id}/manage', [App\Http\Controllers\AccommodationController::class, 'manage'])
+    ->name('accommodation.manage');
+    
+Route::post('accommodation/{apidae_id}/status', [App\Http\Controllers\AccommodationController::class, 'updateStatus'])
+    ->name('accommodation.update-status');
+
 require __DIR__ . '/auth.php';

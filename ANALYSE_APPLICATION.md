@@ -903,15 +903,21 @@ L'application **dispo-app** a été **considérablement améliorée** et respect
 - ✅ **Performance optimisée** - Index DB, cache intelligent, requêtes SQL optimisées  
 - ✅ **Sécurité renforcée** - Validation centralisée, sanitisation des données
 - ✅ **Maintenabilité élevée** - Code organisé, réutilisable et testable
+- ✅ **Gestion publique des statuts** - Liens uniques pour hébergeurs sans authentification
 
 ### **🏆 Points Forts Actuels :**
-- **Architecture exemplaire** - Respect total des conventions Laravel
-- **Interface utilisateur moderne** - Livewire + Flux UI optimisés
+- **Architecture exemplaire** - Respect total des conventions Laravel MVC
+- **Interface utilisateur moderne** - Flux UI optimisés avec Tailwind CSS
 - **Performance élevée** - Requêtes optimisées avec cache intelligent
 - **Intégration API robuste** - Service dédié avec logging approprié
 - **Base de tests complète** - Tests automatisés pour synchronisation
 - **Synchronisation automatique** - Planification quotidienne à 5h00
 - **Documentation complète** - CONFIG-PROD.md pour déploiement
+- **Gestion publique des statuts** - Interface simple pour hébergeurs
+  - Liens uniques basés sur apidae_id
+  - Pages publiques sans authentification
+  - Boutons Activer/Désactiver intuitifs
+  - Icônes de gestion sur chaque hébergement
 
 ### **📈 Statut Final :**
 - **Score MVC : 8.2/10** (vs 5.7/10 initial) 

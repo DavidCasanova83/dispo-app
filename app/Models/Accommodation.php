@@ -273,4 +273,12 @@ class Accommodation extends Model
 
         return $this->website;
     }
+
+    /**
+     * Get the unique management URL for this accommodation.
+     */
+    public function getManageUrl(): string
+    {
+        return route('accommodation.manage', ['apidae_id' => $this->apidae_id]);
+    }
 }

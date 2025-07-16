@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AccommodationFilterRequest;
+use App\Models\Accommodation;
 use App\Services\AccommodationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -56,5 +58,34 @@ class AccommodationController extends Controller
         }
 
         return view('accommodations.show', compact('accommodation'));
+    }
+
+    /**
+     * Show the management page for an accommodation (public route).
+     */
+    public function manage(string $apidae_id): View
+    {
+        $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
+        
+        return view('accommodation.manage', compact('accommodation'));
+    }
+
+    /**
+     * Update the status of an accommodation (public route).
+     */
+    public function updateStatus(Request $request, string $apidae_id): RedirectResponse
+    {
+        $request->validate([
+            'status' => 'required|in:active,inactive'
+        ]);
+        
+        $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
+        
+        $oldStatus = $accommodation->status;
+        $accommodation->update(['status' => $request->status]);
+        
+        $statusLabel = $request->status === 'active' ? 'Actif' : 'Inactif';
+        
+        return redirect()->back()->with('success', "Statut mis à jour avec succès : {$statusLabel}");
     }
 }
