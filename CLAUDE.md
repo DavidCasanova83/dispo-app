@@ -95,10 +95,16 @@ grep "Apidae" storage/logs/laravel.log | tail -20
 ### MVC Architecture (Refactorisé - Juillet 2025)
 - **Controllers**: `AccommodationController` avec injection de dépendances
   - Méthodes publiques pour gestion de statut (`manage`, `updateStatus`)
+  - Logging automatique des actions
+- **Controllers**: `LogController` pour gestion des logs d'activité
+  - Affichage filtré des logs avec statistiques
+  - Détails complets et nettoyage automatique
 - **Services**: `AccommodationService` et `ApidaeService` pour la logique métier
 - **Requests**: `AccommodationFilterRequest` pour validation centralisée
 - **Jobs**: `SyncApidaeData` pour synchronisation automatique en queue
-- **Modèle**: `Accommodation` avec méthode `getManageUrl()` pour liens uniques
+- **Modèles**: 
+  - `Accommodation` avec méthode `getManageUrl()` pour liens uniques
+  - `ActivityLog` pour traçabilité complète des événements
 
 ### Interface Web
 - **Page des hébergements**: Vue MVC traditionnelle (`accommodations/index.blade.php`)
@@ -111,6 +117,11 @@ grep "Apidae" storage/logs/laravel.log | tail -20
   - Boutons "Activer" et "Désactiver"
   - Informations complètes de l'hébergement
   - Interface responsive et moderne
+- **Système de logs d'activité**: Traçabilité complète des événements
+  - Page d'administration avec filtres avancés
+  - Suivi des changements de statut et accès aux pages
+  - Statistiques en temps réel et détails complets
+  - Nettoyage automatique des anciens logs
 
 ### Key Features
 - **Apidae API Integration**: Fetches accommodation data from French tourism API
@@ -125,6 +136,12 @@ grep "Apidae" storage/logs/laravel.log | tail -20
   - Basées sur l'identifiant unique apidae_id
   - Interface simple avec boutons Activer/Désactiver
   - Accessible via liens cliquables sur les cartes d'hébergement
+- **Système de Logs d'Activité**: Traçabilité complète des actions
+  - Enregistrement automatique des changements de statut
+  - Suivi des accès aux pages de gestion publiques
+  - Filtres avancés par type, statut, entité, dates
+  - Statistiques en temps réel et détails JSON
+  - Nettoyage automatique des anciens logs
 
 ### API Integration
 The application integrates with the Apidae API for French tourism data:
@@ -138,6 +155,7 @@ The application integrates with the Apidae API for French tourism data:
 ### Database Schema
 - **Users**: Standard Laravel authentication
 - **Accommodations**: Tourism accommodations with Apidae integration
+- **Activity_logs**: Système de logs d'activité avec traçabilité complète
 - **Cache/Queue**: Standard Laravel infrastructure tables
 
 ### Routes Structure
@@ -145,6 +163,10 @@ The application integrates with the Apidae API for French tourism data:
 - **Dashboard**: Main application interface
 - **Accommodations**: List and management interface (authentifiée)
 - **Settings**: User preferences and profile management
+- **Logs**: Système de logs d'activité (authentifié)
+  - `GET /logs` - Page principale des logs
+  - `GET /logs/{log}` - Détails d'un log spécifique
+  - `POST /logs/clear` - Nettoyage des anciens logs
 - **Gestion Publique**: Routes publiques pour les hébergeurs
   - `GET /accommodation/{apidae_id}/manage` - Page de gestion
   - `POST /accommodation/{apidae_id}/status` - Mise à jour du statut
@@ -165,6 +187,7 @@ The application uses Flux UI components with Tailwind CSS styling:
 - Flux components in `resources/views/flux/`
 - MVC views in `resources/views/accommodations/`
 - Page publique in `resources/views/accommodation/manage.blade.php`
+- Logs interface in `resources/views/logs/`
 
 ## Testing Strategy
 
