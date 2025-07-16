@@ -94,25 +94,37 @@ grep "Apidae" storage/logs/laravel.log | tail -20
 
 ### MVC Architecture (Refactorisé - Juillet 2025)
 - **Controllers**: `AccommodationController` avec injection de dépendances
+  - Méthodes publiques pour gestion de statut (`manage`, `updateStatus`)
 - **Services**: `AccommodationService` et `ApidaeService` pour la logique métier
 - **Requests**: `AccommodationFilterRequest` pour validation centralisée
 - **Jobs**: `SyncApidaeData` pour synchronisation automatique en queue
+- **Modèle**: `Accommodation` avec méthode `getManageUrl()` pour liens uniques
 
-### Livewire Components
-- **AccommodationsList**: Main component for displaying and filtering accommodations
-  - Filters: search, status, city, type, contact information
-  - Pagination: 100 items per page
-  - Real-time statistics and city rankings
-  - Location: `app/Livewire/AccommodationsList.php`
+### Interface Web
+- **Page des hébergements**: Vue MVC traditionnelle (`accommodations/index.blade.php`)
+  - Filtres: recherche, statut, ville, type, informations de contact
+  - Pagination: 100 éléments par page
+  - Statistiques et classements des villes
+  - Icônes de gestion de statut avec liens uniques
+- **Page de gestion de statut publique**: Interface pour les hébergeurs
+  - Accessible sans authentification via lien unique
+  - Boutons "Activer" et "Désactiver"
+  - Informations complètes de l'hébergement
+  - Interface responsive et moderne
 
 ### Key Features
 - **Apidae API Integration**: Fetches accommodation data from French tourism API
 - **Synchronisation Automatique**: Quotidienne à 5h00 via scheduler Laravel
 - **Advanced Filtering**: Multiple filter options for accommodations
-- **User Authentication**: Laravel Breeze-style authentication with Livewire
+- **User Authentication**: Laravel Breeze-style authentication for admin interface
 - **Dashboard**: Statistics and management interface
 - **Settings**: User profile, password, appearance management
 - **Performance**: Cache intelligent et index de base de données
+- **Gestion de Statut Publique**: Liens uniques pour les hébergeurs
+  - Pages publiques sans authentification
+  - Basées sur l'identifiant unique apidae_id
+  - Interface simple avec boutons Activer/Désactiver
+  - Accessible via liens cliquables sur les cartes d'hébergement
 
 ### API Integration
 The application integrates with the Apidae API for French tourism data:
@@ -131,8 +143,12 @@ The application integrates with the Apidae API for French tourism data:
 ### Routes Structure
 - **Authentication**: Standard Laravel auth routes
 - **Dashboard**: Main application interface
-- **Accommodations**: List and management interface
+- **Accommodations**: List and management interface (authentifiée)
 - **Settings**: User preferences and profile management
+- **Gestion Publique**: Routes publiques pour les hébergeurs
+  - `GET /accommodation/{apidae_id}/manage` - Page de gestion
+  - `POST /accommodation/{apidae_id}/status` - Mise à jour du statut
+  - Pas d'authentification requise
 
 ## Environment Configuration
 
@@ -144,10 +160,11 @@ Copy `.env.example` to `.env` and configure:
 
 ## UI Framework
 
-The application uses Livewire Flux for UI components with Tailwind CSS styling:
+The application uses Flux UI components with Tailwind CSS styling:
 - Components located in `resources/views/components/`
 - Flux components in `resources/views/flux/`
-- Livewire views in `resources/views/livewire/`
+- MVC views in `resources/views/accommodations/`
+- Page publique in `resources/views/accommodation/manage.blade.php`
 
 ## Testing Strategy
 
