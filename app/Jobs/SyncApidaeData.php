@@ -87,6 +87,10 @@ class SyncApidaeData implements ShouldQueue
                 $this->notifyErrors($results);
             }
 
+            // Dispatcher le job d'envoi d'emails après synchronisation réussie
+            Log::info('📧 Lancement du job d\'envoi d\'emails de notification');
+            SendAccommodationNotificationEmails::dispatch();
+
         } catch (Exception $e) {
             $duration = microtime(true) - $startTime;
             

@@ -79,6 +79,14 @@ return [
             'transport' => 'array',
         ],
 
+        'mailjet' => [
+            'transport' => 'mailjet',
+            'username' => env('MAILJET_APIKEY'),
+            'password' => env('MAILJET_APISECRET'),
+            'key' => env('MAILJET_APIKEY'),
+            'secret' => env('MAILJET_APISECRET'),
+        ],
+
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
