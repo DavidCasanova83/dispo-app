@@ -7,8 +7,16 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        :root {
+            --color-primary: #3A9C92;
+            --color-secondary: #7AB6A8;
+            --color-accent: #FFFDF4;
+            --color-background: #FAF7F3;
+        }
+    </style>
 </head>
-<body class="font-sans antialiased bg-gray-100">
+<body class="font-sans antialiased bg-custom-background">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-2xl w-full space-y-8">
             <!-- Header -->
@@ -22,7 +30,7 @@
             </div>
 
             <!-- Accommodation Info Card -->
-            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="bg-custom-accent rounded-xl shadow-lg p-6 border border-custom-secondary">
                 <div class="flex items-start justify-between mb-4">
                     <h2 class="text-xl font-semibold text-gray-900">{{ $accommodation->name }}</h2>
                     <span class="px-3 py-1 text-sm rounded-full font-medium
@@ -64,7 +72,7 @@
 
                     <div class="flex items-center text-gray-600">
                         <span class="mr-2">🆔</span>
-                        <span><strong>ID Apidae:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-xs">{{ $accommodation->apidae_id }}</code></span>
+                        <span><strong>ID Apidae:</strong> <code class="bg-custom-background px-2 py-1 rounded text-xs">{{ $accommodation->apidae_id }}</code></span>
                     </div>
 
                     <div class="flex items-center text-gray-600">
@@ -76,16 +84,16 @@
 
             <!-- Success Message -->
             @if (session('success'))
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="bg-green-50 border border-custom-primary rounded-lg p-4">
                     <div class="flex items-center">
-                        <span class="text-green-500 mr-2">✅</span>
-                        <p class="text-green-800 font-medium">{{ session('success') }}</p>
+                        <span class="text-custom-primary mr-2">✅</span>
+                        <p class="text-custom-primary font-medium">{{ session('success') }}</p>
                     </div>
                 </div>
             @endif
 
             <!-- Status Management Form -->
-            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="bg-custom-accent rounded-xl shadow-lg p-6 border border-custom-secondary">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Changer le statut</h3>
                 
                 <form method="POST" action="{{ route('accommodation.update-status', $accommodation->apidae_id) }}">
@@ -95,7 +103,7 @@
                         <button type="submit" 
                                 name="status" 
                                 value="active" 
-                                class="flex items-center justify-center px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                class="flex items-center justify-center px-6 py-4 bg-custom-primary hover:bg-custom-secondary text-white font-bold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                                 @if($accommodation->status === 'active') disabled @endif>
                             <span class="mr-2">✅</span>
                             <span>Activer</span>
@@ -113,11 +121,11 @@
                 </form>
 
                 <!-- Status Explanations -->
-                <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                <div class="mt-6 bg-custom-background rounded-lg p-4">
                     <h4 class="font-medium text-gray-900 mb-2">Explication des statuts :</h4>
                     <div class="space-y-2 text-sm text-gray-600">
                         <div class="flex items-start">
-                            <span class="text-green-600 mr-2">✅</span>
+                            <span class="text-custom-primary mr-2">✅</span>
                             <div>
                                 <strong>Actif :</strong> L'hébergement est validé et visible publiquement
                             </div>

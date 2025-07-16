@@ -13,3 +13,34 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @fluxAppearance
+
+@auth
+    @if(auth()->user()->colorSettings)
+        <style>
+            :root {
+                --color-primary: {{ auth()->user()->colorSettings->primary_color }};
+                --color-secondary: {{ auth()->user()->colorSettings->secondary_color }};
+                --color-accent: {{ auth()->user()->colorSettings->accent_color }};
+                --color-background: {{ auth()->user()->colorSettings->background_color }};
+            }
+        </style>
+    @else
+        <style>
+            :root {
+                --color-primary: #3A9C92;
+                --color-secondary: #7AB6A8;
+                --color-accent: #FFFDF4;
+                --color-background: #FAF7F3;
+            }
+        </style>
+    @endif
+@else
+    <style>
+        :root {
+            --color-primary: #3A9C92;
+            --color-secondary: #7AB6A8;
+            --color-accent: #FFFDF4;
+            --color-background: #FAF7F3;
+        }
+    </style>
+@endauth

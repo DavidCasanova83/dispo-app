@@ -3,7 +3,7 @@
         
         <!-- Section Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Total d'événements</p>
@@ -13,7 +13,7 @@
                 </div>
             </div>
 
-            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Aujourd'hui</p>
@@ -33,7 +33,7 @@
                 </div>
             </div>
 
-            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Par statut</p>
@@ -52,13 +52,13 @@
         </div>
 
         <!-- Section Filtres -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
                 <div class="flex space-x-2">
                     @if (request()->hasAny(['event_type', 'status', 'entity_type', 'date_from', 'date_to', 'search']))
                         <a href="{{ route('logs.index') }}" 
-                           class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                           class="px-4 py-2 bg-custom-secondary text-white rounded-lg hover:bg-custom-primary transition-colors">
                             🔄 Effacer les filtres
                         </a>
                     @endif
@@ -81,7 +81,7 @@
                             🔍 Rechercher dans les messages
                         </label>
                         <input name="search" type="text" value="{{ request('search') }}"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white"
                             placeholder="Rechercher...">
                     </div>
 
@@ -91,7 +91,7 @@
                             📝 Type d'événement
                         </label>
                         <select name="event_type"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <option value="">Tous les types</option>
                             @foreach ($eventTypes as $type)
                                 <option value="{{ $type }}" {{ request('event_type') === $type ? 'selected' : '' }}>
@@ -107,7 +107,7 @@
                             🎯 Statut
                         </label>
                         <select name="status"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <option value="">Tous les statuts</option>
                             @foreach ($statuses as $status)
                                 <option value="{{ $status }}" {{ request('status') === $status ? 'selected' : '' }}>
@@ -123,7 +123,7 @@
                             🏷️ Type d'entité
                         </label>
                         <select name="entity_type"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white">
                             <option value="">Tous les types</option>
                             @foreach ($entityTypes as $type)
                                 <option value="{{ $type }}" {{ request('entity_type') === $type ? 'selected' : '' }}>
@@ -141,7 +141,7 @@
                             📅 Date de début
                         </label>
                         <input name="date_from" type="date" value="{{ request('date_from') }}"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white">
                     </div>
 
                     <!-- Date de fin -->
@@ -150,7 +150,7 @@
                             📅 Date de fin
                         </label>
                         <input name="date_to" type="date" value="{{ request('date_to') }}"
-                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent dark:bg-gray-700 dark:text-white">
                     </div>
                 </div>
 

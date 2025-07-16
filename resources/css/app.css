@@ -27,16 +27,23 @@
     --color-zinc-900: #171717;
     --color-zinc-950: #0a0a0a;
 
-    --color-accent: var(--color-neutral-800);
-    --color-accent-content: var(--color-neutral-800);
+    /* Nouvelle palette personnalisée */
+    --color-primary: #3A9C92;
+    --color-secondary: #7AB6A8;
+    --color-accent: #FFFDF4;
+    --color-background: #FAF7F3;
+
+    /* Mise à jour des couleurs Flux */
+    --color-accent: var(--color-primary);
+    --color-accent-content: var(--color-primary);
     --color-accent-foreground: var(--color-white);
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-white);
-        --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
+        --color-accent: var(--color-primary);
+        --color-accent-content: var(--color-primary);
+        --color-accent-foreground: var(--color-white);
     }
 }
 
@@ -67,3 +74,46 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+/* Styles personnalisés pour la nouvelle palette */
+@layer utilities {
+    .bg-custom-primary {
+        background-color: var(--color-primary);
+    }
+    
+    .bg-custom-secondary {
+        background-color: var(--color-secondary);
+    }
+    
+    .bg-custom-accent {
+        background-color: var(--color-accent);
+    }
+    
+    .bg-custom-background {
+        background-color: var(--color-background);
+    }
+    
+    .text-custom-primary {
+        color: var(--color-primary);
+    }
+    
+    .text-custom-secondary {
+        color: var(--color-secondary);
+    }
+    
+    .border-custom-primary {
+        border-color: var(--color-primary);
+    }
+    
+    .border-custom-secondary {
+        border-color: var(--color-secondary);
+    }
+    
+    .hover\:bg-custom-secondary:hover {
+        background-color: var(--color-secondary);
+    }
+    
+    .hover\:text-custom-primary:hover {
+        color: var(--color-primary);
+    }
+}

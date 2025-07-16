@@ -4,7 +4,7 @@
         <!-- Section Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <!-- Total des établissements -->
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Total établissements</p>
@@ -15,7 +15,7 @@
             </div>
 
             <!-- Par statut -->
-            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Statuts</p>
@@ -33,7 +33,7 @@
             </div>
 
             <!-- Par type -->
-            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Types</p>
@@ -45,7 +45,7 @@
             </div>
 
             <!-- Par ville -->
-            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+            <div class="bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] rounded-xl p-4 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90">Villes</p>
@@ -58,18 +58,18 @@
         </div>
 
         <!-- Section Filtres -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
                 <div class="flex space-x-2">
                     @if (request()->hasAny(['search', 'status', 'city', 'type', 'has_email', 'has_phone', 'has_website']))
                         <a href="{{ route('accommodations') }}" 
-                           class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                           class="px-4 py-2 bg-custom-secondary text-white rounded-lg hover:bg-custom-primary transition-colors">
                             🔄 Effacer les filtres
                         </a>
                     @endif
                     <button onclick="openEmailModal()" 
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            class="px-4 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
                         📧 Envoyer emails
                     </button>
                 </div>
@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button type="submit" class="px-6 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
                         Filtrer
                     </button>
                 </div>
@@ -162,12 +162,12 @@
 
         @if (!empty($topCities))
         <!-- Top 5 des villes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 mb-6">
+        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 des villes</h3>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 @foreach ($topCities as $city => $count)
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $count }}</div>
+                        <div class="text-2xl font-bold text-custom-primary dark:text-custom-secondary">{{ $count }}</div>
                         <div class="text-sm text-gray-600 dark:text-gray-300">{{ $city }}</div>
                     </div>
                 @endforeach
@@ -176,11 +176,11 @@
         @endif
 
         <!-- Liste des hébergements -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
+        <div class="bg-custom-accent dark:bg-gray-800 rounded-xl border border-custom-secondary dark:border-neutral-700 p-6">
             @if ($accommodations->count() > 0)
                 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     @foreach ($accommodations as $accommodation)
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                        <div class="bg-custom-background dark:bg-gray-700 rounded-lg p-4 border border-custom-secondary dark:border-gray-600">
                             <div class="flex items-start justify-between mb-3">
                                 <div class="flex items-center space-x-3">
                                     <h3 class="font-semibold text-gray-900 dark:text-white">{{ $accommodation->name }}</h3>
@@ -222,7 +222,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">📧</span>
                                         <a href="mailto:{{ $accommodation->email }}"
-                                            class="text-blue-600 dark:text-blue-400 hover:underline">
+                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
                                             {{ $accommodation->email }}
                                         </a>
                                     </div>
@@ -232,7 +232,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">📞</span>
                                         <a href="tel:{{ $accommodation->phone }}"
-                                            class="text-blue-600 dark:text-blue-400 hover:underline">
+                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
                                             {{ $accommodation->formatted_phone ?? $accommodation->phone }}
                                         </a>
                                     </div>
@@ -242,7 +242,7 @@
                                     <div class="flex items-center text-gray-600 dark:text-gray-300">
                                         <span class="mr-2">🌐</span>
                                         <a href="{{ $accommodation->safe_website }}" target="_blank" rel="noopener noreferrer"
-                                            class="text-blue-600 dark:text-blue-400 hover:underline">
+                                            class="text-custom-primary dark:text-custom-secondary hover:underline">
                                             Site web
                                         </a>
                                     </div>
@@ -280,7 +280,7 @@
                         Aucun hébergement ne correspond aux critères de recherche.
                     </p>
                     <a href="{{ route('accommodations') }}"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        class="px-4 py-2 bg-custom-primary text-white rounded-lg hover:bg-custom-secondary transition-colors">
                         Effacer les filtres
                     </a>
                 </div>
