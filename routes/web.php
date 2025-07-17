@@ -14,6 +14,10 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+// Route publique pour l'affichage des hébergements (optimisée pour iframe)
+Route::get('accommodations/public', [App\Http\Controllers\AccommodationController::class, 'publicList'])
+    ->name('accommodations.public');
+
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
@@ -28,8 +32,8 @@ Route::middleware(['auth'])->group(function () {
     // Routes pour les hébergements (utilise maintenant le contrôleur)
     Route::get('accommodations', [App\Http\Controllers\AccommodationController::class, 'index'])->name('accommodations');
     Route::get('accommodations/create', [App\Http\Controllers\AccommodationController::class, 'create'])->name('accommodations.create');
-    Route::get('accommodations/{id}', [App\Http\Controllers\AccommodationController::class, 'show'])->name('accommodations.show');
     Route::post('accommodations/send-emails', [App\Http\Controllers\AccommodationController::class, 'sendEmails'])->name('accommodations.send-emails');
+    Route::get('accommodations/{id}', [App\Http\Controllers\AccommodationController::class, 'show'])->name('accommodations.show');
     
     // Routes pour les logs d'activité
     Route::get('logs', [App\Http\Controllers\LogController::class, 'index'])->name('logs.index');

@@ -6,10 +6,12 @@ use App\Http\Requests\AccommodationFilterRequest;
 use App\Jobs\SendAccommodationNotificationEmails;
 use App\Models\Accommodation;
 use App\Models\ActivityLog;
+use App\Models\UserColorSettings;
 use App\Services\AccommodationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class AccommodationController extends Controller
@@ -24,17 +26,17 @@ class AccommodationController extends Controller
     public function index(AccommodationFilterRequest $request): View
     {
         $filters = $request->validated();
-        
+
         $accommodations = $this->accommodationService->getFilteredAccommodations($filters);
         $stats = $this->accommodationService->getStatistics($filters);
         $filterOptions = $this->accommodationService->getFilterOptions();
-        
+
         // Calculate top cities for display
         $topCities = $this->accommodationService->getTopCities($filters, 5);
 
         return view('accommodations.index', compact(
-            'accommodations', 
-            'stats', 
+            'accommodations',
+            'stats',
             'filterOptions',
             'topCities',
             'filters'
@@ -52,10 +54,10 @@ class AccommodationController extends Controller
     /**
      * Show the specified accommodation.
      */
-    public function show(int $id): View
+    public function show(string $id): View
     {
-        $accommodation = $this->accommodationService->findById($id);
-        
+        $accommodation = $this->accommodationService->findById((int) $id);
+
         if (!$accommodation) {
             abort(404);
         }
@@ -69,7 +71,7 @@ class AccommodationController extends Controller
     public function manage(string $apidae_id): View
     {
         $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
-        
+
         // Log the access to the management page
         ActivityLog::logActivity(
             'status_change',
@@ -82,7 +84,7 @@ class AccommodationController extends Controller
             ],
             "Page de gestion consultée pour l'hébergement: {$accommodation->name}"
         );
-        
+
         return view('accommodation.manage', compact('accommodation'));
     }
 
@@ -94,15 +96,15 @@ class AccommodationController extends Controller
         $request->validate([
             'status' => 'required|in:active,inactive'
         ]);
-        
+
         $accommodation = Accommodation::where('apidae_id', $apidae_id)->firstOrFail();
-        
+
         $oldStatus = $accommodation->status;
         $newStatus = $request->status;
-        
+
         // Update the status
         $accommodation->update(['status' => $newStatus]);
-        
+
         // Log the status change
         ActivityLog::logActivity(
             'status_change',
@@ -116,10 +118,38 @@ class AccommodationController extends Controller
             ],
             "Statut de l'hébergement '{$accommodation->name}' changé de '{$oldStatus}' vers '{$newStatus}'"
         );
-        
+
         $statusLabel = $newStatus === 'active' ? 'Actif' : 'Inactif';
-        
+
         return redirect()->back()->with('success', "Statut mis à jour avec succès : {$statusLabel}");
+    }
+
+    /**
+     * Display a public listing of accommodations optimized for iframe integration.
+     */
+    public function publicList(): Response
+    {
+        // Cache the results for 30 minutes to improve performance
+        $accommodations = \Cache::remember('public_accommodations', 30 * 60, function () {
+            return Accommodation::active()
+                ->select(['apidae_id', 'name', 'city', 'type', 'email', 'phone', 'website', 'status'])
+                ->orderBy('city')
+                ->orderBy('name')
+                ->get();
+        });
+
+        // Get default colors for the public page
+        $colors = UserColorSettings::getDefaultColors();
+
+        // Set headers for iframe optimization
+        $response = response()->view('accommodations.public', compact('accommodations', 'colors'));
+
+        // Add cache headers
+        $response->header('Cache-Control', 'public, max-age=1800'); // 30 minutes
+        $response->header('X-Frame-Options', 'SAMEORIGIN'); // Allow iframe on same origin
+        $response->header('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 
     /**
@@ -161,7 +191,6 @@ class AccommodationController extends Controller
                 'success' => true,
                 'message' => "Job d'envoi d'emails dispatché avec succès pour {$accommodationsWithEmails} hébergements. Consultez les logs pour suivre le progrès."
             ]);
-
         } catch (\Exception $e) {
             // Log the error
             $user = auth()->user();
