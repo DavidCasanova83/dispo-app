@@ -40,6 +40,15 @@ class Login extends Component
             ]);
         }
 
+        // Vérifier si l'utilisateur est approuvé
+        if (! Auth::user()->isApproved()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Votre compte est en attente d\'approbation par un administrateur.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
 
