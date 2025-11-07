@@ -98,6 +98,26 @@ class AccommodationsList extends Component
     $this->resetPage();
   }
 
+  public function sendAvailabilityEmails()
+  {
+    // Récupère tous les hébergements qui ont une adresse email
+    $accommodations = Accommodation::whereNotNull('email')
+      ->where('email', '!=', '')
+      ->get();
+
+    if ($accommodations->isEmpty()) {
+      session()->flash('error', 'Aucun hébergement avec email trouvé.');
+      return;
+    }
+
+    // Dispatch un job pour chaque hébergement
+    foreach ($accommodations as $accommodation) {
+      \App\Jobs\SendAccommodationAvailabilityEmail::dispatch($accommodation);
+    }
+
+    session()->flash('success', "Envoi de {$accommodations->count()} emails en cours...");
+  }
+
   public function render()
   {
     $query = Accommodation::query();
