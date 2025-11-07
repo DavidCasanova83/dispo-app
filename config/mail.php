@@ -95,6 +95,16 @@ return [
             ],
         ],
 
+        'mailjet' => [
+            'transport' => 'smtp',
+            'host' => 'in-v3.mailjet.com',
+            'port' => env('MAIL_PORT', 587),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'username' => env('MAILJET_APIKEY'),
+            'password' => env('MAILJET_APISECRET'),
+            'timeout' => null,
+        ],
+
     ],
 
     /*

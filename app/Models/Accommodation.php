@@ -24,6 +24,9 @@ class Accommodation extends Model
     'description',
     'type',
     'status',
+    'email_sent_at',
+    'email_response_token',
+    'last_response_at',
   ];
 
   /**
@@ -34,6 +37,8 @@ class Accommodation extends Model
   protected $casts = [
     'created_at' => 'datetime',
     'updated_at' => 'datetime',
+    'email_sent_at' => 'datetime',
+    'last_response_at' => 'datetime',
   ];
 
   /**
@@ -42,9 +47,9 @@ class Accommodation extends Model
   public static function getStatusOptions(): array
   {
     return [
-      'pending' => 'En attente',
-      'active' => 'Actif',
-      'inactive' => 'Inactif',
+      'en_attente' => 'En attente',
+      'disponible' => 'Disponible',
+      'indisponible' => 'Indisponible',
     ];
   }
 
@@ -53,7 +58,7 @@ class Accommodation extends Model
    */
   public function scopeActive($query)
   {
-    return $query->where('status', 'active');
+    return $query->where('status', 'disponible');
   }
 
   /**
@@ -61,7 +66,7 @@ class Accommodation extends Model
    */
   public function scopePending($query)
   {
-    return $query->where('status', 'pending');
+    return $query->where('status', 'en_attente');
   }
 
   /**
@@ -81,5 +86,34 @@ class Accommodation extends Model
   public function hasContactInfo(): bool
   {
     return !empty($this->email) || !empty($this->phone) || !empty($this->website);
+  }
+
+  /**
+   * Generate a unique response token for email tracking.
+   */
+  public function generateResponseToken(): string
+  {
+    $token = bin2hex(random_bytes(32));
+    $this->update(['email_response_token' => $token]);
+    return $token;
+  }
+
+  /**
+   * Mark the accommodation as having received an email.
+   */
+  public function markEmailSent(): void
+  {
+    $this->update(['email_sent_at' => now()]);
+  }
+
+  /**
+   * Update the availability status based on email response.
+   */
+  public function updateAvailability(bool $available): void
+  {
+    $this->update([
+      'status' => $available ? 'disponible' : 'indisponible',
+      'last_response_at' => now(),
+    ]);
   }
 }

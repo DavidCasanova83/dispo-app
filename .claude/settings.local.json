@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php artisan apidae:fetch:*)"
+      "Bash(php artisan apidae:fetch:*)",
+      "Bash(composer require:*)",
+      "Bash(php artisan:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,17 @@
 <div>
+    <!-- Notifications flash -->
+    @if (session()->has('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
+            <span class="block sm:inline">{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+            <span class="block sm:inline">{{ session('error') }}</span>
+        </div>
+    @endif
+
     <!-- Section Statistiques -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total des établissements -->
@@ -107,10 +120,17 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 my-8">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
-            <button wire:click="clearFilters"
-                class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                🔄 Effacer les filtres
-            </button>
+            <div class="flex gap-2">
+                <button wire:click="sendAvailabilityEmails"
+                    wire:confirm="Êtes-vous sûr de vouloir envoyer les emails de disponibilités à tous les hébergements ?"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    📧 Envoyer les mails
+                </button>
+                <button wire:click="clearFilters"
+                    class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    🔄 Effacer les filtres
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
