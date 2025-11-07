@@ -126,44 +126,80 @@ class FetchApidaeData extends Command
             [
                 'identifiant' => 'APIDAE_001',
                 'nom' => ['libelleFr' => 'Hôtel du Lac'],
-                'commune' => ['nom' => 'Annecy'],
-                'moyensCommunications' => [
-                    ['type' => 'EMAIL', 'coordonnees' => 'contact@hoteldulac.fr']
+                'localisation' => [
+                    'adresse' => [
+                        'commune' => ['nom' => 'Annecy']
+                    ]
+                ],
+                'informations' => [
+                    'moyensCommunication' => [
+                        ['type' => ['libelleFr' => 'Mél'], 'coordonnees' => ['fr' => 'casanova.83130@gmail.com']],
+                        ['type' => ['libelleFr' => 'Téléphone'], 'coordonnees' => ['fr' => '04.50.45.12.34']]
+                    ]
                 ],
                 'status' => 'active'
             ],
             [
                 'identifiant' => 'APIDAE_002',
                 'nom' => ['libelleFr' => 'Gîte Les Alpages'],
-                'commune' => ['nom' => 'Chamonix'],
-                'moyensCommunications' => [
-                    ['type' => 'EMAIL', 'coordonnees' => 'info@gite-alpages.com']
+                'localisation' => [
+                    'adresse' => [
+                        'commune' => ['nom' => 'Chamonix']
+                    ]
+                ],
+                'informations' => [
+                    'moyensCommunication' => [
+                        ['type' => ['libelleFr' => 'Mél'], 'coordonnees' => ['fr' => 'casanova.83130@gmail.com']]
+                    ]
                 ],
                 'status' => 'pending'
             ],
             [
                 'identifiant' => 'APIDAE_003',
                 'nom' => ['libelleFr' => 'Chambre d\'hôte La Ferme'],
-                'commune' => ['nom' => 'Megève'],
-                'moyensCommunications' => [],
+                'localisation' => [
+                    'adresse' => [
+                        'commune' => ['nom' => 'Megève']
+                    ]
+                ],
+                'informations' => [
+                    'moyensCommunication' => []
+                ],
                 'status' => 'inactive'
             ],
             [
                 'identifiant' => 'APIDAE_004',
                 'nom' => ['libelleFr' => 'Camping Les Pins'],
-                'commune' => ['nom' => 'Thonon-les-Bains'],
-                'moyensCommunications' => [
-                    ['type' => 'EMAIL', 'coordonnees' => 'reservation@camping-pins.fr'],
-                    ['type' => 'TELEPHONE', 'coordonnees' => '04.50.71.23.45']
+                'localisation' => [
+                    'adresse' => [
+                        'commune' => ['nom' => 'Thonon-les-Bains']
+                    ]
+                ],
+                'informations' => [
+                    'moyensCommunication' => [
+                        ['type' => ['libelleFr' => 'Mél'], 'coordonnees' => ['fr' => 'casanova.83130@gmail.com']],
+                        ['type' => ['libelleFr' => 'Téléphone'], 'coordonnees' => ['fr' => '04.50.71.23.45']],
+                        ['type' => ['libelleFr' => 'Site web'], 'coordonnees' => ['fr' => 'https://camping-pins.fr']]
+                    ]
                 ],
                 'status' => 'active'
             ],
             [
                 'identifiant' => 'APIDAE_005',
                 'nom' => ['libelleFr' => 'Résidence Les Alpages'],
-                'commune' => ['nom' => 'Morzine'],
-                'moyensCommunications' => [
-                    ['type' => 'EMAIL', 'coordonnees' => 'contact@residence-alpages.com']
+                'localisation' => [
+                    'adresse' => [
+                        'commune' => ['nom' => 'Morzine']
+                    ]
+                ],
+                'informations' => [
+                    'moyensCommunication' => [
+                        ['type' => ['libelleFr' => 'Email'], 'coordonnees' => ['fr' => 'casanova.83130@gmail.com']],
+                        ['type' => ['libelleFr' => 'Téléphone'], 'coordonnees' => ['fr' => '04.50.79.88.77']]
+                    ]
+                ],
+                'presentation' => [
+                    'descriptifCourt' => ['libelleFr' => 'Magnifique résidence au cœur des Alpes']
                 ],
                 'status' => 'pending'
             ]
@@ -202,7 +238,7 @@ class FetchApidaeData extends Command
             }
 
             $accommodation = Accommodation::updateOrCreate(
-                ['apidae_id' => $item['identifier'] ?? $item['id'] ?? null],
+                ['apidae_id' => $item['id'] ?? $item['identifiant'] ?? $item['id'] ?? null],
                 [
                     'name' => $item['nom']['libelleFr'] ?? $item['nom'] ?? 'Nom inconnu',
                     'city' => $item['localisation']['adresse']['commune']['nom'] ?? null,
