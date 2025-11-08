@@ -32,8 +32,8 @@
                     <p class="text-sm opacity-90">Statuts</p>
                     <div class="text-sm">
                         @foreach ($stats['by_status'] as $status => $count)
-                            <div class="flex justify-between">
-                                <span>{{ ucfirst($status) }}:</span>
+                             <div class="flex justify-between">
+                                <span>{{ $this->getStatusLabel($status) }}:</span>
                                 <span class="font-semibold">{{ $count }}</span>
                             </div>
                         @endforeach
@@ -44,7 +44,7 @@
         </div>
 
         <!-- Par type -->
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+        <!-- <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm opacity-90">Types</p>
@@ -53,10 +53,10 @@
                 </div>
                 <div class="text-3xl">🏷️</div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Par ville -->
-        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+        <!-- <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm opacity-90">Villes</p>
@@ -65,7 +65,7 @@
                 </div>
                 <div class="text-3xl">🏙️</div>
             </div>
-        </div>
+        </div> -->
     </div>
 
     {{-- <!-- Informations de contact -->
@@ -119,7 +119,6 @@
     <!-- Section Filtres -->
     <div class="bg-white dark:bg-gray-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6 my-8">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
             <div class="flex gap-2">
                 <button wire:click="sendAvailabilityEmails"
                     wire:confirm="Êtes-vous sûr de vouloir envoyer les emails de disponibilités à tous les hébergements ?"
@@ -153,7 +152,7 @@
                     class="w-full px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
                     <option value="">Tous les statuts</option>
                     @foreach ($statusOptions as $status)
-                        <option value="{{ $status }}">{{ ucfirst($status) }}</option>
+                        <option value="{{ $status }}">{{ $this->getStatusLabel($status) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -212,12 +211,12 @@
                     <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                         <div class="flex items-start justify-between mb-3">
                             <h3 class="font-semibold text-gray-900 dark:text-white">{{ $accommodation->name }}</h3>
-                            <span
-                                class="px-2 py-1 text-xs rounded-full 
+                           <span
+                                class="px-2 py-1 text-xs rounded-full
                                 @if ($accommodation->status === 'active') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200
                                 @elseif($accommodation->status === 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200
                                 @else bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200 @endif">
-                                {{ ucfirst($accommodation->status) }}
+                                {{ $this->getStatusLabel($accommodation->status) }}
                             </span>
                         </div>
 
