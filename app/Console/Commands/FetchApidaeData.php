@@ -14,7 +14,7 @@ class FetchApidaeData extends Command
      *
      * @var string
      */
-    protected $signature = 'apidae:fetch {--test : Utiliser des données de test au lieu de l\'API} {--limit=150 : Limite du nombre d\'hébergements à récupérer} {--simple : Utiliser une requête simple sans critères}';
+    protected $signature = 'apidae:fetch {--test : Utiliser des données de test au lieu de l\'API} {--all : Récupérer tous les hébergements disponibles} {--limit=150 : Limite du nombre d\'hébergements à récupérer} {--simple : Utiliser une requête simple sans critères}';
 
     /**
      * The console command description.
@@ -42,73 +42,125 @@ class FetchApidaeData extends Command
         }
 
         try {
+            $all = $this->option('all');
             $limit = $this->option('limit');
             $simple = $this->option('simple');
+
+            // Si --all est activé, on ignore --limit
+            if ($all) {
+                $this->info("Mode: Récupération de TOUS les hébergements disponibles");
+            } else {
+                $this->info("Mode: Récupération limitée à {$limit} hébergements");
+            }
 
             $this->info("Configuration utilisée :");
             $this->line("  - Project ID: " . env('APIDAE_PROJECT_ID'));
             $this->line("  - Selection ID: " . env('APIDAE_SELECTION_ID'));
-            $this->line("  - Limite: {$limit} hébergements");
             $this->line("  - Mode simple: " . ($simple ? 'Oui' : 'Non'));
             $this->line("");
 
-            // Préparer les paramètres de la requête
-            $requestData = [
-                'query' => [
+            $url = 'https://api.apidae-tourisme.com/api/v002/recherche/list-objets-touristiques';
+            $pageSize = 20; // Limite de l'API Apidae par requête
+            $allResults = [];
+            $totalAvailable = null;
+
+            // Première requête pour connaître le nombre total d'hébergements
+            $this->info('Récupération du nombre total d\'hébergements...');
+
+            $firstRequestData = [
+                'selectionIds' => [env('APIDAE_SELECTION_ID')],
+                'searchFields' => 'NOM_DESCRIPTION_CRITERES',
+                'first' => 0,
+                'count' => $pageSize,
+                'order' => 'IDENTIFIANT',
+                'asc' => true,
+                'apiKey' => env('APIDAE_API_KEY'),
+                'projetId' => env('APIDAE_PROJECT_ID')
+            ];
+
+            $firstResponse = Http::timeout(60)
+                ->asForm()
+                ->post($url, [
+                    'query' => json_encode($firstRequestData)
+                ]);
+
+            if (!$firstResponse->successful()) {
+                $this->error('Erreur lors de l\'appel à l\'API : ' . $firstResponse->status());
+                $this->error('Réponse : ' . $firstResponse->body());
+                $this->info('Utilisez --test pour tester avec des données de test');
+                return 1;
+            }
+
+            $firstData = $firstResponse->json();
+
+            if (!isset($firstData['numFound']) || !isset($firstData['objetsTouristiques'])) {
+                $this->error('Format de réponse inattendu de l\'API Apidae');
+                $this->line('Réponse reçue : ' . $firstResponse->body());
+                return 1;
+            }
+
+            $totalAvailable = $firstData['numFound'];
+            $allResults = array_merge($allResults, $firstData['objetsTouristiques']);
+
+            $this->info("✓ {$totalAvailable} hébergements disponibles au total");
+
+            // Déterminer combien d'hébergements on doit récupérer
+            $targetCount = $all ? $totalAvailable : min($limit, $totalAvailable);
+            $pagesNeeded = ceil($targetCount / $pageSize);
+
+            $this->info("Récupération de {$targetCount} hébergements en {$pagesNeeded} page(s)...");
+            $this->line("");
+
+            // Boucle de pagination pour récupérer les pages suivantes
+            for ($page = 1; $page < $pagesNeeded; $page++) {
+                $first = $page * $pageSize;
+
+                // Ne pas dépasser le nombre cible
+                if ($first >= $targetCount) {
+                    break;
+                }
+
+                $this->line("→ Page " . ($page + 1) . "/{$pagesNeeded} (hébergements " . ($first + 1) . "-" . min($first + $pageSize, $targetCount) . "/{$targetCount})");
+
+                $requestData = [
                     'selectionIds' => [env('APIDAE_SELECTION_ID')],
                     'searchFields' => 'NOM_DESCRIPTION_CRITERES',
-                    'first' => 0,
-                    'count' => $limit,
+                    'first' => $first,
+                    'count' => $pageSize,
                     'order' => 'IDENTIFIANT',
                     'asc' => true,
                     'apiKey' => env('APIDAE_API_KEY'),
                     'projetId' => env('APIDAE_PROJECT_ID')
-                ]
-            ];
+                ];
 
-            // // Ajouter les critères seulement si pas en mode simple
-            // if (!$simple) {
-            //     $requestData['query']['criteresQuery'] = json_encode([
-            //         [
-            //             "id" => 2211,
-            //             "type" => "Selection",
-            //             "valeurs" => ["true"]
-            //         ]
-            //     ]);
-            // }
+                $response = Http::timeout(60)
+                    ->asForm()
+                    ->post($url, [
+                        'query' => json_encode($requestData)
+                    ]);
 
-
-            $url = 'https://api.apidae-tourisme.com/api/v002/recherche/list-objets-touristiques';
-
-            $this->line("Payload envoyé :");
-            $this->line(json_encode($requestData['query'], JSON_PRETTY_PRINT));
-
-            $response = Http::timeout(60)
-                ->asForm()
-                ->post($url, [
-                    'query' => json_encode($requestData['query'])
-                ]);
-
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                if (!isset($data['objetsTouristiques'])) {
-                    $this->error('Format de réponse inattendu de l\'API Apidae');
-                    $this->line('Réponse reçue : ' . $response->body());
-                    return 1;
+                if (!$response->successful()) {
+                    $this->error('Erreur lors de l\'appel à l\'API (page ' . ($page + 1) . ') : ' . $response->status());
+                    $this->warn('Arrêt de la récupération. Traitement des ' . count($allResults) . ' hébergements déjà récupérés...');
+                    break;
                 }
 
-                $results = $data['objetsTouristiques'];
-                $this->info('Nombre d\'hébergements reçus : ' . count($results));
+                $data = $response->json();
 
-                return $this->processResults($results);
-            } else {
-                $this->error('Erreur lors de l\'appel à l\'API : ' . $response->status());
-                $this->error('Réponse : ' . $response->body());
-                $this->info('Utilisez --test pour tester avec des données de test');
-                return 1;
+                if (isset($data['objetsTouristiques']) && is_array($data['objetsTouristiques'])) {
+                    $allResults = array_merge($allResults, $data['objetsTouristiques']);
+                }
+
+                // Petite pause pour ne pas surcharger l'API
+                usleep(100000); // 100ms
             }
+
+            $this->line("");
+            $this->info('✓ ' . count($allResults) . ' hébergements récupérés au total');
+            $this->line("");
+
+            return $this->processResults($allResults);
+
         } catch (\Exception $e) {
             $this->error('Exception lors de l\'exécution : ' . $e->getMessage());
             return 1;
