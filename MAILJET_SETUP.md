@@ -8,7 +8,7 @@ Implémenter un système d'envoi d'emails interactifs permettant :
 2. De mettre à jour automatiquement le statut en base de données après le clic
 3. De remplacer les statuts Active/Inactive/Pending par Disponible/Indisponible/En Attente
 
-## ✅ Implémentation réalisée
+## ✅ Implémentation réalisée !
 
 ### 📦 1. Installation et configuration Mailjet
 
