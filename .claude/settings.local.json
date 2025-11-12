@@ -3,7 +3,8 @@
     "allow": [
       "Bash(php artisan apidae:fetch:*)",
       "Bash(composer require:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
