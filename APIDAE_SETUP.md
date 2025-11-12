@@ -39,20 +39,78 @@ APIDAE_SELECTION_ID=votre_selection_id_ici
 ## 6. Tester la configuration
 
 ```bash
-# Test avec des données de test
+# Test avec des données de test (5 hébergements fictifs)
 php artisan apidae:fetch --test
 
 # Test avec l'API réelle (limite de 10 hébergements)
 php artisan apidae:fetch --limit=10
 
-# Test avec l'API réelle (limite de 50 hébergements par défaut)
+# Récupération avec limite par défaut (150 hébergements maximum)
 php artisan apidae:fetch
+
+# Récupération de TOUS les hébergements disponibles (recommandé)
+php artisan apidae:fetch --all
 ```
 
 ## 7. Paramètres de la commande
 
--   `--test` : Utilise des données de test au lieu de l'API
--   `--limit=100` : Limite le nombre d'hébergements récupérés (défaut: 50)
+### Options disponibles
+
+-   `--test` : Utilise des données de test au lieu de l'API (5 hébergements fictifs)
+-   `--all` : **Récupère automatiquement TOUS les hébergements disponibles** (pagination automatique)
+-   `--limit=N` : Limite le nombre d'hébergements récupérés (défaut: 150)
+-   `--simple` : Utilise une requête simple sans critères de filtrage
+
+### Pagination automatique
+
+La commande gère automatiquement la pagination de l'API Apidae :
+- L'API retourne **20 hébergements maximum par requête**
+- La commande effectue automatiquement plusieurs requêtes pour récupérer tous les hébergements
+- Affichage de la progression en temps réel (ex: "Page 2/12, hébergements 21-40/225")
+- Pause de 100ms entre chaque requête pour ne pas surcharger l'API
+
+### Exemples d'utilisation
+
+```bash
+# Récupérer TOUS les hébergements (pagination automatique)
+php artisan apidae:fetch --all
+
+# Récupérer exactement 50 hébergements
+php artisan apidae:fetch --limit=50
+
+# Récupérer tous les hébergements en mode simple
+php artisan apidae:fetch --all --simple
+
+# Test sans appel API
+php artisan apidae:fetch --test
+```
+
+### Exemple de sortie
+
+```
+Récupération des hébergements depuis Apidae…
+Mode: Récupération de TOUS les hébergements disponibles
+Configuration utilisée :
+  - Project ID: 7088
+  - Selection ID: 142158
+  - Mode simple: Non
+
+Récupération du nombre total d'hébergements...
+✓ 225 hébergements disponibles au total
+Récupération de 225 hébergements en 12 page(s)...
+
+→ Page 2/12 (hébergements 21-40/225)
+→ Page 3/12 (hébergements 41-60/225)
+...
+→ Page 12/12 (hébergements 221-225/225)
+
+✓ 225 hébergements récupérés au total
+
+✅ Opération terminée avec succès !
+   - Hébergements créés : 25
+   - Hébergements mis à jour : 200
+   - Total traité : 225
+```
 
 ## 8. Champs récupérés
 
@@ -81,8 +139,15 @@ La commande récupère automatiquement :
 
 ### Aucun résultat
 
--   Vérifiez les critères de votre sélection
--   Essayez d'augmenter la limite avec `--limit=100`
+-   Vérifiez les critères de votre sélection dans votre espace Apidae
+-   Utilisez `--all` pour récupérer tous les hébergements disponibles
+-   Vérifiez le nombre total d'hébergements dans la réponse de l'API
+
+### Récupération partielle
+
+-   Si la commande s'arrête en cours de pagination, elle traite quand même les hébergements déjà récupérés
+-   Vérifiez votre connexion internet
+-   Relancez la commande avec `--all` pour récupérer les hébergements manquants
 
 ## 10. Visualisation
 

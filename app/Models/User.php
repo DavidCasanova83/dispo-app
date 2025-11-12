@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'approved', 
+        'approved_at',
     ];
 
     /**
@@ -43,8 +45,40 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved' => 'boolean',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+     /**
+     * Vérifier si l'utilisateur est approuvé
+     */
+    public function isApproved(): bool
+    {
+        return $this->approved === true;
+    }
+
+     /**
+     * Approuver l'utilisateur
+     */
+    public function approve(): void
+    {
+        $this->update([
+            'approved' => true,
+            'approved_at' => now(),
+        ]);
+    }
+
+     /**
+     * Désapprouver l'utilisateur
+     */
+    public function disapprove(): void
+    {
+        $this->update([
+            'approved' => false,
+            'approved_at' => null,
+        ]);
     }
 
     /**

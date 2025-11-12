@@ -117,6 +117,17 @@ class AccommodationsList extends Component
 
     session()->flash('success', "Envoi de {$accommodations->count()} emails en cours...");
   }
+  
+  public function getStatusLabel($status)
+  {
+    $labels = [
+      'active' => 'Disponible',
+      'inactive' => 'Non disponible',
+      'pending' => 'En attente',
+    ];
+
+    return $labels[$status] ?? ucfirst($status);
+  }
 
   public function render()
   {

@@ -33,10 +33,13 @@ class Register extends Component
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+        $validated['approved'] = false;
+
 
         event(new Registered(($user = User::create($validated))));
 
-        Auth::login($user);
+        // Auth::login($user);
+        session()->flash('status', 'Votre inscription a été enregistrée. Un administrateur doit valider votre compte avant que vous puissiez vous connecter.');
 
         $this->redirect(route('dashboard', absolute: false), navigate: true);
     }
