@@ -8,8 +8,9 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('apidae:fetch --all')
-    ->dailyAt('05:00')                    
-    ->withoutOverlapping()                
-    ->runInBackground()                   
-    ->onOneServer()                       
+    // ->everyMinute()
+    ->dailyAt('05:00')
+    ->withoutOverlapping()             
+    ->runInBackground()             
+    ->onOneServer()
     ->appendOutputTo(storage_path('logs/apidae-scheduler.log'));
