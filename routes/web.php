@@ -46,6 +46,30 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->take(5);
         return view('accommodations', compact('accommodations', 'stats', 'topCities'));
     })->name('accommodations');
+
+    // Routes pour le module Qualification
+    Route::prefix('qualification')->name('qualification.')->group(function () {
+        // Page de sélection des villes
+        Route::get('/', [\App\Http\Controllers\QualificationController::class, 'index'])->name('index');
+
+        // Dashboard spécifique d'une ville
+        Route::get('/{city}', [\App\Http\Controllers\QualificationController::class, 'cityDashboard'])
+            ->name('city.dashboard')
+            ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
+
+        // Formulaire de qualification pour une ville
+        Route::get('/{city}/formulaire01', [\App\Http\Controllers\QualificationController::class, 'form'])
+            ->name('city.form')
+            ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
+
+        // Page de données (liste des entrées) pour une ville
+        Route::get('/{city}/data', [\App\Http\Controllers\QualificationController::class, 'data'])
+            ->name('city.data')
+            ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
+
+        // API pour sauvegarder les données du formulaire
+        Route::post('/save', [\App\Http\Controllers\QualificationController::class, 'save'])->name('save');
+    });
 });
 
 // Route publique pour les réponses de disponibilité des hébergements
