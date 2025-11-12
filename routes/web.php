@@ -49,7 +49,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
 });
 
 // Route publique pour les réponses de disponibilité des hébergements
-Route::get('accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])
+Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])
     ->name('accommodation.response');
 
 require __DIR__ . '/auth.php';

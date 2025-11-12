@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ->withoutOverlapping(5)
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/mails-scheduler.log'));
+        
+        $schedule->command('emails:send-availability')
+            ->dailyAt('06:00')
+            ->appendOutputTo(storage_path('logs/emails-daily.log'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
