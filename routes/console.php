@@ -6,11 +6,3 @@ use Illuminate\Support\Facades\Artisan;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
-
-Schedule::command('apidae:fetch --all')
-    // ->everyMinute()
-    ->dailyAt('05:00')
-    ->withoutOverlapping()             
-    ->runInBackground()             
-    ->onOneServer()
-    ->appendOutputTo(storage_path('logs/apidae-scheduler.log'));
