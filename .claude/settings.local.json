@@ -4,7 +4,8 @@
       "Bash(php artisan apidae:fetch:*)",
       "Bash(composer require:*)",
       "Bash(php artisan:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(php -l:*)"
     ],
     "deny": [],
     "ask": []
