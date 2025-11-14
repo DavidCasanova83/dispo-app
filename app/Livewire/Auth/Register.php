@@ -39,7 +39,7 @@ class Register extends Component
         event(new Registered(($user = User::create($validated))));
 
         // Auth::login($user);
-        session()->flash('status', 'Votre inscription a été enregistrée. Un administrateur doit valider votre compte avant que vous puissiez vous connecter.');
+        session()->flash('status', 'Votre inscription a été enregistrée. Un administrateur doit valider votre compte et vous attribuer un rôle avant que vous puissiez vous connecter.');
 
         $this->redirect(route('dashboard', absolute: false), navigate: true);
     }

@@ -5,7 +5,9 @@
       "Bash(composer require:*)",
       "Bash(php artisan:*)",
       "Bash(cat:*)",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(del update_permissions.php verify_permissions.php)",
+      "Bash(php:*)"
     ],
     "deny": [],
     "ask": []
