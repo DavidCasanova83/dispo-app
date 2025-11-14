@@ -11,7 +11,7 @@
                 @foreach($this->citySpecificOptions as $option)
                     <button
                         type="button"
-                        wire:click="toggleSpecificRequest('{{ $option }}')"
+                        wire:click="toggleSpecificRequest('{{ addslashes($option) }}')"
                         @class([
                             'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
                             'bg-[#3E9B90] text-white shadow-md scale-105' => in_array($option, $specificRequests),
@@ -34,7 +34,7 @@
             @foreach($generalOptions as $option)
                 <button
                     type="button"
-                    wire:click="toggleGeneralRequest('{{ $option }}')"
+                    wire:click="toggleGeneralRequest('{{ addslashes($option) }}')"
                     @class([
                         'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
                         'bg-[#3E9B90] text-white shadow-md scale-105' => in_array($option, $generalRequests),

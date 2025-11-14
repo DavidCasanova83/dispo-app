@@ -20,10 +20,6 @@ class QualificationData extends Component
   public $dateFrom = '';
   public $dateTo = '';
 
-  // Édition
-  public $editingId = null;
-  public $editingData = [];
-
   protected $queryString = [
     'search' => ['except' => ''],
     'completedFilter' => ['except' => ''],
@@ -61,36 +57,6 @@ class QualificationData extends Component
   {
     $this->reset(['search', 'completedFilter', 'dateFrom', 'dateTo']);
     $this->resetPage();
-  }
-
-  public function edit($qualificationId)
-  {
-    $qualification = Qualification::findOrFail($qualificationId);
-    $this->editingId = $qualificationId;
-    $this->editingData = $qualification->form_data ?? [];
-  }
-
-  public function cancelEdit()
-  {
-    $this->editingId = null;
-    $this->editingData = [];
-  }
-
-  public function save()
-  {
-    if (!$this->editingId) {
-      return;
-    }
-
-    $qualification = Qualification::findOrFail($this->editingId);
-    $qualification->update([
-      'form_data' => $this->editingData,
-    ]);
-
-    $this->editingId = null;
-    $this->editingData = [];
-
-    session()->flash('success', 'Modification enregistrée avec succès');
   }
 
   public function delete($qualificationId)

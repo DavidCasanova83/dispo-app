@@ -80,6 +80,12 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->name('city.data')
             ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
 
+        // Page d'édition d'une qualification - requires edit-qualification permission
+        Route::get('/{city}/data/{id}/edit', [\App\Http\Controllers\QualificationController::class, 'edit'])
+            ->middleware(['permission:edit-qualification'])
+            ->name('edit')
+            ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
+
         // API pour sauvegarder les données du formulaire - requires fill-forms OR edit-qualification
         Route::post('/save', [\App\Http\Controllers\QualificationController::class, 'save'])
             ->middleware(['permission:fill-forms,edit-qualification'])
