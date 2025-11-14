@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Services\RoleService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -46,6 +47,16 @@ class Login extends Component
 
             throw ValidationException::withMessages([
                 'email' => 'Votre compte est en attente d\'approbation par un administrateur.',
+            ]);
+        }
+
+        // Vérifier si l'utilisateur a au moins un rôle
+        $roleService = app(RoleService::class);
+        if (! $roleService->userHasAnyRole(Auth::user())) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Votre compte est approuvé mais aucun rôle ne vous a été attribué. Veuillez contacter un administrateur.',
             ]);
         }
 

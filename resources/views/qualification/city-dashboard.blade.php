@@ -40,6 +40,7 @@
                 </a>
             </div>
 
+            @can('edit-qualification')
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all duration-300">
                 <a href="{{ route('qualification.city.data', $city) }}"
@@ -49,6 +50,7 @@
                     <p class="text-sm opacity-90">Consulter et éditer les données</p>
                 </a>
             </div>
+            @endcan
         </div>
     </div>
 </x-layouts.app>

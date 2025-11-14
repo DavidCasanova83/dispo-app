@@ -17,6 +17,11 @@
             <flux:navlist.group :heading="__('Platform')" class="grid">
                 <flux:navlist.item icon="home" :href="route('dashboard')" :current="request() -> routeIs('dashboard')"
                     wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+
+                @can('manage-users')
+                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.*')"
+                        wire:navigate>{{ __('Administration') }}</flux:navlist.item>
+                @endcan
             </flux:navlist.group>
         </flux:navlist>
 

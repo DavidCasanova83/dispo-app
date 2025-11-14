@@ -14,6 +14,7 @@ Route::view('dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth', 'approved'])->group(function () {
+    // Settings - available to all authenticated approved users
     Route::redirect('settings', 'settings/profile');
 
     Route::get('settings/profile', Profile::class)->name('settings.profile');
@@ -23,52 +24,66 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Nouvelle route pour la page de test
     Route::view('test', 'test')->name('test');
 
-    // Route pour afficher les hébergements
-    Route::get('accommodations', function () {
-        $accommodations = \App\Models\Accommodation::orderBy('name')->get();
+    // Route pour afficher les hébergements - requires view-disponibilites permission
+    Route::middleware(['permission:view-disponibilites'])->group(function () {
+        Route::get('accommodations', function () {
+            $accommodations = \App\Models\Accommodation::orderBy('name')->get();
 
-        // Calcul des statistiques
-        $stats = [
-            'total' => $accommodations->count(),
-            'by_status' => $accommodations->groupBy('status')->map->count(),
-            'by_type' => $accommodations->whereNotNull('type')->groupBy('type')->map->count(),
-            'by_city' => $accommodations->whereNotNull('city')->groupBy('city')->map->count(),
-            'with_email' => $accommodations->whereNotNull('email')->count(),
-            'with_phone' => $accommodations->whereNotNull('phone')->count(),
-            'with_website' => $accommodations->whereNotNull('website')->count(),
-        ];
+            // Calcul des statistiques
+            $stats = [
+                'total' => $accommodations->count(),
+                'by_status' => $accommodations->groupBy('status')->map->count(),
+                'by_type' => $accommodations->whereNotNull('type')->groupBy('type')->map->count(),
+                'by_city' => $accommodations->whereNotNull('city')->groupBy('city')->map->count(),
+                'with_email' => $accommodations->whereNotNull('email')->count(),
+                'with_phone' => $accommodations->whereNotNull('phone')->count(),
+                'with_website' => $accommodations->whereNotNull('website')->count(),
+            ];
 
-        // Top 5 des villes
-        $topCities = $accommodations->whereNotNull('city')
-            ->groupBy('city')
-            ->map->count()
-            ->sortDesc()
-            ->take(5);
-        return view('accommodations', compact('accommodations', 'stats', 'topCities'));
-    })->name('accommodations');
+            // Top 5 des villes
+            $topCities = $accommodations->whereNotNull('city')
+                ->groupBy('city')
+                ->map->count()
+                ->sortDesc()
+                ->take(5);
+            return view('accommodations', compact('accommodations', 'stats', 'topCities'));
+        })->name('accommodations');
+    });
+
+    // Routes pour l'administration des utilisateurs - requires manage-users permission (Super-admin only)
+    Route::middleware(['permission:manage-users'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
+    });
 
     // Routes pour le module Qualification
     Route::prefix('qualification')->name('qualification.')->group(function () {
-        // Page de sélection des villes
-        Route::get('/', [\App\Http\Controllers\QualificationController::class, 'index'])->name('index');
+        // Page de sélection des villes - requires view-qualification permission
+        Route::get('/', [\App\Http\Controllers\QualificationController::class, 'index'])
+            ->middleware(['permission:view-qualification'])
+            ->name('index');
 
-        // Dashboard spécifique d'une ville
+        // Dashboard spécifique d'une ville - requires view-qualification permission
         Route::get('/{city}', [\App\Http\Controllers\QualificationController::class, 'cityDashboard'])
+            ->middleware(['permission:view-qualification'])
             ->name('city.dashboard')
             ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
 
-        // Formulaire de qualification pour une ville
+        // Formulaire de qualification pour une ville - requires fill-forms OR edit-qualification
         Route::get('/{city}/formulaire01', [\App\Http\Controllers\QualificationController::class, 'form'])
+            ->middleware(['permission:fill-forms,edit-qualification'])
             ->name('city.form')
             ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
 
-        // Page de données (liste des entrées) pour une ville
+        // Page de données (liste des entrées) pour une ville - requires edit-qualification permission
         Route::get('/{city}/data', [\App\Http\Controllers\QualificationController::class, 'data'])
+            ->middleware(['permission:edit-qualification'])
             ->name('city.data')
             ->where('city', 'annot|colmars-les-alpes|entrevaux|la-palud-sur-verdon|saint-andre-les-alpes');
 
-        // API pour sauvegarder les données du formulaire
-        Route::post('/save', [\App\Http\Controllers\QualificationController::class, 'save'])->name('save');
+        // API pour sauvegarder les données du formulaire - requires fill-forms OR edit-qualification
+        Route::post('/save', [\App\Http\Controllers\QualificationController::class, 'save'])
+            ->middleware(['permission:fill-forms,edit-qualification'])
+            ->name('save');
     });
 });
 
