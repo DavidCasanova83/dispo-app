@@ -455,6 +455,34 @@ class QualificationForm extends Component
         }
     }
 
+    public function updatedOtherRequest($value)
+    {
+        $this->otherRequest = $this->formatText($value);
+    }
+
+    protected function formatText($text)
+    {
+        if (empty(trim($text))) {
+            return $text;
+        }
+
+        // Trim whitespace
+        $text = trim($text);
+
+        // Normalize multiple spaces to single space
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        // Capitalize first letter
+        $text = mb_strtoupper(mb_substr($text, 0, 1)) . mb_substr($text, 1);
+
+        // Add period if missing and doesn't end with punctuation
+        if (!preg_match('/[.!?]$/', $text)) {
+            $text .= '.';
+        }
+
+        return $text;
+    }
+
     // Méthodes pour manipuler les tableaux
     public function toggleAgeGroup($age)
     {
