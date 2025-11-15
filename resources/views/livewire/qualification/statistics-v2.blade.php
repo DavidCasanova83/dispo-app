@@ -22,13 +22,14 @@
         </div>
 
         <!-- Loading Overlay -->
-        <div wire:loading wire:target="applyFilter" class="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 flex flex-col items-center space-y-4">
+        <div wire:loading wire:target="applyFilter"
+            class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div class="rounded-lg shadow-2xl p-8 flex flex-col items-center space-y-4">
                 <svg class="animate-spin h-16 w-16 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                        stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <p class="text-lg font-semibold text-gray-900 dark:text-white">Chargement des statistiques...</p>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Veuillez patienter</p>
             </div>
         </div>
@@ -37,60 +38,60 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Filtrer par période</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <label
+                    class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <input type="radio" wire:model.live="selectedPeriod" wire:change="applyFilter" value="7days"
                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         7 derniers jours
                     </span>
                 </label>
-                <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <label
+                    class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <input type="radio" wire:model.live="selectedPeriod" wire:change="applyFilter" value="30days"
                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         30 derniers jours
                     </span>
                 </label>
-                <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <label
+                    class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <input type="radio" wire:model.live="selectedPeriod" wire:change="applyFilter" value="90days"
                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         90 derniers jours
                     </span>
                 </label>
-                <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <label
+                    class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <input type="radio" wire:model.live="selectedPeriod" wire:change="applyFilter" value="180days"
                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         180 derniers jours
                     </span>
                 </label>
-                <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <label
+                    class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <input type="radio" wire:model.live="selectedPeriod" wire:change="applyFilter" value="all"
                         class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
@@ -195,8 +196,8 @@
                         </p>
                     </div>
                     <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                        <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                             </path>
@@ -398,7 +399,8 @@
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js">
+        </script>
         @if ($statistics['kpis']['total'] > 0)
             <script>
                 // Registre global pour stocker les instances de graphiques
@@ -788,50 +790,51 @@
                     if (topSpecificCtx) {
                         if (topSpecificValues.length > 0) {
                             chartInstances.topSpecificRequestsChart = new Chart(topSpecificCtx, {
-                            type: 'bar',
-                            data: {
-                                labels: topSpecificLabels,
-                                datasets: [{
-                                    label: 'Demandes',
-                                    data: topSpecificValues,
-                                    backgroundColor: colors[1]
-                                }]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    }
+                                type: 'bar',
+                                data: {
+                                    labels: topSpecificLabels,
+                                    datasets: [{
+                                        label: 'Demandes',
+                                        data: topSpecificValues,
+                                        backgroundColor: colors[1]
+                                    }]
                                 },
-                                scales: {
-                                    x: {
-                                        beginAtZero: true,
-                                        grid: {
-                                            color: gridColor
-                                        },
-                                        ticks: {
-                                            color: textColor
+                                options: {
+                                    indexAxis: 'y',
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
                                         }
                                     },
-                                    y: {
-                                        grid: {
-                                            color: gridColor
+                                    scales: {
+                                        x: {
+                                            beginAtZero: true,
+                                            grid: {
+                                                color: gridColor
+                                            },
+                                            ticks: {
+                                                color: textColor
+                                            }
                                         },
-                                        ticks: {
-                                            color: textColor,
-                                            font: {
-                                                size: 11
+                                        y: {
+                                            grid: {
+                                                color: gridColor
+                                            },
+                                            ticks: {
+                                                color: textColor,
+                                                font: {
+                                                    size: 11
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        });
+                            });
                         } else {
-                            topSpecificCtx.parentElement.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
+                            topSpecificCtx.parentElement.innerHTML =
+                                '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
                         }
                     }
 
@@ -844,50 +847,51 @@
                     if (departmentsCtx) {
                         if (departmentValues.length > 0) {
                             chartInstances.topDepartmentsChart = new Chart(departmentsCtx, {
-                            type: 'bar',
-                            data: {
-                                labels: departmentLabels,
-                                datasets: [{
-                                    label: 'Qualifications',
-                                    data: departmentValues,
-                                    backgroundColor: colors[3]
-                                }]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    }
+                                type: 'bar',
+                                data: {
+                                    labels: departmentLabels,
+                                    datasets: [{
+                                        label: 'Qualifications',
+                                        data: departmentValues,
+                                        backgroundColor: colors[3]
+                                    }]
                                 },
-                                scales: {
-                                    x: {
-                                        beginAtZero: true,
-                                        grid: {
-                                            color: gridColor
-                                        },
-                                        ticks: {
-                                            color: textColor
+                                options: {
+                                    indexAxis: 'y',
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
                                         }
                                     },
-                                    y: {
-                                        grid: {
-                                            color: gridColor
+                                    scales: {
+                                        x: {
+                                            beginAtZero: true,
+                                            grid: {
+                                                color: gridColor
+                                            },
+                                            ticks: {
+                                                color: textColor
+                                            }
                                         },
-                                        ticks: {
-                                            color: textColor,
-                                            font: {
-                                                size: 11
+                                        y: {
+                                            grid: {
+                                                color: gridColor
+                                            },
+                                            ticks: {
+                                                color: textColor,
+                                                font: {
+                                                    size: 11
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        });
+                            });
                         } else {
-                            departmentsCtx.parentElement.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
+                            departmentsCtx.parentElement.innerHTML =
+                                '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
                         }
                     }
 
@@ -962,34 +966,35 @@
                     if (contactMethodsCtx) {
                         if (contactValues.length > 0) {
                             chartInstances.contactMethodsChart = new Chart(contactMethodsCtx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: contactLabels,
-                                datasets: [{
-                                    data: contactValues,
-                                    backgroundColor: colors.slice(0, 3)
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: true,
-                                        position: 'bottom',
-                                        labels: {
-                                            color: textColor,
-                                            padding: 15,
-                                            font: {
-                                                size: 11
+                                type: 'doughnut',
+                                data: {
+                                    labels: contactLabels,
+                                    datasets: [{
+                                        data: contactValues,
+                                        backgroundColor: colors.slice(0, 3)
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: true,
+                                            position: 'bottom',
+                                            labels: {
+                                                color: textColor,
+                                                padding: 15,
+                                                font: {
+                                                    size: 11
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        });
+                            });
                         } else {
-                            contactMethodsCtx.parentElement.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
+                            contactMethodsCtx.parentElement.innerHTML =
+                                '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
                         }
                     }
 
