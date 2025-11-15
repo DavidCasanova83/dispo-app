@@ -29,7 +29,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="grid auto-rows-min gap-4 md:grid-cols-2">
+        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all duration-300">
                 <a href="{{ route('qualification.city.form', $city) }}"
@@ -51,6 +51,16 @@
                 </a>
             </div>
             @endcan
+
+            <div
+                class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 transition-all duration-300">
+                <a href="{{ route('qualification.statistics') }}"
+                    class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+                    <div class="text-4xl mb-2">📈</div>
+                    <h3 class="text-lg font-semibold mb-2">Statistiques</h3>
+                    <p class="text-sm opacity-90">Analyse des données globales</p>
+                </a>
+            </div>
         </div>
     </div>
 </x-layouts.app>

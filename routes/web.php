@@ -62,6 +62,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:view-qualification'])
             ->name('index');
 
+        // Page de statistiques - requires view-qualification permission
+        Route::get('/statistiques', \App\Livewire\QualificationStatistics::class)
+            ->middleware(['permission:view-qualification'])
+            ->name('statistics');
+
         // Dashboard spécifique d'une ville - requires view-qualification permission
         Route::get('/{city}', [\App\Http\Controllers\QualificationController::class, 'cityDashboard'])
             ->middleware(['permission:view-qualification'])
