@@ -239,8 +239,8 @@
                 <!-- Évolution temporelle -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Évolution temporelle</h3>
-                    <div wire:ignore>
-                        <canvas id="temporalChart" height="80"></canvas>
+                    <div wire:ignore class="h-80">
+                        <canvas id="temporalChart"></canvas>
                     </div>
                 </div>
 
@@ -250,7 +250,7 @@
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées
                             par utilisateur</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-80">
                             <canvas id="cityComparisonChart"></canvas>
                         </div>
                     </div>
@@ -258,7 +258,7 @@
                     <!-- Provenance géographique -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pays de provenance</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-80">
                             <canvas id="countriesChart"></canvas>
                         </div>
                     </div>
@@ -269,7 +269,7 @@
                     <!-- Profils visiteurs -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profils visiteurs</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-80">
                             <canvas id="profilesChart"></canvas>
                         </div>
                     </div>
@@ -277,7 +277,7 @@
                     <!-- Tranches d'âge -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tranches d'âge</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-80">
                             <canvas id="ageGroupsChart"></canvas>
                         </div>
                     </div>
@@ -287,7 +287,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes générales
                     </h3>
-                    <div wire:ignore>
+                    <div wire:ignore class="h-96">
                         <canvas id="generalRequestsChart"></canvas>
                     </div>
                 </div>
@@ -298,7 +298,7 @@
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes
                             spécifiques</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-96">
                             <canvas id="topSpecificRequestsChart"></canvas>
                         </div>
                     </div>
@@ -307,7 +307,7 @@
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des départements
                         </h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-96">
                             <canvas id="topDepartmentsChart"></canvas>
                         </div>
                     </div>
@@ -315,20 +315,20 @@
 
                 <!-- Demandes spécifiques par ville -->
                 @php
-                    $citiesToShow = array_slice(array_keys($cities), 0, 3);
+                    $citiesToShow = array_keys($cities);
                 @endphp
                 @if (count($citiesToShow) > 0)
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Demandes spécifiques par
                             ville</h3>
-                        <div class="grid grid-cols-1 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             @foreach ($citiesToShow as $cityKey)
                                 @if (isset($statistics['demands']['specificRequests'][$cityKey]) &&
                                         count($statistics['demands']['specificRequests'][$cityKey]) > 0)
-                                    <div>
+                                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                         <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">
                                             {{ $cities[$cityKey] }}</h4>
-                                        <div wire:ignore>
+                                        <div wire:ignore class="h-80">
                                             <canvas id="specificRequests_{{ $cityKey }}"></canvas>
                                         </div>
                                     </div>
@@ -343,7 +343,7 @@
                     <!-- Méthodes de contact -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Méthodes de contact</h3>
-                        <div wire:ignore>
+                        <div wire:ignore class="h-80">
                             <canvas id="contactMethodsChart"></canvas>
                         </div>
                     </div>
@@ -351,7 +351,7 @@
                     <!-- Stats email -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Emails fournis</h3>
-                        <div class="flex items-center justify-center h-full">
+                        <div class="flex items-center justify-center h-80">
                             <div class="text-center">
                                 <div class="text-6xl font-bold text-[#3E9B90] mb-2">
                                     {{ number_format($statistics['contact']['emailProvided']) }}
@@ -474,12 +474,16 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: true,
                                         labels: {
-                                            color: textColor
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 12
+                                            }
                                         }
                                     },
                                     tooltip: {
@@ -546,13 +550,17 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: true,
                                         position: 'top',
                                         labels: {
-                                            color: textColor
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 12
+                                            }
                                         }
                                     }
                                 },
@@ -599,13 +607,17 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: true,
                                         position: 'bottom',
                                         labels: {
-                                            color: textColor
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -631,13 +643,17 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: true,
                                         position: 'bottom',
                                         labels: {
-                                            color: textColor
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -665,7 +681,7 @@
                             options: {
                                 indexAxis: 'y',
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -686,7 +702,10 @@
                                             color: gridColor
                                         },
                                         ticks: {
-                                            color: textColor
+                                            color: textColor,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -714,7 +733,7 @@
                             options: {
                                 indexAxis: 'y',
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -735,7 +754,10 @@
                                             color: gridColor
                                         },
                                         ticks: {
-                                            color: textColor
+                                            color: textColor,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -764,7 +786,7 @@
                             options: {
                                 indexAxis: 'y',
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -785,7 +807,10 @@
                                             color: gridColor
                                         },
                                         ticks: {
-                                            color: textColor
+                                            color: textColor,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -817,7 +842,7 @@
                             options: {
                                 indexAxis: 'y',
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -838,7 +863,10 @@
                                             color: gridColor
                                         },
                                         ticks: {
-                                            color: textColor
+                                            color: textColor,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
@@ -850,7 +878,7 @@
                     }
 
                     // 9. Demandes spécifiques par ville (Horizontal bar charts)
-                    const citiesToShowJS = Object.keys(cities).slice(0, 3);
+                    const citiesToShowJS = Object.keys(cities);
                     const specificRequests = statistics.demands.specificRequests;
 
                     citiesToShowJS.forEach(cityKey => {
@@ -869,13 +897,15 @@
                                         datasets: [{
                                             label: 'Demandes',
                                             data: specificValues,
-                                            backgroundColor: colors[1]
+                                            backgroundColor: colors[1],
+                                            barThickness: 20,
+                                            maxBarThickness: 25
                                         }]
                                     },
                                     options: {
                                         indexAxis: 'y',
                                         responsive: true,
-                                        maintainAspectRatio: true,
+                                        maintainAspectRatio: false,
                                         plugins: {
                                             legend: {
                                                 display: false
@@ -896,7 +926,10 @@
                                                     color: gridColor
                                                 },
                                                 ticks: {
-                                                    color: textColor
+                                                    color: textColor,
+                                                    font: {
+                                                        size: 11
+                                                    }
                                                 }
                                             }
                                         }
@@ -925,13 +958,17 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
                                         display: true,
                                         position: 'bottom',
                                         labels: {
-                                            color: textColor
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 11
+                                            }
                                         }
                                     }
                                 }
