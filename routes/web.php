@@ -67,6 +67,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:view-qualification'])
             ->name('statistics');
 
+        // Page de statistiques V2 (Chart.js) - requires view-qualification permission
+        Route::get('/statistiquesv2', \App\Livewire\QualificationStatisticsV2::class)
+            ->middleware(['permission:view-qualification'])
+            ->name('statisticsv2');
+
         // Export des données - requires view-qualification permission
         Route::get('/export', [\App\Http\Controllers\QualificationController::class, 'export'])
             ->middleware(['permission:view-qualification'])
