@@ -15,7 +15,7 @@ class QualificationStatistics extends Component
         $service = new QualificationStatisticsService();
 
         // Toujours récupérer toutes les données
-        $cities = []; // Toutes les villes
+        $cities = array_keys(Qualification::getCities()); // Récupérer les clés de toutes les villes
         $startDate = null; // Pas de limite de date début
         $endDate = null; // Pas de limite de date fin
         $status = 'all'; // Tous les statuts
