@@ -162,7 +162,14 @@ class DepartmentSelector extends Component
 
             case 'Enter':
                 if ($this->highlightedIndex >= 0 && isset($this->searchResults[$this->highlightedIndex])) {
+                    // Sélectionner l'élément surligné
                     $this->toggleDepartment($this->searchResults[$this->highlightedIndex]['code']);
+                } elseif (count($this->searchResults) === 1) {
+                    // Si un seul résultat, le sélectionner automatiquement
+                    $this->toggleDepartment($this->searchResults[0]['code']);
+                } elseif (count($this->searchResults) > 0 && $this->highlightedIndex < 0) {
+                    // Sinon, surligner le premier élément
+                    $this->highlightedIndex = 0;
                 }
                 break;
 
