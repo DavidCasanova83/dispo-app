@@ -54,21 +54,37 @@ class QualificationStatisticsService
         $cities = Qualification::getCities();
         $stats = [];
 
+        // Récupérer toutes les qualifications complétées avec les utilisateurs
+        $qualifications = Qualification::with('user')
+            ->where('completed', true);
+
+        if ($startDate) {
+            $qualifications->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+        }
+
+        if ($endDate) {
+            $qualifications->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+        }
+
+        $qualifications = $qualifications->get();
+
+        // Grouper par ville et par utilisateur
         foreach ($cities as $cityKey => $cityName) {
-            $query = $this->baseQuery([$cityKey], $startDate, $endDate, $status);
+            $cityQualifications = $qualifications->where('city', $cityKey);
 
-            $total = $query->count();
-            $completed = $query->where('completed', true)->count();
-
-            // Méthode de contact privilégiée
-            $contactMethods = $query->get()->pluck('form_data.contactMethod')->filter()->countBy();
+            // Compter les qualifications complétées par utilisateur
+            $byUser = $cityQualifications->groupBy('user_id')->map(function($userQuals) {
+                $user = $userQuals->first()->user;
+                return [
+                    'user_name' => $user ? $user->name : 'Inconnu',
+                    'count' => $userQuals->count(),
+                ];
+            })->values()->toArray();
 
             $stats[$cityKey] = [
                 'name' => $cityName,
-                'total' => $total,
-                'completed' => $completed,
-                'completionRate' => $total > 0 ? round(($completed / $total) * 100, 1) : 0,
-                'contactMethods' => $contactMethods->toArray(),
+                'total' => $cityQualifications->count(),
+                'byUser' => $byUser,
             ];
         }
 
@@ -212,6 +228,11 @@ class QualificationStatisticsService
             }
         }
 
+        // Top 10 des demandes spécifiques (toutes villes confondues)
+        $topSpecificRequests = $qualifications->flatMap(function($q) {
+            return $q->form_data['specificRequests'] ?? [];
+        })->countBy()->sortDesc()->take(10);
+
         // Autres demandes spécifiques (demandes croisées)
         $otherSpecificRequests = $qualifications->flatMap(function($q) {
             return $q->form_data['otherSpecificRequests'] ?? [];
@@ -226,6 +247,7 @@ class QualificationStatisticsService
         return [
             'generalRequests' => $generalRequests->toArray(),
             'specificRequests' => $specificRequests,
+            'topSpecificRequests' => $topSpecificRequests->toArray(),
             'otherSpecificRequests' => $otherSpecificRequests->toArray(),
             'otherRequests' => $otherRequests->toArray(),
         ];

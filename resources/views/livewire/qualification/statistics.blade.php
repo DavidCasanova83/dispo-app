@@ -324,7 +324,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Comparatif par ville -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comparatif par ville</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées par utilisateur</h3>
                         <div id="cityComparisonChart"></div>
                     </div>
 
@@ -355,6 +355,21 @@
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes générales
                     </h3>
                     <div id="generalRequestsChart"></div>
+                </div>
+
+                <!-- Row: Top 10 Demandes spécifiques + Top 10 Départements -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Top 10 Demandes spécifiques -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes spécifiques</h3>
+                        <div id="topSpecificRequestsChart"></div>
+                    </div>
+
+                    <!-- Top 10 Départements -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des départements</h3>
+                        <div id="topDepartmentsChart"></div>
+                    </div>
                 </div>
 
                 <!-- Demandes spécifiques par ville -->
@@ -538,25 +553,35 @@
                     });
                     temporalChart.render();
 
-                    // 2. Comparatif par ville
+                    // 2. Comparatif par ville (qualifications complétées par utilisateur)
                     const cityStats = @json($statistics['cityStats']);
                     const cityLabels = Object.values(cityStats).map(s => s.name);
-                    const cityTotals = Object.values(cityStats).map(s => s.total);
-                    const cityCompleted = Object.values(cityStats).map(s => s.completed);
+
+                    // Récupérer tous les utilisateurs uniques
+                    const allUsers = new Set();
+                    Object.values(cityStats).forEach(city => {
+                        city.byUser.forEach(user => {
+                            allUsers.add(user.user_name);
+                        });
+                    });
+
+                    // Créer une série par utilisateur
+                    const citySeries = Array.from(allUsers).map(userName => {
+                        return {
+                            name: userName,
+                            data: Object.values(cityStats).map(city => {
+                                const userEntry = city.byUser.find(u => u.user_name === userName);
+                                return userEntry ? userEntry.count : 0;
+                            })
+                        };
+                    });
 
                     const cityComparisonChart = new ApexCharts(document.querySelector("#cityComparisonChart"), {
-                        series: [{
-                                name: 'Total',
-                                data: cityTotals
-                            },
-                            {
-                                name: 'Complétées',
-                                data: cityCompleted
-                            }
-                        ],
+                        series: citySeries,
                         chart: {
                             type: 'bar',
                             height: 350,
+                            stacked: true,
                             theme: chartTheme
                         },
                         plotOptions: {
@@ -564,15 +589,17 @@
                                 horizontal: false,
                                 columnWidth: '55%',
                                 dataLabels: {
-                                    position: 'top'
+                                    position: 'center'
                                 }
                             }
                         },
                         dataLabels: {
                             enabled: true,
-                            offsetY: -20,
+                            formatter: function(val) {
+                                return val > 0 ? val : '';
+                            },
                             style: {
-                                colors: [textColor]
+                                colors: ['#fff']
                             }
                         },
                         xaxis: {
@@ -590,19 +617,32 @@
                                 style: {
                                     colors: textColor
                                 }
+                            },
+                            title: {
+                                text: 'Qualifications complétées',
+                                style: {
+                                    color: textColor
+                                }
                             }
                         },
                         grid: {
                             borderColor: gridColor
                         },
-                        colors: ['#3E9B90', '#10B981'],
+                        colors: ['#3E9B90', '#F59E0B', '#EF4444', '#8B5CF6', '#10B981', '#06B6D4', '#EC4899', '#F97316'],
                         legend: {
+                            position: 'top',
+                            horizontalAlign: 'center',
                             labels: {
                                 colors: textColor
                             }
                         },
                         tooltip: {
-                            theme: isDark ? 'dark' : 'light'
+                            theme: isDark ? 'dark' : 'light',
+                            y: {
+                                formatter: function(val) {
+                                    return val + ' qualification(s)';
+                                }
+                            }
                         }
                     });
                     cityComparisonChart.render();
@@ -781,7 +821,127 @@
                     });
                     generalRequestsChart.render();
 
-                    // 7. Demandes spécifiques par ville
+                    // 7. Top 10 des demandes spécifiques (toutes villes confondues)
+                    const topSpecificRequests = @json($statistics['demands']['topSpecificRequests']);
+                    const topSpecificLabels = Object.keys(topSpecificRequests);
+                    const topSpecificValues = Object.values(topSpecificRequests);
+
+                    if (topSpecificValues.length > 0) {
+                        const topSpecificRequestsChart = new ApexCharts(document.querySelector("#topSpecificRequestsChart"), {
+                            series: [{
+                                name: 'Demandes',
+                                data: topSpecificValues
+                            }],
+                            chart: {
+                                type: 'bar',
+                                height: 350,
+                                theme: chartTheme
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: true,
+                                    dataLabels: {
+                                        position: 'top'
+                                    }
+                                }
+                            },
+                            dataLabels: {
+                                enabled: true,
+                                offsetX: 30,
+                                style: {
+                                    colors: [textColor]
+                                }
+                            },
+                            xaxis: {
+                                categories: topSpecificLabels,
+                                labels: {
+                                    style: {
+                                        colors: textColor
+                                    }
+                                }
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: {
+                                        colors: textColor
+                                    }
+                                }
+                            },
+                            grid: {
+                                borderColor: gridColor
+                            },
+                            colors: ['#F59E0B'],
+                            tooltip: {
+                                theme: isDark ? 'dark' : 'light'
+                            }
+                        });
+                        topSpecificRequestsChart.render();
+                    } else {
+                        document.querySelector("#topSpecificRequestsChart").innerHTML =
+                            '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
+                    }
+
+                    // 8. Top 10 des départements
+                    const departments = @json($statistics['geographic']['departments']);
+                    const departmentLabels = Object.keys(departments);
+                    const departmentValues = Object.values(departments);
+
+                    if (departmentValues.length > 0) {
+                        const topDepartmentsChart = new ApexCharts(document.querySelector("#topDepartmentsChart"), {
+                            series: [{
+                                name: 'Qualifications',
+                                data: departmentValues
+                            }],
+                            chart: {
+                                type: 'bar',
+                                height: 350,
+                                theme: chartTheme
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: true,
+                                    dataLabels: {
+                                        position: 'top'
+                                    }
+                                }
+                            },
+                            dataLabels: {
+                                enabled: true,
+                                offsetX: 30,
+                                style: {
+                                    colors: [textColor]
+                                }
+                            },
+                            xaxis: {
+                                categories: departmentLabels,
+                                labels: {
+                                    style: {
+                                        colors: textColor
+                                    }
+                                }
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: {
+                                        colors: textColor
+                                    }
+                                }
+                            },
+                            grid: {
+                                borderColor: gridColor
+                            },
+                            colors: ['#8B5CF6'],
+                            tooltip: {
+                                theme: isDark ? 'dark' : 'light'
+                            }
+                        });
+                        topDepartmentsChart.render();
+                    } else {
+                        document.querySelector("#topDepartmentsChart").innerHTML =
+                            '<p class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune donnée disponible</p>';
+                    }
+
+                    // 9. Demandes spécifiques par ville
                     @foreach ($selectedCities as $cityKey)
                         @if (isset($statistics['demands']['specificRequests'][$cityKey]) &&
                                 count($statistics['demands']['specificRequests'][$cityKey]) > 0)
@@ -844,7 +1004,7 @@
                         @endif
                     @endforeach
 
-                    // 8. Méthodes de contact
+                    // 10. Méthodes de contact
                     const contactMethods = @json($statistics['contact']['contactMethods']);
                     console.log('Contact methods data:', contactMethods);
                     const contactLabels = Object.keys(contactMethods);
