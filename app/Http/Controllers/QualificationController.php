@@ -69,6 +69,27 @@ class QualificationController extends Controller
   }
 
   /**
+   * Display the edit page for a qualification.
+   */
+  public function edit(string $city, int $id): View
+  {
+    // Validate city exists
+    abort_if(!array_key_exists($city, Qualification::getCities()), 404);
+
+    // Load qualification with user relation
+    $qualification = Qualification::with('user')->findOrFail($id);
+
+    // Verify qualification belongs to the correct city
+    abort_if($qualification->city !== $city, 404);
+
+    return view('qualification.edit', [
+      'city' => $city,
+      'cityName' => Qualification::getCities()[$city],
+      'qualification' => $qualification,
+    ]);
+  }
+
+  /**
    * Save qualification data from the form.
    */
   public function save(Request $request)

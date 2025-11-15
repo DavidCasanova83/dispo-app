@@ -9,7 +9,7 @@
 
     <!-- Formulaire Multi-étapes -->
     <div class="max-w-4xl mx-auto w-full">
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6">
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 min-h-[500px] transition-all duration-500 ease-in-out">
             <!-- Indicateur d'étapes -->
             <x-qualification.step-indicator :currentStep="$currentStep" />
 
