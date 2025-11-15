@@ -32,6 +32,7 @@ class QualificationEdit extends Component
     public $ageUnknown = false;
 
     // Étape 3 : Demandes
+    public $contactMethod = 'Direct';
     public $specificRequests = [];
     public $generalRequests = [];
     public $otherRequest = '';
@@ -105,6 +106,7 @@ class QualificationEdit extends Component
         $this->ageUnknown = in_array('Inconnu', $this->ageGroups);
 
         // Charger les données de l'étape 3
+        $this->contactMethod = $data['contactMethod'] ?? 'Direct';
         $this->specificRequests = $data['specificRequests'] ?? [];
         $this->generalRequests = $data['generalRequests'] ?? [];
         $this->otherRequest = $data['otherRequest'] ?? '';
@@ -124,6 +126,7 @@ class QualificationEdit extends Component
             'consentDataProcessing' => $this->consentDataProcessing,
             'profile' => $this->profileUnknown ? 'Inconnu' : $this->profile,
             'ageGroups' => $this->ageUnknown ? ['Inconnu'] : $this->ageGroups,
+            'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
@@ -288,6 +291,11 @@ class QualificationEdit extends Component
         } else {
             $this->generalRequests[] = $request;
         }
+    }
+
+    public function setContactMethod($method)
+    {
+        $this->contactMethod = $method;
     }
 
     // Getters pour les options de la ville courante

@@ -35,6 +35,7 @@ class QualificationForm extends Component
     public $ageUnknown = false;
 
     // Étape 3 : Demandes
+    public $contactMethod = 'Direct';
     public $specificRequests = [];
     public $generalRequests = [];
     public $otherRequest = '';
@@ -128,6 +129,7 @@ class QualificationForm extends Component
             $this->ageUnknown = $data['ageUnknown'] ?? false;
 
             // Charger les données de l'étape 3
+            $this->contactMethod = $data['contactMethod'] ?? 'Direct';
             $this->specificRequests = $data['specificRequests'] ?? [];
             $this->generalRequests = $data['generalRequests'] ?? [];
             $this->otherRequest = $data['otherRequest'] ?? '';
@@ -148,6 +150,7 @@ class QualificationForm extends Component
             'profileUnknown' => $this->profileUnknown,
             'ageGroups' => $this->ageGroups,
             'ageUnknown' => $this->ageUnknown,
+            'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
@@ -320,6 +323,7 @@ class QualificationForm extends Component
             'consentDataProcessing' => $this->consentDataProcessing,
             'profile' => $this->profileUnknown ? 'Inconnu' : $this->profile,
             'ageGroups' => $this->ageUnknown ? ['Inconnu'] : $this->ageGroups,
+            'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
@@ -366,6 +370,7 @@ class QualificationForm extends Component
         $this->ageUnknown = false;
 
         // Réinitialiser Étape 3
+        $this->contactMethod = 'Direct';
         $this->specificRequests = [];
         $this->generalRequests = [];
         $this->otherRequest = '';
@@ -442,6 +447,11 @@ class QualificationForm extends Component
         } else {
             $this->generalRequests[] = $request;
         }
+    }
+
+    public function setContactMethod($method)
+    {
+        $this->contactMethod = $method;
     }
 
     // Getters pour les options de la ville courante

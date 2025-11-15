@@ -1,6 +1,50 @@
 <div x-show="$wire.currentStep === 3" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-x-4" x-transition:enter-end="opacity-100 transform translate-x-0">
     <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Étape 3 : Demandes</h2>
 
+    <!-- Méthode de contact -->
+    <div class="mb-6">
+        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+            Méthode de contact <span class="text-red-500">*</span>
+        </label>
+        <div class="flex flex-wrap gap-2">
+            <button
+                type="button"
+                wire:click="setContactMethod('Direct')"
+                @class([
+                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                    'bg-[#3E9B90] text-white shadow-md scale-105' => $contactMethod === 'Direct',
+                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => $contactMethod !== 'Direct'
+                ])
+            >
+                Direct
+            </button>
+            <button
+                type="button"
+                wire:click="setContactMethod('Téléphone')"
+                @class([
+                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                    'bg-[#3E9B90] text-white shadow-md scale-105' => $contactMethod === 'Téléphone',
+                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => $contactMethod !== 'Téléphone'
+                ])
+            >
+                Téléphone
+            </button>
+            <button
+                type="button"
+                wire:click="setContactMethod('Email')"
+                @class([
+                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                    'bg-[#3E9B90] text-white shadow-md scale-105' => $contactMethod === 'Email',
+                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => $contactMethod !== 'Email'
+                ])
+            >
+                Email
+            </button>
+        </div>
+    </div>
+
+    <hr class="my-6 border-gray-300 dark:border-gray-600">
+
     <!-- Demandes spécifiques -->
     @if($this->citySpecificOptions)
         <div class="mb-6">
