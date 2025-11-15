@@ -66,6 +66,9 @@ class DepartmentSelector extends Component
             $this->showDropdown = false;
             $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
+
+        // Notify parent component about unknown state change
+        $this->dispatch('departmentUnknownChanged', $this->departmentUnknown);
     }
 
     /**
@@ -192,6 +195,9 @@ class DepartmentSelector extends Component
             $this->showDropdown = false;
             $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
+
+        // Notify parent component about unknown state change
+        $this->dispatch('departmentUnknownChanged', $this->departmentUnknown);
     }
 
     /**

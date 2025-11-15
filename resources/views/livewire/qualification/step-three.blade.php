@@ -2,15 +2,30 @@
     <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Étape 3 : Demandes</h2>
 
     <!-- Date d'ajout du formulaire -->
-    <div class="mb-6">
-        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-            Date d'ajout du formulaire <span class="text-red-500">*</span>
-        </label>
-        <input
-            type="date"
-            wire:model.live="addedDate"
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
-        >
+    <div class="mb-6" x-data>
+        <div class="flex items-center gap-2">
+            <!-- Hidden native date input -->
+            <input
+                type="date"
+                wire:model.live="addedDate"
+                x-ref="dateInput"
+                class="sr-only"
+            >
+
+            <!-- Displayed date + clickable icon -->
+            <span class="text-gray-900 dark:text-white">
+                {{ $addedDate ? \Carbon\Carbon::parse($addedDate)->format('d/m/Y') : 'Sélectionner une date' }}
+            </span>
+
+            <button
+                type="button"
+                @click="$refs.dateInput.showPicker()"
+                class="text-[#3E9B90] hover:text-[#2d7a72] transition-colors"
+            >
+                <flux:icon.calendar variant="mini" />
+            </button>
+        </div>
+
         @error('addedDate')
             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror

@@ -338,6 +338,15 @@ class QualificationEdit extends Component
     }
 
     /**
+     * Listen to departmentUnknownChanged event from DepartmentSelector component
+     */
+    #[On('departmentUnknownChanged')]
+    public function handleDepartmentUnknownChanged($unknown)
+    {
+        $this->departmentUnknown = $unknown;
+    }
+
+    /**
      * Listen to countrySelected event from CountrySelector component
      */
     #[On('countrySelected')]
