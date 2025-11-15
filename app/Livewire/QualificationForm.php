@@ -38,8 +38,13 @@ class QualificationForm extends Component
     public $addedDate;
     public $contactMethod = 'Direct';
     public $specificRequests = [];
+    public $otherSpecificRequests = [];
     public $generalRequests = [];
     public $otherRequest = '';
+
+    // État UI pour dropdown "Autre" des demandes spécifiques
+    public $showOtherSpecificDropdown = false;
+    public $otherSpecificSearchQuery = '';
 
     // État UI
     public $showSuccessMessage = false;
@@ -144,6 +149,7 @@ class QualificationForm extends Component
             $this->addedDate = $data['addedDate'] ?? now()->format('Y-m-d');
             $this->contactMethod = $data['contactMethod'] ?? 'Direct';
             $this->specificRequests = $data['specificRequests'] ?? [];
+            $this->otherSpecificRequests = $data['otherSpecificRequests'] ?? [];
             $this->generalRequests = $data['generalRequests'] ?? [];
             $this->otherRequest = $data['otherRequest'] ?? '';
         }
@@ -166,6 +172,7 @@ class QualificationForm extends Component
             'addedDate' => $this->addedDate,
             'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
+            'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
         ];
@@ -342,6 +349,7 @@ class QualificationForm extends Component
             'ageGroups' => $this->ageUnknown ? ['Inconnu'] : $this->ageGroups,
             'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
+            'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
         ];
@@ -395,8 +403,11 @@ class QualificationForm extends Component
         $this->addedDate = now()->format('Y-m-d');
         $this->contactMethod = 'Direct';
         $this->specificRequests = [];
+        $this->otherSpecificRequests = [];
         $this->generalRequests = [];
         $this->otherRequest = '';
+        $this->showOtherSpecificDropdown = false;
+        $this->otherSpecificSearchQuery = '';
 
         // Afficher le message de succès
         $this->showSuccessMessage = true;
@@ -481,6 +492,84 @@ class QualificationForm extends Component
     public function getCitySpecificOptionsProperty()
     {
         return $this->specificOptions[$this->city] ?? [];
+    }
+
+    /**
+     * Récupérer toutes les demandes spécifiques des autres villes
+     * (en excluant celles de la ville courante)
+     */
+    public function getAllOtherCitySpecificOptionsProperty()
+    {
+        $allOptions = [];
+
+        foreach ($this->specificOptions as $city => $options) {
+            // Exclure les options de la ville courante
+            if ($city !== $this->city) {
+                $allOptions = array_merge($allOptions, $options);
+            }
+        }
+
+        // Dédupliquer et trier
+        $allOptions = array_unique($allOptions);
+        sort($allOptions);
+
+        return $allOptions;
+    }
+
+    /**
+     * Filtrer les options selon la recherche
+     */
+    public function getFilteredOtherSpecificOptionsProperty()
+    {
+        $options = $this->allOtherCitySpecificOptions;
+
+        if (empty($this->otherSpecificSearchQuery)) {
+            return $options;
+        }
+
+        $query = mb_strtolower($this->otherSpecificSearchQuery);
+
+        return array_filter($options, function($option) use ($query) {
+            return mb_strpos(mb_strtolower($option), $query) !== false;
+        });
+    }
+
+    /**
+     * Toggle une demande spécifique d'une autre ville
+     */
+    public function toggleOtherSpecificRequest($request)
+    {
+        if (in_array($request, $this->otherSpecificRequests)) {
+            $this->otherSpecificRequests = array_values(array_diff($this->otherSpecificRequests, [$request]));
+        } else {
+            $this->otherSpecificRequests[] = $request;
+        }
+    }
+
+    /**
+     * Supprimer une demande spécifique d'une autre ville
+     */
+    public function removeOtherSpecificRequest($request)
+    {
+        $this->otherSpecificRequests = array_values(array_diff($this->otherSpecificRequests, [$request]));
+    }
+
+    /**
+     * Ouvrir le dropdown des autres demandes spécifiques
+     */
+    public function openOtherSpecificDropdown()
+    {
+        $this->showOtherSpecificDropdown = true;
+        $this->otherSpecificSearchQuery = '';
+    }
+
+    /**
+     * Fermer le dropdown des autres demandes spécifiques
+     */
+    public function closeOtherSpecificDropdown()
+    {
+        $this->showOtherSpecificDropdown = false;
+        $this->otherSpecificSearchQuery = '';
     }
 
     /**
