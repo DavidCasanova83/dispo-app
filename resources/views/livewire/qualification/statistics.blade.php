@@ -1,13 +1,131 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                Statistiques des Qualifications
-            </h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Analyse complète des données de qualification de l'Oti Verdon Tourisme.
-            </p>
+        <div class="mb-8 flex items-start justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    Statistiques des Qualifications
+                </h1>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Analyse complète des données de qualification de l'Oti Verdon Tourisme.
+                </p>
+            </div>
+            <button x-data x-on:click="$dispatch('open-modal', 'export-modal')"
+                class="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-lg shadow-md transition-all duration-300 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                Exporter les données
+            </button>
+        </div>
+
+        <!-- Modal Export -->
+        <div x-data="{ open: false, dateRange: 'all' }" x-on:open-modal.window="if ($event.detail === 'export-modal') open = true"
+            x-on:close-modal.window="if ($event.detail === 'export-modal') open = false"
+            x-on:keydown.escape.window="open = false" x-show="open" class="fixed inset-0 z-50 overflow-y-auto"
+            style="display: none;">
+            <!-- Overlay -->
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" x-on:click="open = false"></div>
+
+            <!-- Modal Content -->
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
+                    x-on:click.stop>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Exporter les données</h3>
+
+                    <form action="{{ route('qualification.export') }}" method="GET" target="_blank">
+                        <!-- Villes -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Villes
+                            </label>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="cities[]" value="all"
+                                        class="rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
+                                        x-on:change="if($el.checked) { document.querySelectorAll('input[name=\'cities[]\']').forEach(cb => cb.checked = true) } else { document.querySelectorAll('input[name=\'cities[]\']').forEach(cb => cb.checked = false) }">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Toutes</span>
+                                </label>
+                                @foreach ($cities as $cityKey => $cityName)
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="cities[]" value="{{ $cityKey }}"
+                                            {{ in_array($cityKey, $selectedCities) ? 'checked' : '' }}
+                                            class="rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500">
+                                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $cityName }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Période -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Période
+                            </label>
+                            <select name="dateRange" x-model="dateRange"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                                <option value="7d">7 derniers jours</option>
+                                <option value="30d">30 derniers jours</option>
+                                <option value="3m">3 derniers mois</option>
+                                <option value="6m">6 derniers mois</option>
+                                <option value="1y">1 an</option>
+                                <option value="all" selected>Toutes les données</option>
+                                <option value="custom">Personnalisé</option>
+                            </select>
+                        </div>
+
+                        <!-- Dates personnalisées -->
+                        <div x-show="dateRange === 'custom'" class="mb-4 space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Date de début
+                                </label>
+                                <input type="date" name="startDate" value="{{ $startDate }}"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Date de fin
+                                </label>
+                                <input type="date" name="endDate" value="{{ $endDate }}"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                            </div>
+                        </div>
+
+                        <!-- Statut -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Statut
+                            </label>
+                            <select name="status"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
+                                <option value="all">Toutes</option>
+                                <option value="completed">Complétées</option>
+                                <option value="incomplete">Brouillons</option>
+                            </select>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex gap-3">
+                            <button type="button" x-on:click="open = false"
+                                class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                Annuler
+                            </button>
+                            <button type="submit"
+                                class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Télécharger Excel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- Filtres -->

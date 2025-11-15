@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Qualification;
+use App\Exports\QualificationsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class QualificationController extends Controller
 {
@@ -122,5 +125,58 @@ class QualificationController extends Controller
       'message' => 'Qualification enregistrée avec succès',
       'qualification_id' => $qualification->id,
     ]);
+  }
+
+  /**
+   * Export qualifications to Excel
+   */
+  public function export(Request $request)
+  {
+    // Construire les filtres depuis la requête
+    $filters = [];
+
+    // Villes
+    if ($request->has('cities')) {
+      $cities = $request->input('cities');
+      // Retirer "all" si présent
+      $filters['cities'] = array_filter($cities, fn($city) => $city !== 'all');
+    }
+
+    // Période
+    $dateRange = $request->input('dateRange', 'all');
+
+    if ($dateRange !== 'all' && $dateRange !== 'custom') {
+      $endDate = now();
+      $startDate = match($dateRange) {
+        '7d' => now()->subDays(7),
+        '30d' => now()->subDays(30),
+        '3m' => now()->subMonths(3),
+        '6m' => now()->subMonths(6),
+        '1y' => now()->subYear(),
+        default => null,
+      };
+
+      if ($startDate) {
+        $filters['startDate'] = $startDate->format('Y-m-d');
+        $filters['endDate'] = $endDate->format('Y-m-d');
+      }
+    } elseif ($dateRange === 'custom') {
+      if ($request->has('startDate')) {
+        $filters['startDate'] = $request->input('startDate');
+      }
+      if ($request->has('endDate')) {
+        $filters['endDate'] = $request->input('endDate');
+      }
+    }
+
+    // Statut
+    if ($request->has('status')) {
+      $filters['status'] = $request->input('status');
+    }
+
+    // Nom du fichier avec timestamp
+    $filename = 'qualifications-' . now()->format('Y-m-d_His') . '.xlsx';
+
+    return Excel::download(new QualificationsExport($filters), $filename);
   }
 }

@@ -67,6 +67,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:view-qualification'])
             ->name('statistics');
 
+        // Export des données - requires view-qualification permission
+        Route::get('/export', [\App\Http\Controllers\QualificationController::class, 'export'])
+            ->middleware(['permission:view-qualification'])
+            ->name('export');
+
         // Dashboard spécifique d'une ville - requires view-qualification permission
         Route::get('/{city}', [\App\Http\Controllers\QualificationController::class, 'cityDashboard'])
             ->middleware(['permission:view-qualification'])
