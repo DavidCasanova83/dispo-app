@@ -3,17 +3,18 @@
 namespace App\Exports;
 
 use App\Models\Qualification;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Carbon\Carbon;
 
-class QualificationsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents
+class QualificationsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents, WithChunkReading
 {
     protected $filters;
 
@@ -23,9 +24,9 @@ class QualificationsExport implements FromCollection, WithHeadings, WithMapping,
     }
 
     /**
-     * Collection de données à exporter
+     * Query pour l'export
      */
-    public function collection()
+    public function query()
     {
         $query = Qualification::with('user');
 
@@ -52,7 +53,15 @@ class QualificationsExport implements FromCollection, WithHeadings, WithMapping,
             }
         }
 
-        return $query->orderBy('created_at', 'desc')->get();
+        return $query->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Taille du chunk pour le traitement par lots
+     */
+    public function chunkSize(): int
+    {
+        return 500; // Traiter 500 enregistrements à la fois
     }
 
     /**

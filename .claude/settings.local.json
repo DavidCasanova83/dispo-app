@@ -7,7 +7,10 @@
       "Bash(cat:*)",
       "Bash(php -l:*)",
       "Bash(del update_permissions.php verify_permissions.php)",
-      "Bash(php:*)"
+      "Bash(php:*)",
+      "Bash(dir:*)",
+      "Bash(del test_export.php)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

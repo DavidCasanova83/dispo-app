@@ -96,7 +96,8 @@ class QualificationStatisticsService
      */
     public function getTemporalEvolution(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $groupBy = 'day')
     {
-        $startDate = $startDate ? Carbon::parse($startDate) : Carbon::now()->subMonth();
+        $startDate = $startDate ? Carbon::parse($startDate) :
+            Carbon::parse(Qualification::min('created_at') ?? Carbon::now()->subYear());
         $endDate = $endDate ? Carbon::parse($endDate) : Carbon::now();
 
         // Détecter le driver de la base de données

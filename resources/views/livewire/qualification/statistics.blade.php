@@ -22,7 +22,7 @@
         </div>
 
         <!-- Modal Export -->
-        <div x-data="{ open: false, dateRange: 'all' }" x-on:open-modal.window="if ($event.detail === 'export-modal') open = true"
+        <div x-data="{ open: false }" x-on:open-modal.window="if ($event.detail === 'export-modal') open = true"
             x-on:close-modal.window="if ($event.detail === 'export-modal') open = false"
             x-on:keydown.escape.window="open = false" x-show="open" class="fixed inset-0 z-50 overflow-y-auto"
             style="display: none;">
@@ -33,79 +33,16 @@
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
                     x-on:click.stop>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Exporter les données</h3>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Exporter toutes les données</h3>
+
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                        L'export inclura toutes les qualifications enregistrées dans le système, sans filtrage.
+                    </p>
 
                     <form action="{{ route('qualification.export') }}" method="GET" target="_blank">
-                        <!-- Villes -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Villes
-                            </label>
-                            <div class="space-y-2 max-h-32 overflow-y-auto">
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="cities[]" value="all"
-                                        class="rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
-                                        x-on:change="if($el.checked) { document.querySelectorAll('input[name=\'cities[]\']').forEach(cb => cb.checked = true) } else { document.querySelectorAll('input[name=\'cities[]\']').forEach(cb => cb.checked = false) }">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Toutes</span>
-                                </label>
-                                @foreach ($cities as $cityKey => $cityName)
-                                    <label class="flex items-center">
-                                        <input type="checkbox" name="cities[]" value="{{ $cityKey }}"
-                                            {{ in_array($cityKey, $selectedCities) ? 'checked' : '' }}
-                                            class="rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500">
-                                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $cityName }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <!-- Période -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Période
-                            </label>
-                            <select name="dateRange" x-model="dateRange"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
-                                <option value="7d">7 derniers jours</option>
-                                <option value="30d">30 derniers jours</option>
-                                <option value="3m">3 derniers mois</option>
-                                <option value="6m">6 derniers mois</option>
-                                <option value="1y">1 an</option>
-                                <option value="all" selected>Toutes les données</option>
-                                <option value="custom">Personnalisé</option>
-                            </select>
-                        </div>
-
-                        <!-- Dates personnalisées -->
-                        <div x-show="dateRange === 'custom'" class="mb-4 space-y-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Date de début
-                                </label>
-                                <input type="date" name="startDate" value="{{ $startDate }}"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Date de fin
-                                </label>
-                                <input type="date" name="endDate" value="{{ $endDate }}"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
-                            </div>
-                        </div>
-
-                        <!-- Statut -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Statut
-                            </label>
-                            <select name="status"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500">
-                                <option value="all">Toutes</option>
-                                <option value="completed">Complétées</option>
-                                <option value="incomplete">Brouillons</option>
-                            </select>
-                        </div>
+                        <!-- Paramètres cachés pour exporter toutes les données -->
+                        <input type="hidden" name="dateRange" value="all">
+                        <input type="hidden" name="status" value="all">
 
                         <!-- Buttons -->
                         <div class="flex gap-3">
@@ -124,85 +61,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filtres -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Filtres</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Villes -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Villes
-                    </label>
-                    <div class="space-y-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" wire:model.live="selectedCities" value="all"
-                                @if (count($selectedCities) === count($cities)) checked @endif
-                                class="rounded border-gray-300 dark:border-gray-600 text-[#3E9B90] focus:ring-[#3E9B90]"
-                                x-on:change="if($el.checked) { $wire.set('selectedCities', @js(array_keys($cities))) } else { $wire.set('selectedCities', []) }">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Toutes</span>
-                        </label>
-                        @foreach ($cities as $cityKey => $cityName)
-                            <label class="flex items-center">
-                                <input type="checkbox" wire:model.live="selectedCities" value="{{ $cityKey }}"
-                                    class="rounded border-gray-300 dark:border-gray-600 text-[#3E9B90] focus:ring-[#3E9B90]">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $cityName }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Période prédéfinie -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Période
-                    </label>
-                    <select wire:model.live="dateRange"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                        <option value="7d">7 derniers jours</option>
-                        <option value="30d">30 derniers jours</option>
-                        <option value="3m">3 derniers mois</option>
-                        <option value="6m">6 derniers mois</option>
-                        <option value="1y">1 an</option>
-                        <option value="all">Tout</option>
-                        <option value="custom">Personnalisé</option>
-                    </select>
-                </div>
-
-                <!-- Dates personnalisées -->
-                @if ($dateRange === 'custom')
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Date de début
-                        </label>
-                        <input type="date" wire:model.live="startDate"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Date de fin
-                        </label>
-                        <input type="date" wire:model.live="endDate"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                    </div>
-                @endif
-
-                <!-- Statut -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Statut
-                    </label>
-                    <select wire:model.live="status"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                        <option value="all">Toutes</option>
-                        <option value="completed">Complétées</option>
-                        <option value="incomplete">Brouillons</option>
-                    </select>
                 </div>
             </div>
         </div>
@@ -324,7 +182,8 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Comparatif par ville -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées par utilisateur</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées
+                            par utilisateur</h3>
                         <div id="cityComparisonChart"></div>
                     </div>
 
@@ -361,24 +220,29 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top 10 Demandes spécifiques -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes spécifiques</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes
+                            spécifiques</h3>
                         <div id="topSpecificRequestsChart"></div>
                     </div>
 
                     <!-- Top 10 Départements -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des départements</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des départements
+                        </h3>
                         <div id="topDepartmentsChart"></div>
                     </div>
                 </div>
 
                 <!-- Demandes spécifiques par ville -->
-                @if (count($selectedCities) > 0 && count($selectedCities) <= 3)
+                @php
+                    $citiesToShow = array_slice(array_keys($cities), 0, 3); // Afficher les 3 premières villes
+                @endphp
+                @if (count($citiesToShow) > 0)
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Demandes spécifiques par
                             ville</h3>
                         <div class="grid grid-cols-1 gap-6">
-                            @foreach ($selectedCities as $cityKey)
+                            @foreach ($citiesToShow as $cityKey)
                                 @if (isset($statistics['demands']['specificRequests'][$cityKey]) &&
                                         count($statistics['demands']['specificRequests'][$cityKey]) > 0)
                                     <div>
@@ -465,7 +329,7 @@
 
                     // 1. Évolution temporelle
                     const temporalData = @json($statistics['temporalEvolution']);
-                    console.log('Temporal data:', temporalData);
+                    console.log('!!!!!!!!! Temporal data raw:', temporalData);
 
                     let temporalSeries = [];
 
@@ -479,17 +343,15 @@
                         }];
                     } else {
                         @foreach ($cities as $cityKey => $cityName)
-                            @if (in_array($cityKey, $selectedCities))
-                                if (temporalData['{{ $cityKey }}'] && temporalData['{{ $cityKey }}'].length > 0) {
-                                    temporalSeries.push({
-                                        name: '{{ $cityName }}',
-                                        data: temporalData['{{ $cityKey }}'].map(item => ({
-                                            x: item.period,
-                                            y: parseInt(item.count)
-                                        }))
-                                    });
-                                }
-                            @endif
+                            if (temporalData['{{ $cityKey }}'] && temporalData['{{ $cityKey }}'].length > 0) {
+                                temporalSeries.push({
+                                    name: '{{ $cityName }}',
+                                    data: temporalData['{{ $cityKey }}'].map(item => ({
+                                        x: item.period,
+                                        y: parseInt(item.count)
+                                    }))
+                                });
+                            }
                         @endforeach
                     }
 
@@ -942,7 +804,10 @@
                     }
 
                     // 9. Demandes spécifiques par ville
-                    @foreach ($selectedCities as $cityKey)
+                    @php
+                        $citiesToShowJS = array_slice(array_keys($cities), 0, 3);
+                    @endphp
+                    @foreach ($citiesToShowJS as $cityKey)
                         @if (isset($statistics['demands']['specificRequests'][$cityKey]) &&
                                 count($statistics['demands']['specificRequests'][$cityKey]) > 0)
                             const specificRequests_{{ str_replace('-', '_', $cityKey) }} = @json($statistics['demands']['specificRequests'][$cityKey]);
@@ -1062,4 +927,5 @@
             </script>
         @endif
     @endpush
+
 </div>
