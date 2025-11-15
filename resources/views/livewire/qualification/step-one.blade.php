@@ -42,14 +42,14 @@
     @if($country === 'France')
         <div class="mb-6" x-transition>
             <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-                Préciser le département <span class="text-red-500">*</span>
+                Préciser le(s) département(s) <span class="text-red-500">*</span>
             </label>
             <livewire:department-selector
-                :department="$department"
+                :departments="$departments"
                 :unknown="$departmentUnknown"
                 :key="'department-selector-' . $country"
             />
-            @error('department')
+            @error('departments')
                 <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>

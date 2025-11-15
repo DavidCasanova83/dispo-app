@@ -22,7 +22,7 @@ class QualificationForm extends Component
     // Étape 1 : Informations générales
     public $country = 'France';
     public $otherCountry = '';
-    public $department = '';
+    public $departments = [];
     public $departmentUnknown = false;
     public $email = '';
     public $consentNewsletter = false;
@@ -35,9 +35,16 @@ class QualificationForm extends Component
     public $ageUnknown = false;
 
     // Étape 3 : Demandes
+    public $addedDate;
+    public $contactMethod = 'Direct';
     public $specificRequests = [];
+    public $otherSpecificRequests = [];
     public $generalRequests = [];
     public $otherRequest = '';
+
+    // État UI pour dropdown "Autre" des demandes spécifiques
+    public $showOtherSpecificDropdown = false;
+    public $otherSpecificSearchQuery = '';
 
     // État UI
     public $showSuccessMessage = false;
@@ -62,6 +69,9 @@ class QualificationForm extends Component
     {
         $this->city = $city;
         $this->cityName = $cityName;
+
+        // Initialiser la date d'ajout avec la date du jour
+        $this->addedDate = now()->format('Y-m-d');
 
         // Initialiser les options
         $this->initializeOptions();
@@ -115,7 +125,15 @@ class QualificationForm extends Component
             // Charger les données de l'étape 1
             $this->country = $data['country'] ?? 'France';
             $this->otherCountry = $data['otherCountry'] ?? '';
-            $this->department = $data['department'] ?? '';
+
+            // Handle backwards compatibility: convert string to array if needed
+            $departmentData = $data['departments'] ?? $data['department'] ?? [];
+            if (is_string($departmentData)) {
+                $this->departments = !empty($departmentData) ? [$departmentData] : [];
+            } else {
+                $this->departments = is_array($departmentData) ? $departmentData : [];
+            }
+
             $this->departmentUnknown = $data['departmentUnknown'] ?? false;
             $this->email = $data['email'] ?? '';
             $this->consentNewsletter = $data['consentNewsletter'] ?? false;
@@ -128,7 +146,10 @@ class QualificationForm extends Component
             $this->ageUnknown = $data['ageUnknown'] ?? false;
 
             // Charger les données de l'étape 3
+            $this->addedDate = $data['addedDate'] ?? now()->format('Y-m-d');
+            $this->contactMethod = $data['contactMethod'] ?? 'Direct';
             $this->specificRequests = $data['specificRequests'] ?? [];
+            $this->otherSpecificRequests = $data['otherSpecificRequests'] ?? [];
             $this->generalRequests = $data['generalRequests'] ?? [];
             $this->otherRequest = $data['otherRequest'] ?? '';
         }
@@ -139,7 +160,7 @@ class QualificationForm extends Component
         $formData = [
             'country' => $this->country,
             'otherCountry' => $this->otherCountry,
-            'department' => $this->department,
+            'departments' => $this->departments,
             'departmentUnknown' => $this->departmentUnknown,
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
@@ -148,7 +169,10 @@ class QualificationForm extends Component
             'profileUnknown' => $this->profileUnknown,
             'ageGroups' => $this->ageGroups,
             'ageUnknown' => $this->ageUnknown,
+            'addedDate' => $this->addedDate,
+            'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
+            'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
         ];
@@ -207,7 +231,7 @@ class QualificationForm extends Component
         }
 
         if ($this->country === 'France' && !$this->departmentUnknown) {
-            $rules['department'] = 'required|string';
+            $rules['departments'] = 'required|array|min:1';
         }
 
         if ($this->email) {
@@ -217,14 +241,15 @@ class QualificationForm extends Component
         $messages = [
             'country.required' => 'Veuillez sélectionner un pays.',
             'otherCountry.required' => 'Veuillez préciser le pays.',
-            'department.required' => 'Veuillez sélectionner un département.',
+            'departments.required' => 'Veuillez sélectionner au moins un département.',
+            'departments.min' => 'Veuillez sélectionner au moins un département.',
             'email.email' => 'Veuillez entrer une adresse email valide.',
         ];
 
         $validator = Validator::make([
             'country' => $this->country,
             'otherCountry' => $this->otherCountry,
-            'department' => $this->department,
+            'departments' => $this->departments,
             'email' => $this->email,
         ], $rules, $messages);
 
@@ -237,11 +262,13 @@ class QualificationForm extends Component
             throw new \Illuminate\Validation\ValidationException($validator);
         }
 
-        // Additional validation: Check if department is valid using FrenchGeographyService
-        if ($this->country === 'France' && !$this->departmentUnknown && $this->department) {
-            if (!$this->geographyService->isValidDepartment($this->department)) {
-                $this->addError('department', 'Le département sélectionné n\'est pas valide.');
-                throw new \Illuminate\Validation\ValidationException($validator);
+        // Additional validation: Check if each department is valid using FrenchGeographyService
+        if ($this->country === 'France' && !$this->departmentUnknown && !empty($this->departments)) {
+            foreach ($this->departments as $department) {
+                if (!$this->geographyService->isValidDepartment($department)) {
+                    $this->addError('departments', "Le département \"$department\" n'est pas valide.");
+                    throw new \Illuminate\Validation\ValidationException($validator);
+                }
             }
         }
 
@@ -314,19 +341,21 @@ class QualificationForm extends Component
         // Créer une nouvelle qualification complète
         $formData = [
             'country' => $this->country === 'Autre' ? $this->otherCountry : $this->country,
-            'department' => $this->country === 'France' ? ($this->departmentUnknown ? 'Inconnu' : $this->department) : null,
+            'departments' => $this->country === 'France' ? ($this->departmentUnknown ? [] : $this->departments) : [],
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
             'consentDataProcessing' => $this->consentDataProcessing,
             'profile' => $this->profileUnknown ? 'Inconnu' : $this->profile,
             'ageGroups' => $this->ageUnknown ? ['Inconnu'] : $this->ageGroups,
+            'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
+            'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
             'otherRequest' => $this->otherRequest,
         ];
 
         // Créer une nouvelle qualification complète
-        Qualification::create([
+        $qualification = Qualification::create([
             'user_id' => Auth::id(),
             'city' => $this->city,
             'current_step' => 3,
@@ -334,6 +363,11 @@ class QualificationForm extends Component
             'completed' => true,
             'completed_at' => now(),
         ]);
+
+        // Mettre à jour created_at avec la date choisie + heure actuelle
+        $qualification->created_at = \Carbon\Carbon::parse($this->addedDate)
+            ->setTime(now()->hour, now()->minute, now()->second);
+        $qualification->save();
 
         // Supprimer le brouillon s'il existe
         if ($this->qualificationId) {
@@ -353,7 +387,7 @@ class QualificationForm extends Component
         // Réinitialiser Étape 1
         $this->country = 'France';
         $this->otherCountry = '';
-        $this->department = '';
+        $this->departments = [];
         $this->departmentUnknown = false;
         $this->email = '';
         $this->consentNewsletter = false;
@@ -366,9 +400,14 @@ class QualificationForm extends Component
         $this->ageUnknown = false;
 
         // Réinitialiser Étape 3
+        $this->addedDate = now()->format('Y-m-d');
+        $this->contactMethod = 'Direct';
         $this->specificRequests = [];
+        $this->otherSpecificRequests = [];
         $this->generalRequests = [];
         $this->otherRequest = '';
+        $this->showOtherSpecificDropdown = false;
+        $this->otherSpecificSearchQuery = '';
 
         // Afficher le message de succès
         $this->showSuccessMessage = true;
@@ -381,9 +420,9 @@ class QualificationForm extends Component
     public function updatedDepartmentUnknown($value)
     {
         if ($value) {
-            $this->department = 'Inconnu';
+            $this->departments = [];
         } else {
-            $this->department = '';
+            $this->departments = [];
         }
     }
 
@@ -411,9 +450,37 @@ class QualificationForm extends Component
             $this->otherCountry = '';
         }
         if ($value !== 'France') {
-            $this->department = '';
+            $this->departments = [];
             $this->departmentUnknown = false;
         }
+    }
+
+    public function updatedOtherRequest($value)
+    {
+        $this->otherRequest = $this->formatText($value);
+    }
+
+    protected function formatText($text)
+    {
+        if (empty(trim($text))) {
+            return $text;
+        }
+
+        // Trim whitespace
+        $text = trim($text);
+
+        // Normalize multiple spaces to single space
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        // Capitalize first letter
+        $text = mb_strtoupper(mb_substr($text, 0, 1)) . mb_substr($text, 1);
+
+        // Add period if missing and doesn't end with punctuation
+        if (!preg_match('/[.!?]$/', $text)) {
+            $text .= '.';
+        }
+
+        return $text;
     }
 
     // Méthodes pour manipuler les tableaux
@@ -444,6 +511,11 @@ class QualificationForm extends Component
         }
     }
 
+    public function setContactMethod($method)
+    {
+        $this->contactMethod = $method;
+    }
+
     // Getters pour les options de la ville courante
     public function getCitySpecificOptionsProperty()
     {
@@ -451,12 +523,99 @@ class QualificationForm extends Component
     }
 
     /**
-     * Listen to departmentSelected event from DepartmentSelector component
+     * Récupérer toutes les demandes spécifiques des autres villes
+     * (en excluant celles de la ville courante)
      */
-    #[On('departmentSelected')]
-    public function handleDepartmentSelected($department)
+    public function getAllOtherCitySpecificOptionsProperty()
     {
-        $this->department = $department;
+        $allOptions = [];
+
+        foreach ($this->specificOptions as $city => $options) {
+            // Exclure les options de la ville courante
+            if ($city !== $this->city) {
+                $allOptions = array_merge($allOptions, $options);
+            }
+        }
+
+        // Dédupliquer et trier
+        $allOptions = array_unique($allOptions);
+        sort($allOptions);
+
+        return $allOptions;
+    }
+
+    /**
+     * Filtrer les options selon la recherche
+     */
+    public function getFilteredOtherSpecificOptionsProperty()
+    {
+        $options = $this->allOtherCitySpecificOptions;
+
+        if (empty($this->otherSpecificSearchQuery)) {
+            return $options;
+        }
+
+        $query = mb_strtolower($this->otherSpecificSearchQuery);
+
+        return array_filter($options, function($option) use ($query) {
+            return mb_strpos(mb_strtolower($option), $query) !== false;
+        });
+    }
+
+    /**
+     * Toggle une demande spécifique d'une autre ville
+     */
+    public function toggleOtherSpecificRequest($request)
+    {
+        if (in_array($request, $this->otherSpecificRequests)) {
+            $this->otherSpecificRequests = array_values(array_diff($this->otherSpecificRequests, [$request]));
+        } else {
+            $this->otherSpecificRequests[] = $request;
+        }
+    }
+
+    /**
+     * Supprimer une demande spécifique d'une autre ville
+     */
+    public function removeOtherSpecificRequest($request)
+    {
+        $this->otherSpecificRequests = array_values(array_diff($this->otherSpecificRequests, [$request]));
+    }
+
+    /**
+     * Ouvrir le dropdown des autres demandes spécifiques
+     */
+    public function openOtherSpecificDropdown()
+    {
+        $this->showOtherSpecificDropdown = true;
+        $this->otherSpecificSearchQuery = '';
+    }
+
+    /**
+     * Fermer le dropdown des autres demandes spécifiques
+     */
+    public function closeOtherSpecificDropdown()
+    {
+        $this->showOtherSpecificDropdown = false;
+        $this->otherSpecificSearchQuery = '';
+    }
+
+    /**
+     * Listen to departmentsSelected event from DepartmentSelector component
+     */
+    #[On('departmentsSelected')]
+    public function handleDepartmentsSelected($departments)
+    {
+        $this->departments = $departments;
+    }
+
+    /**
+     * Listen to departmentUnknownChanged event from DepartmentSelector component
+     */
+    #[On('departmentUnknownChanged')]
+    public function handleDepartmentUnknownChanged($unknown)
+    {
+        $this->departmentUnknown = $unknown;
     }
 
     /**
