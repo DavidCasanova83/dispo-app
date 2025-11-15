@@ -35,6 +35,7 @@ class QualificationForm extends Component
     public $ageUnknown = false;
 
     // Étape 3 : Demandes
+    public $addedDate;
     public $contactMethod = 'Direct';
     public $specificRequests = [];
     public $generalRequests = [];
@@ -63,6 +64,9 @@ class QualificationForm extends Component
     {
         $this->city = $city;
         $this->cityName = $cityName;
+
+        // Initialiser la date d'ajout avec la date du jour
+        $this->addedDate = now()->format('Y-m-d');
 
         // Initialiser les options
         $this->initializeOptions();
@@ -137,6 +141,7 @@ class QualificationForm extends Component
             $this->ageUnknown = $data['ageUnknown'] ?? false;
 
             // Charger les données de l'étape 3
+            $this->addedDate = $data['addedDate'] ?? now()->format('Y-m-d');
             $this->contactMethod = $data['contactMethod'] ?? 'Direct';
             $this->specificRequests = $data['specificRequests'] ?? [];
             $this->generalRequests = $data['generalRequests'] ?? [];
@@ -158,6 +163,7 @@ class QualificationForm extends Component
             'profileUnknown' => $this->profileUnknown,
             'ageGroups' => $this->ageGroups,
             'ageUnknown' => $this->ageUnknown,
+            'addedDate' => $this->addedDate,
             'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'generalRequests' => $this->generalRequests,
@@ -341,7 +347,7 @@ class QualificationForm extends Component
         ];
 
         // Créer une nouvelle qualification complète
-        Qualification::create([
+        $qualification = Qualification::create([
             'user_id' => Auth::id(),
             'city' => $this->city,
             'current_step' => 3,
@@ -349,6 +355,11 @@ class QualificationForm extends Component
             'completed' => true,
             'completed_at' => now(),
         ]);
+
+        // Mettre à jour created_at avec la date choisie + heure actuelle
+        $qualification->created_at = \Carbon\Carbon::parse($this->addedDate)
+            ->setTime(now()->hour, now()->minute, now()->second);
+        $qualification->save();
 
         // Supprimer le brouillon s'il existe
         if ($this->qualificationId) {
@@ -381,6 +392,7 @@ class QualificationForm extends Component
         $this->ageUnknown = false;
 
         // Réinitialiser Étape 3
+        $this->addedDate = now()->format('Y-m-d');
         $this->contactMethod = 'Direct';
         $this->specificRequests = [];
         $this->generalRequests = [];

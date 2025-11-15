@@ -32,6 +32,7 @@ class QualificationEdit extends Component
     public $ageUnknown = false;
 
     // Étape 3 : Demandes
+    public $addedDate;
     public $contactMethod = 'Direct';
     public $specificRequests = [];
     public $generalRequests = [];
@@ -119,6 +120,7 @@ class QualificationEdit extends Component
         $this->ageUnknown = in_array('Inconnu', $this->ageGroups);
 
         // Charger les données de l'étape 3
+        $this->addedDate = $qualification->created_at->format('Y-m-d');
         $this->contactMethod = $data['contactMethod'] ?? 'Direct';
         $this->specificRequests = $data['specificRequests'] ?? [];
         $this->generalRequests = $data['generalRequests'] ?? [];
@@ -150,6 +152,12 @@ class QualificationEdit extends Component
         $qualification->update([
             'form_data' => $formData,
         ]);
+
+        // Mettre à jour created_at avec la date choisie + heure originale
+        $originalCreatedAt = $qualification->created_at;
+        $qualification->created_at = \Carbon\Carbon::parse($this->addedDate)
+            ->setTime($originalCreatedAt->hour, $originalCreatedAt->minute, $originalCreatedAt->second);
+        $qualification->save();
 
         // Rediriger vers la liste avec un message de succès
         session()->flash('success', 'Qualification modifiée avec succès');

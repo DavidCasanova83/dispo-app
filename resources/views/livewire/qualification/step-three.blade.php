@@ -1,6 +1,23 @@
 <div x-show="$wire.currentStep === 3" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-x-4" x-transition:enter-end="opacity-100 transform translate-x-0">
     <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Étape 3 : Demandes</h2>
 
+    <!-- Date d'ajout du formulaire -->
+    <div class="mb-6">
+        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+            Date d'ajout du formulaire <span class="text-red-500">*</span>
+        </label>
+        <input
+            type="date"
+            wire:model.live="addedDate"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+        >
+        @error('addedDate')
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <hr class="my-6 border-gray-300 dark:border-gray-600">
+
     <!-- Méthode de contact -->
     <div class="mb-6">
         <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
