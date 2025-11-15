@@ -34,7 +34,7 @@ class QualificationStatistics extends Component
     protected function getGroupBy()
     {
         // Toujours grouper par mois pour une vue d'ensemble
-        return 'month';
+        return 'day';
     }
 
     #[Layout('components.layouts.app')]
