@@ -8,7 +8,7 @@ use Livewire\Component;
 class DepartmentSelector extends Component
 {
     // Properties for wire:model binding with parent
-    public $selectedDepartment = '';
+    public $selectedDepartments = [];
     public $departmentUnknown = false;
 
     // Internal search state
@@ -16,7 +16,6 @@ class DepartmentSelector extends Component
     public $showDropdown = false;
     public $highlightedIndex = -1;
     public $searchResults = [];
-    public $isValidSelection = false;
 
     protected $geographyService;
 
@@ -31,16 +30,17 @@ class DepartmentSelector extends Component
     /**
      * Component mount: initialize search results
      */
-    public function mount($department = '', $unknown = false)
+    public function mount($departments = [], $unknown = false)
     {
-        $this->selectedDepartment = $department;
-        $this->departmentUnknown = $unknown;
-        $this->searchQuery = $department;
-
-        // If we have a pre-filled department, mark as valid
-        if (!empty($department) && !$unknown) {
-            $this->isValidSelection = true;
+        // Handle backwards compatibility: convert string to array
+        if (is_string($departments)) {
+            $this->selectedDepartments = !empty($departments) ? [$departments] : [];
+        } else {
+            $this->selectedDepartments = is_array($departments) ? $departments : [];
         }
+
+        $this->departmentUnknown = $unknown;
+        $this->searchQuery = '';
 
         $this->updateSearchResults();
     }
@@ -53,13 +53,6 @@ class DepartmentSelector extends Component
         $this->updateSearchResults();
         $this->showDropdown = true;
         $this->highlightedIndex = -1;
-        $this->isValidSelection = false; // Mark as invalid until selection from dropdown
-
-        // If search query is empty and not selecting from dropdown, clear selection
-        if (empty($this->searchQuery)) {
-            $this->selectedDepartment = '';
-            $this->isValidSelection = true; // Empty is valid (will be caught by required validation)
-        }
     }
 
     /**
@@ -69,9 +62,9 @@ class DepartmentSelector extends Component
     {
         if ($this->departmentUnknown) {
             $this->searchQuery = '';
-            $this->selectedDepartment = '';
+            $this->selectedDepartments = [];
             $this->showDropdown = false;
-            $this->isValidSelection = true; // "Unknown" is a valid state
+            $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
     }
 
@@ -88,22 +81,38 @@ class DepartmentSelector extends Component
     }
 
     /**
-     * Select a department from the dropdown
+     * Toggle a department in the selection
      */
-    public function selectDepartment($code)
+    public function toggleDepartment($code)
     {
         $department = $this->geographyService->getDepartmentByCode($code);
 
         if ($department) {
-            $this->selectedDepartment = $this->geographyService->formatDepartment($department);
-            $this->searchQuery = $this->selectedDepartment;
-            $this->showDropdown = false;
-            $this->highlightedIndex = -1;
-            $this->isValidSelection = true;
+            $formattedDept = $this->geographyService->formatDepartment($department);
 
-            // Emit event to parent component
-            $this->dispatch('departmentSelected', $this->selectedDepartment);
+            // Toggle: if already selected, remove it; otherwise add it
+            if (in_array($formattedDept, $this->selectedDepartments)) {
+                $this->selectedDepartments = array_values(array_diff($this->selectedDepartments, [$formattedDept]));
+            } else {
+                $this->selectedDepartments[] = $formattedDept;
+            }
+
+            // Clear search query after selection
+            $this->searchQuery = '';
+            $this->highlightedIndex = -1;
+
+            // Emit event to parent component with updated array
+            $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
+    }
+
+    /**
+     * Remove a department from the selection (for chip removal)
+     */
+    public function removeDepartment($department)
+    {
+        $this->selectedDepartments = array_values(array_diff($this->selectedDepartments, [$department]));
+        $this->dispatch('departmentsSelected', $this->selectedDepartments);
     }
 
     /**
@@ -116,27 +125,11 @@ class DepartmentSelector extends Component
     }
 
     /**
-     * Blur search input - validate that only dropdown selections are kept
+     * Blur search input
      */
     public function blurSearch()
     {
-        // If the user typed something but didn't select from dropdown
-        if (!$this->isValidSelection && !empty(trim($this->searchQuery))) {
-            // Check if what they typed exactly matches a formatted department
-            $isExactMatch = $this->geographyService->isValidDepartment($this->searchQuery);
-
-            if ($isExactMatch) {
-                // Accept exact matches and treat as selection
-                $this->selectedDepartment = $this->searchQuery;
-                $this->isValidSelection = true;
-                $this->dispatch('departmentSelected', $this->selectedDepartment);
-            } else {
-                // Restore to last valid selection (or empty)
-                $this->searchQuery = $this->selectedDepartment;
-            }
-        }
-
-        // Delay to allow click on dropdown item
+        // Delay to allow click on dropdown item before closing
         $this->dispatch('delayedBlur');
     }
 
@@ -169,7 +162,7 @@ class DepartmentSelector extends Component
 
             case 'Enter':
                 if ($this->highlightedIndex >= 0 && isset($this->searchResults[$this->highlightedIndex])) {
-                    $this->selectDepartment($this->searchResults[$this->highlightedIndex]['code']);
+                    $this->toggleDepartment($this->searchResults[$this->highlightedIndex]['code']);
                 }
                 break;
 
@@ -188,9 +181,9 @@ class DepartmentSelector extends Component
 
         if ($this->departmentUnknown) {
             $this->searchQuery = '';
-            $this->selectedDepartment = '';
+            $this->selectedDepartments = [];
             $this->showDropdown = false;
-            $this->isValidSelection = true; // "Unknown" is a valid state
+            $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
     }
 
@@ -206,11 +199,11 @@ class DepartmentSelector extends Component
     }
 
     /**
-     * Get the selected department for parent component
+     * Get the selected departments for parent component
      */
-    public function getSelectedDepartmentProperty()
+    public function getSelectedDepartmentsProperty()
     {
-        return $this->selectedDepartment;
+        return $this->selectedDepartments;
     }
 
     /**
@@ -219,5 +212,13 @@ class DepartmentSelector extends Component
     public function getDepartmentUnknownProperty()
     {
         return $this->departmentUnknown;
+    }
+
+    /**
+     * Check if a department is selected
+     */
+    public function isDepartmentSelected($department)
+    {
+        return in_array($department, $this->selectedDepartments);
     }
 }

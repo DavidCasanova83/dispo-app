@@ -22,7 +22,7 @@ class QualificationForm extends Component
     // Étape 1 : Informations générales
     public $country = 'France';
     public $otherCountry = '';
-    public $department = '';
+    public $departments = [];
     public $departmentUnknown = false;
     public $email = '';
     public $consentNewsletter = false;
@@ -116,7 +116,15 @@ class QualificationForm extends Component
             // Charger les données de l'étape 1
             $this->country = $data['country'] ?? 'France';
             $this->otherCountry = $data['otherCountry'] ?? '';
-            $this->department = $data['department'] ?? '';
+
+            // Handle backwards compatibility: convert string to array if needed
+            $departmentData = $data['departments'] ?? $data['department'] ?? [];
+            if (is_string($departmentData)) {
+                $this->departments = !empty($departmentData) ? [$departmentData] : [];
+            } else {
+                $this->departments = is_array($departmentData) ? $departmentData : [];
+            }
+
             $this->departmentUnknown = $data['departmentUnknown'] ?? false;
             $this->email = $data['email'] ?? '';
             $this->consentNewsletter = $data['consentNewsletter'] ?? false;
@@ -141,7 +149,7 @@ class QualificationForm extends Component
         $formData = [
             'country' => $this->country,
             'otherCountry' => $this->otherCountry,
-            'department' => $this->department,
+            'departments' => $this->departments,
             'departmentUnknown' => $this->departmentUnknown,
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
@@ -210,7 +218,7 @@ class QualificationForm extends Component
         }
 
         if ($this->country === 'France' && !$this->departmentUnknown) {
-            $rules['department'] = 'required|string';
+            $rules['departments'] = 'required|array|min:1';
         }
 
         if ($this->email) {
@@ -220,14 +228,15 @@ class QualificationForm extends Component
         $messages = [
             'country.required' => 'Veuillez sélectionner un pays.',
             'otherCountry.required' => 'Veuillez préciser le pays.',
-            'department.required' => 'Veuillez sélectionner un département.',
+            'departments.required' => 'Veuillez sélectionner au moins un département.',
+            'departments.min' => 'Veuillez sélectionner au moins un département.',
             'email.email' => 'Veuillez entrer une adresse email valide.',
         ];
 
         $validator = Validator::make([
             'country' => $this->country,
             'otherCountry' => $this->otherCountry,
-            'department' => $this->department,
+            'departments' => $this->departments,
             'email' => $this->email,
         ], $rules, $messages);
 
@@ -240,11 +249,13 @@ class QualificationForm extends Component
             throw new \Illuminate\Validation\ValidationException($validator);
         }
 
-        // Additional validation: Check if department is valid using FrenchGeographyService
-        if ($this->country === 'France' && !$this->departmentUnknown && $this->department) {
-            if (!$this->geographyService->isValidDepartment($this->department)) {
-                $this->addError('department', 'Le département sélectionné n\'est pas valide.');
-                throw new \Illuminate\Validation\ValidationException($validator);
+        // Additional validation: Check if each department is valid using FrenchGeographyService
+        if ($this->country === 'France' && !$this->departmentUnknown && !empty($this->departments)) {
+            foreach ($this->departments as $department) {
+                if (!$this->geographyService->isValidDepartment($department)) {
+                    $this->addError('departments', "Le département \"$department\" n'est pas valide.");
+                    throw new \Illuminate\Validation\ValidationException($validator);
+                }
             }
         }
 
@@ -317,7 +328,7 @@ class QualificationForm extends Component
         // Créer une nouvelle qualification complète
         $formData = [
             'country' => $this->country === 'Autre' ? $this->otherCountry : $this->country,
-            'department' => $this->country === 'France' ? ($this->departmentUnknown ? 'Inconnu' : $this->department) : null,
+            'departments' => $this->country === 'France' ? ($this->departmentUnknown ? [] : $this->departments) : [],
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
             'consentDataProcessing' => $this->consentDataProcessing,
@@ -357,7 +368,7 @@ class QualificationForm extends Component
         // Réinitialiser Étape 1
         $this->country = 'France';
         $this->otherCountry = '';
-        $this->department = '';
+        $this->departments = [];
         $this->departmentUnknown = false;
         $this->email = '';
         $this->consentNewsletter = false;
@@ -386,9 +397,9 @@ class QualificationForm extends Component
     public function updatedDepartmentUnknown($value)
     {
         if ($value) {
-            $this->department = 'Inconnu';
+            $this->departments = [];
         } else {
-            $this->department = '';
+            $this->departments = [];
         }
     }
 
@@ -416,7 +427,7 @@ class QualificationForm extends Component
             $this->otherCountry = '';
         }
         if ($value !== 'France') {
-            $this->department = '';
+            $this->departments = [];
             $this->departmentUnknown = false;
         }
     }
@@ -461,12 +472,12 @@ class QualificationForm extends Component
     }
 
     /**
-     * Listen to departmentSelected event from DepartmentSelector component
+     * Listen to departmentsSelected event from DepartmentSelector component
      */
-    #[On('departmentSelected')]
-    public function handleDepartmentSelected($department)
+    #[On('departmentsSelected')]
+    public function handleDepartmentsSelected($departments)
     {
-        $this->department = $department;
+        $this->departments = $departments;
     }
 
     /**

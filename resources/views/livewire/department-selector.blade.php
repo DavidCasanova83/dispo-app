@@ -6,6 +6,27 @@
 @delayedBlur.window="setTimeout(() => { $wire.closeDropdown() }, 200)"
 class="relative w-full">
 
+    <!-- Selected Departments Chips -->
+    @if(count($selectedDepartments) > 0 && !$departmentUnknown)
+        <div class="flex flex-wrap gap-2 mb-3">
+            @foreach($selectedDepartments as $dept)
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-[#3E9B90] text-white rounded-lg text-sm font-medium">
+                    {{ $dept }}
+                    <button
+                        type="button"
+                        wire:click="removeDepartment('{{ addslashes($dept) }}')"
+                        class="ml-1 hover:bg-[#357f76] rounded-full p-0.5 transition-colors"
+                        aria-label="Retirer {{ $dept }}"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </span>
+            @endforeach
+        </div>
+    @endif
+
     <!-- Unknown Button -->
     <div class="flex gap-2 mb-3">
         <button
@@ -60,8 +81,12 @@ class="relative w-full">
         @if(count($results) > 0)
             <ul class="py-1">
                 @foreach($results as $index => $department)
+                    @php
+                        $formattedDept = $department['code'] . ' - ' . $department['name'];
+                        $isSelected = in_array($formattedDept, $selectedDepartments);
+                    @endphp
                     <li
-                        wire:click="selectDepartment('{{ $department['code'] }}')"
+                        wire:click="toggleDepartment('{{ $department['code'] }}')"
                         :class="highlightedIndex === {{ $index }} ?
                             'bg-[#3E9B90] text-white' :
                             'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'"
@@ -69,7 +94,16 @@ class="relative w-full">
                         role="option"
                         :aria-selected="highlightedIndex === {{ $index }}"
                     >
-                        <span class="font-medium">{{ $department['code'] }} - {{ $department['name'] }}</span>
+                        <div class="flex items-center gap-2 flex-1">
+                            @if($isSelected)
+                                <svg class="w-5 h-5 text-[#3E9B90]" :class="highlightedIndex === {{ $index }} ? 'text-white' : 'text-[#3E9B90]'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            @else
+                                <div class="w-5 h-5"></div>
+                            @endif
+                            <span class="font-medium">{{ $department['code'] }} - {{ $department['name'] }}</span>
+                        </div>
                         <span
                             :class="highlightedIndex === {{ $index }} ? 'text-white' : 'text-gray-500 dark:text-gray-400'"
                             class="text-sm transition-colors duration-150"
