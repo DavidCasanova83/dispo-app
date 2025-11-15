@@ -28,16 +28,29 @@ class QualificationStatisticsV2 extends Component
         $cities = array_keys(Qualification::getCities());
 
         // Définir les dates selon le filtre appliqué
-        if ($this->periodFilter === '7days') {
-            $startDate = Carbon::now()->subDays(7)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-        } elseif ($this->periodFilter === '30days') {
-            $startDate = Carbon::now()->subDays(30)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-        } else {
-            // Par défaut, toutes les données
-            $startDate = null;
-            $endDate = null;
+        switch ($this->periodFilter) {
+            case '7days':
+                $startDate = Carbon::now()->subDays(7)->startOfDay();
+                $endDate = Carbon::now()->endOfDay();
+                break;
+            case '30days':
+                $startDate = Carbon::now()->subDays(30)->startOfDay();
+                $endDate = Carbon::now()->endOfDay();
+                break;
+            case '90days':
+                $startDate = Carbon::now()->subDays(90)->startOfDay();
+                $endDate = Carbon::now()->endOfDay();
+                break;
+            case '180days':
+                $startDate = Carbon::now()->subDays(180)->startOfDay();
+                $endDate = Carbon::now()->endOfDay();
+                break;
+            case 'all':
+            default:
+                // Toutes les données
+                $startDate = null;
+                $endDate = null;
+                break;
         }
 
         $status = 'all';
