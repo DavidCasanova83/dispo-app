@@ -23,6 +23,13 @@
                         wire:navigate>{{ __('Administration') }}</flux:navlist.item>
                 @endcan
             </flux:navlist.group>
+
+            @can('view-qualification')
+                <flux:navlist.group :heading="__('Qualification')" class="grid">
+                    <flux:navlist.item icon="chart-bar" :href="route('qualification.statistics')" :current="request() -> routeIs('qualification.statistics')"
+                        wire:navigate>{{ __('Statistiques') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
         </flux:navlist>
 
         <flux:spacer />
