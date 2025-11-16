@@ -84,11 +84,29 @@ class QualificationEdit extends Component
 
         // Options générales
         $this->generalOptions = [
-            'Randonnées', 'Pêche', 'Train', 'Villages alentours', 'Patrimoine culturel', 'Patrimoine naturel',
-            'Visite guidée', 'Accès et transports', 'Informations pratiques', 'Évènements et animations',
-            'Baignade et nautisme', 'Boutique Verdon Tourisme', 'Activité d\'eau vive', 'Vélo et VTT',
-            'Autres activités de pleine nature', 'Commerces', 'Produits locaux', 'Restaurants',
-            'Hébergements', 'Sociaux pro', 'Demandes d\'habitants'
+            'Randonnées',
+            'Pêche',
+            'Train',
+            'Sports',
+            'Sports d\'hiver',
+            'Villages alentours',
+            'Patrimoine culturel',
+            'Musée',
+            'Patrimoine naturel',
+            'Accès et transports',
+            'Informations pratiques',
+            'Évènements et animations',
+            'Baignade et nautisme',
+            'Boutique Verdon Tourisme',
+            'Activité d\'eau vive',
+            'Vélo et VTT',
+            'Autres activités de pleine nature',
+            'Commerces',
+            'Produits locaux',
+            'Restaurants',
+            'Hébergements',
+            'Sociaux pro',
+            'Demandes d\'habitants'
         ];
     }
 
@@ -398,7 +416,7 @@ class QualificationEdit extends Component
 
         $query = mb_strtolower($this->otherSpecificSearchQuery);
 
-        return array_filter($options, function($option) use ($query) {
+        return array_filter($options, function ($option) use ($query) {
             return mb_strpos(mb_strtolower($option), $query) !== false;
         });
     }
