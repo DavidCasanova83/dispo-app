@@ -102,10 +102,70 @@
         </div>
 
         <!-- Modal Export -->
-        <div x-data="{ open: false }" x-on:open-modal.window="if ($event.detail === 'export-modal') open = true"
-            x-on:close-modal.window="if ($event.detail === 'export-modal') open = false"
-            x-on:keydown.escape.window="open = false" x-show="open" class="fixed inset-0 z-50 overflow-y-auto"
-            style="display: none;">
+        <div x-data="{
+            open: false,
+            startDate: '',
+            endDate: '',
+            error: '',
+            loading: false,
+            startPicker: null,
+            endPicker: null,
+            initPickers() {
+                if (typeof flatpickr === 'undefined') {
+                    setTimeout(() => this.initPickers(), 100);
+                    return;
+                }
+                this.startPicker = flatpickr(this.$refs.startDate, {
+                    dateFormat: 'd/m/Y',
+                    locale: 'fr',
+                    maxDate: 'today',
+                    onChange: (selectedDates) => {
+                        this.startDate = selectedDates[0] ? this.formatDate(selectedDates[0]) : '';
+                        if (this.endPicker) {
+                            this.endPicker.set('minDate', selectedDates[0]);
+                        }
+                    }
+                });
+                this.endPicker = flatpickr(this.$refs.endDate, {
+                    dateFormat: 'd/m/Y',
+                    locale: 'fr',
+                    maxDate: 'today',
+                    onChange: (selectedDates) => {
+                        this.endDate = selectedDates[0] ? this.formatDate(selectedDates[0]) : '';
+                    }
+                });
+            },
+            formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            validateAndExport() {
+                this.error = '';
+                if (!this.startDate || !this.endDate) {
+                    this.error = 'Veuillez sélectionner une date de début et une date de fin.';
+                    return;
+                }
+                if (new Date(this.startDate) > new Date(this.endDate)) {
+                    this.error = 'La date de début doit être antérieure ou égale à la date de fin.';
+                    return;
+                }
+                this.loading = true;
+                $wire.exportData(this.startDate, this.endDate).then(() => {
+                    this.loading = false;
+                }).catch((error) => {
+                    this.loading = false;
+                    this.error = 'Une erreur est survenue lors de l\'export.';
+                });
+            }
+        }"
+        x-on:open-modal.window="if ($event.detail === 'export-modal') { open = true; setTimeout(() => initPickers(), 100); }"
+        x-on:close-modal.window="if ($event.detail === 'export-modal') open = false"
+        x-on:keydown.escape.window="open = false"
+        x-show="open"
+        class="fixed inset-0 z-50 overflow-y-auto"
+        style="display: none;">
             <!-- Overlay -->
             <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" x-on:click="open = false"></div>
 
@@ -113,34 +173,66 @@
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
                     x-on:click.stop>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Exporter toutes les données</h3>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Exporter les données</h3>
 
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                        L'export inclura toutes les qualifications enregistrées dans le système, sans filtrage.
+                        Sélectionnez une période personnalisée pour exporter les qualifications en Excel.
                     </p>
 
-                    <form action="{{ route('qualification.export') }}" method="GET" target="_blank">
-                        <!-- Paramètres cachés pour exporter toutes les données -->
-                        <input type="hidden" name="dateRange" value="all">
-                        <input type="hidden" name="status" value="all">
-
-                        <!-- Buttons -->
-                        <div class="flex gap-3">
-                            <button type="button" x-on:click="open = false"
-                                class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                Annuler
-                            </button>
-                            <button type="submit"
-                                class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                    </path>
-                                </svg>
-                                Télécharger Excel
-                            </button>
+                    <!-- Champs de date -->
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Date de début
+                            </label>
+                            <input type="text"
+                                x-ref="startDate"
+                                placeholder="Sélectionner une date"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                                readonly>
                         </div>
-                    </form>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Date de fin
+                            </label>
+                            <input type="text"
+                                x-ref="endDate"
+                                placeholder="Sélectionner une date"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                                readonly>
+                        </div>
+                    </div>
+
+                    <!-- Message d'erreur -->
+                    <div x-show="error" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-600 dark:text-red-400" x-text="error"></p>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex gap-3">
+                        <button type="button"
+                            x-on:click="open = false"
+                            :disabled="loading"
+                            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Annuler
+                        </button>
+                        <button type="button"
+                            x-on:click="validateAndExport()"
+                            :disabled="loading"
+                            class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg x-show="!loading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <svg x-show="loading" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span x-text="loading ? 'Export en cours...' : 'Télécharger Excel'"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,7 +489,14 @@
         @endif
     </div>
 
+    @push('styles')
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/material_green.css">
+    @endpush
+
     @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js">
         </script>
