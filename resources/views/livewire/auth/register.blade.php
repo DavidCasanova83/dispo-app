@@ -11,7 +11,7 @@
 
         <!-- Email Address -->
         <flux:input wire:model="email" :label="__('Adresse email')" type="email" required autocomplete="email"
-            placeholder="email@example.com" />
+            placeholder="email@exemple.com" />
 
         <!-- Password -->
         <flux:input wire:model="password" :label="__('Mot de passe')" type="password" required

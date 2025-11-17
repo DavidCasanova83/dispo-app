@@ -6,27 +6,13 @@
 
     <form wire:submit="login" class="flex flex-col gap-6">
         <!-- Email Address -->
-        <flux:input
-            wire:model="email"
-            :label="__('Adresse email')"
-            type="email"
-            required
-            autofocus
-            autocomplete="email"
-            placeholder="email@example.com"
-        />
+        <flux:input wire:model="email" :label="__('Adresse email')" type="email" required autofocus autocomplete="email"
+            placeholder="email@exemle.com" />
 
         <!-- Password -->
         <div class="relative">
-            <flux:input
-                wire:model="password"
-                :label="__('Mot de passe')"
-                type="password"
-                required
-                autocomplete="current-password"
-                :placeholder="__('Mot de passe')"
-                viewable
-            />
+            <flux:input wire:model="password" :label="__('Mot de passe')" type="password" required
+                autocomplete="current-password" :placeholder="__('Mot de passe')" viewable />
 
             @if (Route::has('password.request'))
                 <flux:link class="absolute end-0 top-0 text-sm" :href="route('password.request')" wire:navigate>

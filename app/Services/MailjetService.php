@@ -201,4 +201,96 @@ class MailjetService
             'loginUrl' => $loginUrl,
         ])->render();
     }
+
+    /**
+     * Send a new user registration notification to a super-admin.
+     *
+     * @param string $toEmail
+     * @param string $toName
+     * @param \App\Models\User $newUser
+     * @return array
+     */
+    public function sendNewUserNotification(string $toEmail, string $toName, $newUser): array
+    {
+        $adminPanelUrl = url('/admin/users');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $toEmail,
+                            'Name' => $toName,
+                        ],
+                    ],
+                    'Subject' => "Nouveau utilisateur en attente d'approbation",
+                    'TextPart' => "Bonjour {$toName},\n\nUn nouvel utilisateur s'est inscrit et attend votre approbation.\n\nNom : {$newUser->name}\nEmail : {$newUser->email}\n\nAccédez au panel d'administration pour approuver cet utilisateur : {$adminPanelUrl}",
+                    'HTMLPart' => $this->generateNewUserNotificationHtml($toName, $newUser, $adminPanelUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("New user notification email sent successfully to {$toEmail}", [
+                    'admin_name' => $toName,
+                    'new_user_id' => $newUser->id,
+                    'new_user_email' => $newUser->email,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send new user notification email to {$toEmail}", [
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending new user notification email to {$toEmail}", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Generate the HTML content for the new user notification email.
+     *
+     * @param string $adminName
+     * @param \App\Models\User $newUser
+     * @param string $adminPanelUrl
+     * @return string
+     */
+    protected function generateNewUserNotificationHtml(
+        string $adminName,
+        $newUser,
+        string $adminPanelUrl
+    ): string {
+        return view('emails.new-user-registration', [
+            'adminName' => $adminName,
+            'newUserName' => $newUser->name,
+            'newUserEmail' => $newUser->email,
+            'adminPanelUrl' => $adminPanelUrl,
+        ])->render();
+    }
 }
