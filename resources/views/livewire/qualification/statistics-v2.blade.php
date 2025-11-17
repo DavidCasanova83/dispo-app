@@ -4,10 +4,10 @@
         <div class="mb-8 flex items-start justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                    Statistiques des Qualifications V2
+                    Statistiques des Qualifications
                 </h1>
                 <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Analyse complète des données de qualification de l'Oti Verdon Tourisme (Chart.js).
+                    Analyse complète des données de qualification de l'Oti Verdon Tourisme.
                 </p>
             </div>
             <button x-data x-on:click="$dispatch('open-modal', 'export-modal')"
