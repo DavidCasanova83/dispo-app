@@ -95,6 +95,74 @@ class MailjetService
     }
 
     /**
+     * Send a user approval notification email.
+     *
+     * @param string $toEmail
+     * @param string $toName
+     * @return array
+     */
+    public function sendUserApprovalEmail(string $toEmail, string $toName): array
+    {
+        $loginUrl = url('/login');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $toEmail,
+                            'Name' => $toName,
+                        ],
+                    ],
+                    'Subject' => "Votre compte a été approuvé",
+                    'TextPart' => "Bonjour {$toName},\n\nNous avons le plaisir de vous informer que votre compte a été approuvé avec succès !\n\nVous pouvez maintenant accéder à l'application : {$loginUrl}\n\nBienvenue !",
+                    'HTMLPart' => $this->generateUserApprovalEmailHtml($toName, $toEmail, $loginUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("User approval email sent successfully to {$toEmail}", [
+                    'user_name' => $toName,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send user approval email to {$toEmail}", [
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending user approval email to {$toEmail}", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Generate the HTML content for the email.
      *
      * @param string $accommodationName
@@ -111,6 +179,26 @@ class MailjetService
             'accommodationName' => $accommodationName,
             'availableUrl' => $availableUrl,
             'notAvailableUrl' => $notAvailableUrl,
+        ])->render();
+    }
+
+    /**
+     * Generate the HTML content for the user approval email.
+     *
+     * @param string $userName
+     * @param string $userEmail
+     * @param string $loginUrl
+     * @return string
+     */
+    protected function generateUserApprovalEmailHtml(
+        string $userName,
+        string $userEmail,
+        string $loginUrl
+    ): string {
+        return view('emails.user-approved', [
+            'userName' => $userName,
+            'userEmail' => $userEmail,
+            'loginUrl' => $loginUrl,
         ])->render();
     }
 }
