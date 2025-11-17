@@ -84,7 +84,7 @@
                         </label>
                         <input type="email" wire:model.blur="email"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
-                            placeholder="contact@example.com">
+                            placeholder="contact@exemple.com">
                         @error('email')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror

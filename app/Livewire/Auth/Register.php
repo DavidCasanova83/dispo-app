@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Jobs\SendNewUserRegistrationNotification;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +38,9 @@ class Register extends Component
 
 
         event(new Registered(($user = User::create($validated))));
+
+        // Notifier les super-admins de la nouvelle inscription
+        SendNewUserRegistrationNotification::dispatch($user);
 
         // Auth::login($user);
         session()->flash('status', 'Votre inscription a été enregistrée. Un administrateur doit valider votre compte et vous attribuer un rôle avant que vous puissiez vous connecter.');
