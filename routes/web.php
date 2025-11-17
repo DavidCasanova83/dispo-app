@@ -55,6 +55,16 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
     });
 
+    // Routes pour la configuration SFTP - requires manage-sftp-config permission (Super-admin only)
+    Route::middleware(['permission:manage-sftp-config'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/sftp/configuration', \App\Livewire\Admin\SftpConfiguration::class)->name('sftp.config');
+    });
+
+    // Routes pour l'upload de PDF vers SFTP - requires upload-sftp-pdf permission (Admin and Super-admin)
+    Route::middleware(['permission:upload-sftp-pdf'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/sftp/upload', \App\Livewire\Admin\SftpUpload::class)->name('sftp.upload');
+    });
+
     // Routes pour le module Qualification
     Route::prefix('qualification')->name('qualification.')->group(function () {
         // Page de sélection des villes - requires view-qualification permission

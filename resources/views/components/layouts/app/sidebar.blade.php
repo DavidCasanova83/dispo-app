@@ -19,10 +19,24 @@
                     wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
 
                 @can('manage-users')
-                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.*')"
+                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.users')"
                         wire:navigate>{{ __('Administration') }}</flux:navlist.item>
                 @endcan
             </flux:navlist.group>
+
+            @canany(['manage-sftp-config', 'upload-sftp-pdf'])
+                <flux:navlist.group :heading="__('SFTP')" class="grid">
+                    @can('manage-sftp-config')
+                        <flux:navlist.item icon="cog" :href="route('admin.sftp.config')" :current="request() -> routeIs('admin.sftp.config')"
+                            wire:navigate>{{ __('Configuration') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('upload-sftp-pdf')
+                        <flux:navlist.item icon="cloud-arrow-up" :href="route('admin.sftp.upload')" :current="request() -> routeIs('admin.sftp.upload')"
+                            wire:navigate>{{ __('Upload PDF') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcanany
 
             @can('view-qualification')
                 <flux:navlist.group :heading="__('Qualification')" class="grid">
