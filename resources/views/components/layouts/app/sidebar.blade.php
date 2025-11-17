@@ -30,6 +30,23 @@
                         wire:navigate>{{ __('Statistiques') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
+
+            @canany(['sftp-upload', 'sftp-manage'])
+                <flux:navlist.group heading="SFTP" class="grid">
+                    @can('sftp-upload')
+                        <flux:navlist.item icon="arrow-up-tray" :href="route('sftp.upload')" :current="request() -> routeIs('sftp.upload')"
+                            wire:navigate>{{ __('Upload PDF') }}</flux:navlist.item>
+
+                        <flux:navlist.item icon="clock" :href="route('sftp.history')" :current="request() -> routeIs('sftp.history')"
+                            wire:navigate>{{ __('Historique') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('sftp-manage')
+                        <flux:navlist.item icon="cog-6-tooth" :href="route('sftp.configuration')" :current="request() -> routeIs('sftp.configuration')"
+                            wire:navigate>{{ __('Configuration') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcanany
         </flux:navlist>
 
         <flux:spacer />

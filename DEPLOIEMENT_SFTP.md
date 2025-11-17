@@ -2,12 +2,14 @@
 
 ## 📋 Résumé de la fonctionnalité
 
-Cette fonctionnalité permet aux **Super-Admin** d'uploader des fichiers PDF vers un serveur SFTP configuré. Elle inclut :
+Cette fonctionnalité permet aux **Super-Admin et Admin** d'uploader des fichiers PDF vers un serveur SFTP configuré. Elle inclut :
 
-- **Configuration SFTP** : Interface d'administration pour configurer la connexion au serveur SFTP
-- **Upload de fichiers PDF** : Upload sécurisé de fichiers PDF uniquement (max 50 Mo)
-- **Historique des uploads** : Traçabilité complète de tous les uploads avec statut de réussite/échec
-- **Permissions** : Nouvelle permission `sftp-upload` réservée exclusivement aux Super-Admin
+- **Configuration SFTP** : Interface d'administration pour configurer la connexion au serveur SFTP (Super-Admin uniquement)
+- **Upload de fichiers PDF** : Upload sécurisé de fichiers PDF uniquement (max 50 Mo) - Accessible aux Admin et Super-Admin
+- **Historique des uploads** : Traçabilité complète de tous les uploads avec statut de réussite/échec - Accessible aux Admin et Super-Admin
+- **Permissions** :
+  - `sftp-manage` : Configuration SFTP (Super-Admin uniquement)
+  - `sftp-upload` : Upload et historique (Admin + Super-Admin)
 
 ## 🆕 Fichiers créés
 
@@ -36,12 +38,21 @@ Cette fonctionnalité permet aux **Super-Admin** d'uploader des fichiers PDF ver
 
 ### Seeders
 - `database/seeders/RolePermissionSeeder.php`
-  - Ajout de la permission `sftp-upload`
-  - Cette permission est automatiquement attribuée aux Super-Admin
+  - Ajout de deux permissions : `sftp-manage` et `sftp-upload`
+  - `sftp-manage` : Super-Admin uniquement (configuration)
+  - `sftp-upload` : Admin + Super-Admin (upload et historique)
 
 ### Routes
 - `routes/web.php`
-  - Ajout des routes SFTP protégées par la permission `sftp-upload`
+  - Ajout des routes SFTP avec permissions différenciées :
+    - `/sftp/configuration` : Permission `sftp-manage` (Super-Admin)
+    - `/sftp/upload` : Permission `sftp-upload` (Admin + Super-Admin)
+    - `/sftp/history` : Permission `sftp-upload` (Admin + Super-Admin)
+
+### Sidebar
+- `resources/views/components/layouts/app/sidebar.blade.php`
+  - Ajout d'une section SFTP dans la navigation
+  - Liens conditionnels basés sur les permissions
 
 ## 📦 Dépendances requises
 
@@ -106,21 +117,28 @@ Si votre base de données contient déjà des utilisateurs et des données, exé
 php artisan db:seed --class=RolePermissionSeeder
 ```
 
-⚠️ **Note** : Si les rôles et permissions existent déjà, vous devrez soit :
-- Créer manuellement la permission `sftp-upload` dans la base de données
-- Ou modifier le seeder pour vérifier l'existence avant la création
+⚠️ **Note** : Si les rôles et permissions existent déjà, vous devrez créer manuellement les nouvelles permissions dans la base de données.
 
-**Création manuelle de la permission :**
+**Création manuelle des permissions :**
 
 ```sql
+-- Créer les permissions
 INSERT INTO permissions (name, guard_name, created_at, updated_at)
-VALUES ('sftp-upload', 'web', NOW(), NOW());
+VALUES
+  ('sftp-manage', 'web', NOW(), NOW()),
+  ('sftp-upload', 'web', NOW(), NOW());
 
--- Attribuer la permission aux Super-Admin
+-- Attribuer sftp-manage aux Super-Admin uniquement
 INSERT INTO role_has_permissions (permission_id, role_id)
 SELECT p.id, r.id
 FROM permissions p, roles r
-WHERE p.name = 'sftp-upload' AND r.name = 'Super-admin';
+WHERE p.name = 'sftp-manage' AND r.name = 'Super-admin';
+
+-- Attribuer sftp-upload aux Admin ET Super-Admin
+INSERT INTO role_has_permissions (permission_id, role_id)
+SELECT p.id, r.id
+FROM permissions p, roles r
+WHERE p.name = 'sftp-upload' AND r.name IN ('Admin', 'Super-admin');
 ```
 
 ### 6. Vider le cache
@@ -189,7 +207,7 @@ Route : `/sftp/upload`
 
 - **Format** : Seuls les fichiers PDF sont acceptés (`.pdf`, `application/pdf`)
 - **Taille maximale** : 50 Mo
-- **Permission** : Réservé aux utilisateurs ayant la permission `sftp-upload` (Super-Admin uniquement)
+- **Permission** : Réservé aux utilisateurs ayant la permission `sftp-upload` (Admin + Super-Admin)
 
 ### Processus d'upload
 
@@ -234,11 +252,16 @@ Route : `/sftp/history`
 
 ```bash
 # En tant que Super-Admin
-✓ Accès à /sftp/configuration
-✓ Accès à /sftp/upload
-✓ Accès à /sftp/history
+✓ Accès à /sftp/configuration (permission: sftp-manage)
+✓ Accès à /sftp/upload (permission: sftp-upload)
+✓ Accès à /sftp/history (permission: sftp-upload)
 
-# En tant qu'Admin (ou autre rôle)
+# En tant qu'Admin
+✗ Accès refusé (403) à /sftp/configuration
+✓ Accès à /sftp/upload (permission: sftp-upload)
+✓ Accès à /sftp/history (permission: sftp-upload)
+
+# En tant qu'autre rôle (Qualification, Disponibilités, Utilisateurs)
 ✗ Accès refusé (403) à toutes les routes SFTP
 ```
 
@@ -270,8 +293,11 @@ Route : `/sftp/history`
 
 ### 5. Test de sécurité
 
-- [ ] Se connecter avec un compte non Super-Admin
-- [ ] Vérifier l'accès refusé (403) aux routes SFTP
+- [ ] Se connecter avec un compte Admin
+- [ ] Vérifier l'accès refusé (403) à /sftp/configuration
+- [ ] Vérifier l'accès autorisé à /sftp/upload et /sftp/history
+- [ ] Se connecter avec un compte non Admin/Super-Admin
+- [ ] Vérifier l'accès refusé (403) à toutes les routes SFTP
 - [ ] Vérifier que le mot de passe est bien crypté dans la base de données
 - [ ] Vérifier que les informations sensibles n'apparaissent pas dans les logs
 
@@ -386,11 +412,24 @@ sftp -P 22 username@host
 
 ## 🎯 Routes disponibles
 
-| Route | Nom | Permission | Description |
-|-------|-----|------------|-------------|
-| `/sftp/configuration` | sftp.configuration | sftp-upload | Configuration SFTP |
-| `/sftp/upload` | sftp.upload | sftp-upload | Upload de fichiers PDF |
-| `/sftp/history` | sftp.history | sftp-upload | Historique des uploads |
+| Route | Nom | Permission | Rôles | Description |
+|-------|-----|------------|-------|-------------|
+| `/sftp/configuration` | sftp.configuration | sftp-manage | Super-Admin | Configuration SFTP |
+| `/sftp/upload` | sftp.upload | sftp-upload | Admin + Super-Admin | Upload de fichiers PDF |
+| `/sftp/history` | sftp.history | sftp-upload | Admin + Super-Admin | Historique des uploads |
+
+## 🧭 Navigation (Sidebar)
+
+Les liens SFTP apparaissent automatiquement dans la sidebar selon les permissions :
+
+**Super-Admin voit :**
+- 📤 Upload PDF (`/sftp/upload`)
+- 🕒 Historique (`/sftp/history`)
+- ⚙️ Configuration (`/sftp/configuration`)
+
+**Admin voit :**
+- 📤 Upload PDF (`/sftp/upload`)
+- 🕒 Historique (`/sftp/history`)
 
 ## ✨ Fonctionnalités futures (optionnelles)
 
@@ -405,6 +444,18 @@ sftp -P 22 username@host
 ---
 
 **Date de création** : 17 janvier 2025
-**Version** : 1.0
+**Version** : 1.1
+**Dernière mise à jour** : 17 janvier 2025
 **Auteur** : Claude AI
 **Framework** : Laravel 12 + Livewire 3 + Flux UI
+
+## 📝 Changelog
+
+### Version 1.1 - 17/01/2025
+- Séparation des permissions en `sftp-manage` et `sftp-upload`
+- Accès étendu à l'upload et l'historique pour les Admin
+- Ajout de liens conditionnels dans la sidebar
+- Configuration SFTP réservée aux Super-Admin uniquement
+
+### Version 1.0 - 17/01/2025
+- Version initiale avec permission unique `sftp-upload`

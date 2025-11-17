@@ -55,11 +55,18 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
     });
 
-    // Routes pour le module SFTP - requires sftp-upload permission (Super-admin only)
-    Route::middleware(['permission:sftp-upload'])->prefix('sftp')->name('sftp.')->group(function () {
-        Route::get('/configuration', \App\Livewire\Sftp\Configuration::class)->name('configuration');
-        Route::get('/upload', \App\Livewire\Sftp\Upload::class)->name('upload');
-        Route::get('/history', \App\Livewire\Sftp\History::class)->name('history');
+    // Routes pour le module SFTP
+    Route::prefix('sftp')->name('sftp.')->group(function () {
+        // Configuration SFTP - requires sftp-manage permission (Super-admin only)
+        Route::middleware(['permission:sftp-manage'])->group(function () {
+            Route::get('/configuration', \App\Livewire\Sftp\Configuration::class)->name('configuration');
+        });
+
+        // Upload and History - requires sftp-upload permission (Admin + Super-admin)
+        Route::middleware(['permission:sftp-upload'])->group(function () {
+            Route::get('/upload', \App\Livewire\Sftp\Upload::class)->name('upload');
+            Route::get('/history', \App\Livewire\Sftp\History::class)->name('history');
+        });
     });
 
     // Routes pour le module Qualification

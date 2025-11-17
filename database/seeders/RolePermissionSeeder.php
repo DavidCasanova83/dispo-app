@@ -25,7 +25,8 @@ class RolePermissionSeeder extends Seeder
             'view-disponibilites',    // View accommodation availability
             'edit-disponibilites',    // Edit accommodation data
             'fill-forms',             // Fill and validate forms
-            'sftp-upload',            // Upload PDF files to SFTP server (Super-admin only)
+            'sftp-manage',            // Manage SFTP configuration (Super-admin only)
+            'sftp-upload',            // Upload PDF files to SFTP server (Admin + Super-admin)
         ];
 
         foreach ($permissions as $permission) {
@@ -38,7 +39,7 @@ class RolePermissionSeeder extends Seeder
         $superAdmin = Role::create(['name' => 'Super-admin', 'guard_name' => 'web']);
         $superAdmin->givePermissionTo(Permission::all());
 
-        // 2. Admin: Full access except user management (inherits Qualification + Disponibilites)
+        // 2. Admin: Full access except user management (inherits Qualification + Disponibilites + SFTP Upload)
         $admin = Role::create(['name' => 'Admin', 'guard_name' => 'web']);
         $admin->givePermissionTo([
             'view-qualification',
@@ -46,6 +47,7 @@ class RolePermissionSeeder extends Seeder
             'view-disponibilites',
             'edit-disponibilites',
             'fill-forms',
+            'sftp-upload',
         ]);
 
         // 3. Qualification: Access to qualification section
@@ -68,6 +70,6 @@ class RolePermissionSeeder extends Seeder
 
         $this->command->info('Roles and permissions created successfully!');
         $this->command->info('Created 5 roles: Super-admin, Admin, Qualification, Disponibilites, Utilisateurs');
-        $this->command->info('Created 7 permissions: manage-users, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms, sftp-upload');
+        $this->command->info('Created 8 permissions: manage-users, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms, sftp-manage, sftp-upload');
     }
 }
