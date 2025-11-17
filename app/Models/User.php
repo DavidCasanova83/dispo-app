@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Jobs\SendUserApprovalEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -69,6 +70,9 @@ class User extends Authenticatable
             'approved' => true,
             'approved_at' => now(),
         ]);
+
+        // Envoyer l'email de notification d'approbation
+        SendUserApprovalEmail::dispatch($this);
     }
 
      /**
