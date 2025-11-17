@@ -105,7 +105,7 @@ class QualificationEdit extends Component
             'Produits locaux',
             'Restaurants',
             'Hébergements',
-            'Sociaux pro',
+            'Socio pro',
             'Demandes d\'habitants'
         ];
     }
