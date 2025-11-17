@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
             'view-disponibilites',    // View accommodation availability
             'edit-disponibilites',    // Edit accommodation data
             'fill-forms',             // Fill and validate forms
+            'sftp-upload',            // Upload PDF files to SFTP server (Super-admin only)
         ];
 
         foreach ($permissions as $permission) {
@@ -67,6 +68,6 @@ class RolePermissionSeeder extends Seeder
 
         $this->command->info('Roles and permissions created successfully!');
         $this->command->info('Created 5 roles: Super-admin, Admin, Qualification, Disponibilites, Utilisateurs');
-        $this->command->info('Created 6 permissions: manage-users, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms');
+        $this->command->info('Created 7 permissions: manage-users, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms, sftp-upload');
     }
 }
