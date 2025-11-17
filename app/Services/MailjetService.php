@@ -110,7 +110,7 @@ class MailjetService
                 [
                     'From' => [
                         'Email' => config('mail.from.address'),
-                        'Name' => config('mail.from.name'),
+                        'Name' => config('Panel - compte approuvé'),
                     ],
                     'To' => [
                         [
