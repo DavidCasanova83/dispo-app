@@ -7,30 +7,30 @@
                 Gérez les configurations SFTP pour l'upload de fichiers PDF
             </p>
         </div>
-        <flux:button wire:click="create" icon="plus" variant="primary">
+        <x-button wire:click="create" icon="plus" variant="primary">
             Nouvelle configuration
-        </flux:button>
+        </x-button>
     </div>
 
     {{-- Flash Messages --}}
     @if (session()->has('message'))
-        <flux:banner variant="success" icon="check-circle">
+        <x-alert variant="success" icon="check-circle">
             {{ session('message') }}
-        </flux:banner>
+        </x-alert>
     @endif
 
     @if (session()->has('testResult'))
         @php $result = session('testResult'); @endphp
-        <flux:banner variant="{{ $result['success'] ? 'success' : 'danger' }}"
-                     icon="{{ $result['success'] ? 'check-circle' : 'x-circle' }}">
+        <x-alert variant="{{ $result['success'] ? 'success' : 'danger' }}"
+                 icon="{{ $result['success'] ? 'check-circle' : 'x-circle' }}">
             {{ $result['message'] }}
-        </flux:banner>
+        </x-alert>
     @endif
 
     {{-- Configurations List --}}
     <div class="grid gap-4">
         @forelse ($configurations as $config)
-            <flux:card class="p-6">
+            <x-card class="p-6">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="flex items-center gap-3">
@@ -38,9 +38,9 @@
                                 {{ $config->name }}
                             </h3>
                             @if ($config->active)
-                                <flux:badge color="green" size="sm">Active</flux:badge>
+                                <x-badge color="green" size="sm">Active</x-badge>
                             @else
-                                <flux:badge color="zinc" size="sm">Inactive</flux:badge>
+                                <x-badge color="zinc" size="sm">Inactive</x-badge>
                             @endif
                         </div>
 
@@ -71,39 +71,43 @@
                     </div>
 
                     <div class="flex gap-2">
-                        <flux:button wire:click="testConnection({{ $config->id }})"
-                                     size="sm"
-                                     variant="ghost"
-                                     icon="signal"
-                                     wire:loading.attr="disabled"
-                                     wire:target="testConnection({{ $config->id }})">
+                        <x-button
+                            wire:click="testConnection({{ $config->id }})"
+                            size="sm"
+                            variant="ghost"
+                            icon="signal"
+                            wire:loading.attr="disabled"
+                            wire:target="testConnection({{ $config->id }})">
                             Tester
-                        </flux:button>
-                        <flux:button wire:click="toggleActive({{ $config->id }})"
-                                     size="sm"
-                                     variant="ghost"
-                                     icon="{{ $config->active ? 'eye-slash' : 'eye' }}">
+                        </x-button>
+                        <x-button
+                            wire:click="toggleActive({{ $config->id }})"
+                            size="sm"
+                            variant="ghost"
+                            icon="{{ $config->active ? 'eye-slash' : 'eye' }}">
                             {{ $config->active ? 'Désactiver' : 'Activer' }}
-                        </flux:button>
-                        <flux:button wire:click="edit({{ $config->id }})"
-                                     size="sm"
-                                     variant="ghost"
-                                     icon="pencil">
+                        </x-button>
+                        <x-button
+                            wire:click="edit({{ $config->id }})"
+                            size="sm"
+                            variant="ghost"
+                            icon="pencil">
                             Éditer
-                        </flux:button>
-                        <flux:button wire:click="delete({{ $config->id }})"
-                                     wire:confirm="Êtes-vous sûr de vouloir supprimer cette configuration ?"
-                                     size="sm"
-                                     variant="ghost"
-                                     icon="trash"
-                                     class="text-red-600 hover:text-red-700 dark:text-red-400">
+                        </x-button>
+                        <x-button
+                            wire:click="delete({{ $config->id }})"
+                            wire:confirm="Êtes-vous sûr de vouloir supprimer cette configuration ?"
+                            size="sm"
+                            variant="ghost"
+                            icon="trash"
+                            class="text-red-600 hover:text-red-700 dark:text-red-400">
                             Supprimer
-                        </flux:button>
+                        </x-button>
                     </div>
                 </div>
-            </flux:card>
+            </x-card>
         @empty
-            <flux:card class="p-12 text-center">
+            <x-card class="p-12 text-center">
                 <flux:icon.server class="mx-auto size-12 text-zinc-400 dark:text-zinc-600" />
                 <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">
                     Aucune configuration SFTP
@@ -111,10 +115,10 @@
                 <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                     Commencez par créer votre première configuration SFTP
                 </p>
-                <flux:button wire:click="create" icon="plus" variant="primary" class="mt-4">
+                <x-button wire:click="create" icon="plus" variant="primary" class="mt-4">
                     Créer une configuration
-                </flux:button>
-            </flux:card>
+                </x-button>
+            </x-card>
         @endforelse
     </div>
 
@@ -127,73 +131,82 @@
 
     {{-- Configuration Modal --}}
     @if ($showModal)
-        <flux:modal name="config-modal" variant="flyout" class="space-y-6">
+        <x-modal name="config-modal" class="space-y-6">
             <div>
-                <flux:heading size="lg">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
                     {{ $editingId ? 'Modifier la configuration' : 'Nouvelle configuration' }}
-                </flux:heading>
-                <flux:subheading>
+                </h2>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     {{ $editingId ? 'Modifiez les paramètres de connexion SFTP' : 'Ajoutez une nouvelle configuration SFTP' }}
-                </flux:subheading>
+                </p>
             </div>
 
             <form wire:submit="save" class="space-y-6">
-                <flux:input wire:model="name"
-                           label="Nom de la configuration"
-                           placeholder="Production SFTP"
-                           required />
+                <x-form.input
+                    wire:model="name"
+                    label="Nom de la configuration"
+                    placeholder="Production SFTP"
+                    required />
 
                 <div class="grid gap-4 sm:grid-cols-3">
                     <div class="sm:col-span-2">
-                        <flux:input wire:model="host"
-                                   label="Hôte SFTP"
-                                   placeholder="sftp.example.com"
-                                   required />
+                        <x-form.input
+                            wire:model="host"
+                            label="Hôte SFTP"
+                            placeholder="sftp.example.com"
+                            required />
                     </div>
-                    <flux:input wire:model="port"
-                               label="Port"
-                               type="number"
-                               min="1"
-                               max="65535"
-                               required />
+                    <x-form.input
+                        wire:model="port"
+                        label="Port"
+                        type="number"
+                        min="1"
+                        max="65535"
+                        required />
                 </div>
 
-                <flux:input wire:model="username"
-                           label="Nom d'utilisateur"
-                           placeholder="username"
-                           required />
+                <x-form.input
+                    wire:model="username"
+                    label="Nom d'utilisateur"
+                    placeholder="username"
+                    required />
 
-                <flux:input wire:model="password"
-                           label="Mot de passe"
-                           type="password"
-                           placeholder="••••••••"
-                           :description="$editingId ? 'Laissez vide pour conserver le mot de passe actuel' : ''" />
+                <x-form.input
+                    wire:model="password"
+                    label="Mot de passe"
+                    type="password"
+                    placeholder="••••••••"
+                    :description="$editingId ? 'Laissez vide pour conserver le mot de passe actuel' : ''" />
 
-                <flux:textarea wire:model="private_key"
-                              label="Clé privée SSH (alternative au mot de passe)"
-                              rows="4"
-                              placeholder="-----BEGIN RSA PRIVATE KEY-----"
-                              description="Utilisez soit un mot de passe, soit une clé privée" />
+                <x-form.textarea
+                    wire:model="private_key"
+                    label="Clé privée SSH (alternative au mot de passe)"
+                    rows="4"
+                    placeholder="-----BEGIN RSA PRIVATE KEY-----"
+                    description="Utilisez soit un mot de passe, soit une clé privée" />
 
-                <flux:input wire:model="remote_path"
-                           label="Dossier distant"
-                           placeholder="/uploads/pdf"
-                           required />
+                <x-form.input
+                    wire:model="remote_path"
+                    label="Dossier distant"
+                    placeholder="/uploads/pdf"
+                    required />
 
-                <flux:switch wire:model="active"
-                            label="Configuration active" />
+                <x-form.switch
+                    wire:model="active"
+                    label="Configuration active" />
 
                 <div class="flex gap-2 justify-end">
-                    <flux:button type="button"
-                                wire:click="closeModal"
-                                variant="ghost">
+                    <x-button
+                        type="button"
+                        wire:click="closeModal"
+                        variant="ghost">
                         Annuler
-                    </flux:button>
-                    <flux:button type="submit" variant="primary">
+                    </x-button>
+                    <x-button type="submit" variant="primary">
                         {{ $editingId ? 'Mettre à jour' : 'Créer' }}
-                    </flux:button>
+                    </x-button>
                 </div>
             </form>
-        </flux:modal>
+        </x-modal>
     @endif
 </div>

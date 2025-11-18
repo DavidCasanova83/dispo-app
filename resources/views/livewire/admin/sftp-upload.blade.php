@@ -9,20 +9,20 @@
 
     {{-- Flash Messages --}}
     @if (session()->has('message'))
-        <flux:banner variant="success" icon="check-circle">
+        <x-alert variant="success" icon="check-circle">
             {{ session('message') }}
-        </flux:banner>
+        </x-alert>
     @endif
 
     @if (session()->has('error'))
-        <flux:banner variant="danger" icon="x-circle">
+        <x-alert variant="danger" icon="x-circle">
             {{ session('error') }}
-        </flux:banner>
+        </x-alert>
     @endif
 
     {{-- Statistics --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <flux:card class="p-4">
+        <x-card class="p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total</p>
@@ -32,9 +32,9 @@
                 </div>
                 <flux:icon.document-text class="size-8 text-zinc-400" />
             </div>
-        </flux:card>
+        </x-card>
 
-        <flux:card class="p-4">
+        <x-card class="p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">En attente</p>
@@ -44,9 +44,9 @@
                 </div>
                 <flux:icon.clock class="size-8 text-amber-400" />
             </div>
-        </flux:card>
+        </x-card>
 
-        <flux:card class="p-4">
+        <x-card class="p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">En cours</p>
@@ -56,9 +56,9 @@
                 </div>
                 <flux:icon.arrow-up-tray class="size-8 text-blue-400" />
             </div>
-        </flux:card>
+        </x-card>
 
-        <flux:card class="p-4">
+        <x-card class="p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Complétés</p>
@@ -68,9 +68,9 @@
                 </div>
                 <flux:icon.check-circle class="size-8 text-green-400" />
             </div>
-        </flux:card>
+        </x-card>
 
-        <flux:card class="p-4">
+        <x-card class="p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Échoués</p>
@@ -80,37 +80,36 @@
                 </div>
                 <flux:icon.x-circle class="size-8 text-red-400" />
             </div>
-        </flux:card>
+        </x-card>
     </div>
 
     {{-- Upload Form --}}
-    <flux:card class="p-6">
+    <x-card class="p-6">
         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             Uploader un nouveau fichier PDF
         </h2>
 
         <form wire:submit="uploadFile" class="space-y-4">
-            <flux:select wire:model="configuration_id"
-                        label="Configuration SFTP"
-                        placeholder="Sélectionnez une configuration"
-                        required>
+            <x-form.select
+                wire:model="configuration_id"
+                label="Configuration SFTP"
+                placeholder="Sélectionnez une configuration"
+                required>
                 @foreach ($configurations as $config)
-                    <flux:option value="{{ $config->id }}">{{ $config->name }}</flux:option>
+                    <option value="{{ $config->id }}">{{ $config->name }}</option>
                 @endforeach
-            </flux:select>
+            </x-form.select>
 
             @if (count($configurations) === 0)
-                <flux:banner variant="warning" icon="exclamation-triangle">
+                <x-alert variant="warning" icon="exclamation-triangle">
                     Aucune configuration SFTP active disponible. Veuillez d'abord configurer un serveur SFTP.
-                </flux:banner>
+                </x-alert>
             @endif
 
             <div>
-                <flux:field>
-                    <flux:label>Fichier PDF</flux:label>
-                    <flux:description>
-                        Sélectionnez un fichier PDF (maximum 10 MB)
-                    </flux:description>
+                <x-form.field
+                    label="Fichier PDF"
+                    description="Sélectionnez un fichier PDF (maximum 10 MB)">
                     <div class="mt-2">
                         <input type="file"
                                wire:model="file"
@@ -119,9 +118,9 @@
                                {{ count($configurations) === 0 ? 'disabled' : '' }}>
                     </div>
                     @error('file')
-                        <flux:error>{{ $message }}</flux:error>
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
-                </flux:field>
+                </x-form.field>
 
                 @if ($file)
                     <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -137,40 +136,42 @@
             </div>
 
             <div class="flex justify-end">
-                <flux:button type="submit"
-                            variant="primary"
-                            icon="cloud-arrow-up"
-                            :disabled="!$file || !$configuration_id || count($configurations) === 0"
-                            wire:loading.attr="disabled"
-                            wire:target="uploadFile">
+                <x-button
+                    type="submit"
+                    variant="primary"
+                    icon="cloud-arrow-up"
+                    :disabled="!$file || !$configuration_id || count($configurations) === 0"
+                    wire:loading.attr="disabled"
+                    wire:target="uploadFile">
                     <span wire:loading.remove wire:target="uploadFile">Uploader</span>
                     <span wire:loading wire:target="uploadFile">Upload en cours...</span>
-                </flux:button>
+                </x-button>
             </div>
         </form>
-    </flux:card>
+    </x-card>
 
     {{-- Filters --}}
-    <flux:card class="p-4">
+    <x-card class="p-4">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex-1">
-                <flux:input wire:model.live.debounce.300ms="search"
-                           placeholder="Rechercher par nom de fichier..."
-                           icon="magnifying-glass" />
+                <x-form.input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Rechercher par nom de fichier..."
+                    icon="magnifying-glass" />
             </div>
 
-            <flux:select wire:model.live="filterStatus" class="sm:w-48">
-                <flux:option value="all">Tous les statuts</flux:option>
-                <flux:option value="pending">En attente</flux:option>
-                <flux:option value="uploading">En cours</flux:option>
-                <flux:option value="completed">Complétés</flux:option>
-                <flux:option value="failed">Échoués</flux:option>
-            </flux:select>
+            <x-form.select wire:model.live="filterStatus" class="sm:w-48">
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="uploading">En cours</option>
+                <option value="completed">Complétés</option>
+                <option value="failed">Échoués</option>
+            </x-form.select>
         </div>
-    </flux:card>
+    </x-card>
 
     {{-- Uploads List --}}
-    <flux:card>
+    <x-card>
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 dark:border-zinc-700">
@@ -219,25 +220,25 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if ($upload->status === 'completed')
-                                    <flux:badge color="green" size="sm">
+                                    <x-badge color="green" size="sm">
                                         <flux:icon.check-circle class="size-3" />
                                         Complété
-                                    </flux:badge>
+                                    </x-badge>
                                 @elseif ($upload->status === 'failed')
-                                    <flux:badge color="red" size="sm">
+                                    <x-badge color="red" size="sm">
                                         <flux:icon.x-circle class="size-3" />
                                         Échoué
-                                    </flux:badge>
+                                    </x-badge>
                                 @elseif ($upload->status === 'uploading')
-                                    <flux:badge color="blue" size="sm">
+                                    <x-badge color="blue" size="sm">
                                         <flux:icon.arrow-path class="size-3 animate-spin" />
                                         En cours
-                                    </flux:badge>
+                                    </x-badge>
                                 @else
-                                    <flux:badge color="amber" size="sm">
+                                    <x-badge color="amber" size="sm">
                                         <flux:icon.clock class="size-3" />
                                         En attente
-                                    </flux:badge>
+                                    </x-badge>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
@@ -253,31 +254,34 @@
                             <td class="px-4 py-3">
                                 <div class="flex gap-2">
                                     @if ($upload->isFailed())
-                                        <flux:button wire:click="retry({{ $upload->id }})"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    icon="arrow-path">
+                                        <x-button
+                                            wire:click="retry({{ $upload->id }})"
+                                            size="sm"
+                                            variant="ghost"
+                                            icon="arrow-path">
                                             Réessayer
-                                        </flux:button>
+                                        </x-button>
                                     @endif
 
                                     @if ($upload->error_message)
-                                        <flux:button size="sm"
-                                                    variant="ghost"
-                                                    icon="information-circle"
-                                                    title="{{ $upload->error_message }}">
+                                        <x-button
+                                            size="sm"
+                                            variant="ghost"
+                                            icon="information-circle"
+                                            title="{{ $upload->error_message }}">
                                             Erreur
-                                        </flux:button>
+                                        </x-button>
                                     @endif
 
-                                    <flux:button wire:click="delete({{ $upload->id }})"
-                                                wire:confirm="Êtes-vous sûr de vouloir supprimer cet upload ?"
-                                                size="sm"
-                                                variant="ghost"
-                                                icon="trash"
-                                                class="text-red-600 hover:text-red-700 dark:text-red-400">
+                                    <x-button
+                                        wire:click="delete({{ $upload->id }})"
+                                        wire:confirm="Êtes-vous sûr de vouloir supprimer cet upload ?"
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="trash"
+                                        class="text-red-600 hover:text-red-700 dark:text-red-400">
                                         Supprimer
-                                    </flux:button>
+                                    </x-button>
                                 </div>
                             </td>
                         </tr>
@@ -297,7 +301,7 @@
                 </tbody>
             </table>
         </div>
-    </flux:card>
+    </x-card>
 
     {{-- Pagination --}}
     @if ($uploads->hasPages())
