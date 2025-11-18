@@ -7,19 +7,19 @@
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
                         Statistiques des Qualifications
                     </h1>
-                    <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold rounded-full">
-                        Statistiques brutes
+                    <span class="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold rounded-full">
+                        Pondération par ville
                     </span>
                 </div>
                 <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Analyse complète des données de qualification de l'Oti Verdon Tourisme.
+                    Analyse pondérée : chaque ville a le même poids dans les statistiques globales.
                 </p>
-                <a href="{{ route('qualification.statistics-v3') }}"
-                   class="mt-2 inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:underline">
+                <a href="{{ route('qualification.statistics-v2') }}"
+                   class="mt-2 inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                    Voir les statistiques pondérées par ville (v3)
+                    Voir les statistiques brutes (v2)
                 </a>
             </div>
             <button x-data x-on:click="$dispatch('open-modal', 'export-modal')"
@@ -376,7 +376,10 @@
 
                     <!-- Provenance géographique -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pays de provenance</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pays de provenance</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="countriesChart"></canvas>
                         </div>
@@ -387,7 +390,10 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Profils visiteurs -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profils visiteurs</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Profils visiteurs</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="profilesChart"></canvas>
                         </div>
@@ -395,7 +401,10 @@
 
                     <!-- Tranches d'âge -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tranches d'âge</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tranches d'âge</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="ageGroupsChart"></canvas>
                         </div>
@@ -404,8 +413,10 @@
 
                 <!-- Demandes générales -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes générales
-                    </h3>
+                    <div class="flex items-center gap-2 mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Top 10 des demandes générales</h3>
+                        <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                    </div>
                     <div wire:ignore class="h-96">
                         <canvas id="generalRequestsChart"></canvas>
                     </div>
@@ -415,8 +426,10 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Top 10 Demandes spécifiques -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des demandes
-                            spécifiques</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Top 10 des demandes spécifiques</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-96">
                             <canvas id="topSpecificRequestsChart"></canvas>
                         </div>
@@ -424,8 +437,10 @@
 
                     <!-- Top 10 Départements -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 10 des départements
-                        </h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Top 10 des départements</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-96">
                             <canvas id="topDepartmentsChart"></canvas>
                         </div>
@@ -461,7 +476,10 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Méthodes de contact -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Méthodes de contact</h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Méthodes de contact</h3>
+                            <span class="text-xs text-purple-600 dark:text-purple-400 font-medium">(pondéré)</span>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="contactMethodsChart"></canvas>
                         </div>

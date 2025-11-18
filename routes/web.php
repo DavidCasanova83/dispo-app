@@ -62,7 +62,17 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:view-qualification'])
             ->name('index');
 
-        // Page de statistiques (Chart.js) - requires view-qualification permission
+        // Page de statistiques v2 (Chart.js) - requires view-qualification permission
+        Route::get('/statistiques-v2', \App\Livewire\QualificationStatisticsV2::class)
+            ->middleware(['permission:view-qualification'])
+            ->name('statistics-v2');
+
+        // Page de statistiques v3 avec pondération par ville - requires view-qualification permission
+        Route::get('/statistiques-v3', \App\Livewire\QualificationStatisticsV3::class)
+            ->middleware(['permission:view-qualification'])
+            ->name('statistics-v3');
+
+        // Redirection de l'ancienne route vers v2 pour compatibilité
         Route::get('/statistiques', \App\Livewire\QualificationStatisticsV2::class)
             ->middleware(['permission:view-qualification'])
             ->name('statistics');
