@@ -49,7 +49,7 @@ class QualificationStatisticsService
     /**
      * Get statistics by city for comparison
      */
-    public function getStatsByCity($startDate = null, $endDate = null, $status = 'all')
+    public function getStatsByCity($startDate = null, $endDate = null, $status = 'all', $displayMode = 'normalized')
     {
         $cities = Qualification::getCities();
         $stats = [];
@@ -71,19 +71,28 @@ class QualificationStatisticsService
         // Grouper par ville et par utilisateur
         foreach ($cities as $cityKey => $cityName) {
             $cityQualifications = $qualifications->where('city', $cityKey);
+            $cityTotal = $cityQualifications->count();
 
             // Compter les qualifications complétées par utilisateur
-            $byUser = $cityQualifications->groupBy('user_id')->map(function($userQuals) {
+            $byUser = $cityQualifications->groupBy('user_id')->map(function($userQuals) use ($displayMode, $cityTotal) {
                 $user = $userQuals->first()->user;
+                $count = $userQuals->count();
+
+                // Si mode normalisé, convertir en pourcentage
+                $value = $displayMode === 'normalized' && $cityTotal > 0
+                    ? round(($count / $cityTotal) * 100, 1)
+                    : $count;
+
                 return [
                     'user_name' => $user ? $user->name : 'Inconnu',
-                    'count' => $userQuals->count(),
+                    'count' => $count,  // Toujours garder le count absolu
+                    'value' => $value,  // Valeur selon le mode
                 ];
             })->values()->toArray();
 
             $stats[$cityKey] = [
                 'name' => $cityName,
-                'total' => $cityQualifications->count(),
+                'total' => $cityTotal,
                 'byUser' => $byUser,
             ];
         }
@@ -158,12 +167,12 @@ class QualificationStatisticsService
     /**
      * Get geographic origin statistics
      */
-    public function getGeographicStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
+    public function getGeographicStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $displayMode = 'normalized')
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
 
         // Pays
-        $countries = $qualifications->map(function($q) {
+        $countriesRaw = $qualifications->map(function($q) {
             $country = $q->form_data['country'] ?? null;
             if ($country === 'Autre' && isset($q->form_data['otherCountry'])) {
                 return $q->form_data['otherCountry'];
@@ -172,48 +181,56 @@ class QualificationStatisticsService
         })->filter()->countBy()->sortDesc()->take(10);
 
         // Départements (seulement pour France)
-        $departments = $qualifications->filter(function($q) {
+        $departmentsRaw = $qualifications->filter(function($q) {
             return ($q->form_data['country'] ?? null) === 'France' && !($q->form_data['departmentUnknown'] ?? false);
         })->flatMap(function($q) {
             return $q->form_data['departments'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
+        // Convertir en pourcentages si mode normalisé
+        $countries = $this->convertToDisplayMode($countriesRaw->toArray(), $displayMode);
+        $departments = $this->convertToDisplayMode($departmentsRaw->toArray(), $displayMode);
+
         return [
-            'countries' => $countries->toArray(),
-            'departments' => $departments->toArray(),
+            'countries' => $countries,
+            'departments' => $departments,
         ];
     }
 
     /**
      * Get visitor profile statistics
      */
-    public function getProfileStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
+    public function getProfileStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $displayMode = 'normalized')
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
 
         // Profils
-        $profiles = $qualifications->pluck('form_data.profile')->filter()->countBy();
+        $profilesRaw = $qualifications->pluck('form_data.profile')->filter()->countBy();
 
         // Tranches d'âge (avec gestion du multi-select)
-        $ageGroups = $qualifications->flatMap(function($q) {
+        $ageGroupsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['ageGroups'] ?? [];
         })->countBy();
 
+        // Convertir en pourcentages si mode normalisé
+        $profiles = $this->convertToDisplayMode($profilesRaw->toArray(), $displayMode);
+        $ageGroups = $this->convertToDisplayMode($ageGroupsRaw->toArray(), $displayMode);
+
         return [
-            'profiles' => $profiles->toArray(),
-            'ageGroups' => $ageGroups->toArray(),
+            'profiles' => $profiles,
+            'ageGroups' => $ageGroups,
         ];
     }
 
     /**
      * Get demand statistics
      */
-    public function getDemandStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
+    public function getDemandStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $displayMode = 'normalized')
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
 
         // Demandes générales (top 10)
-        $generalRequests = $qualifications->flatMap(function($q) {
+        $generalRequestsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['generalRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
@@ -221,21 +238,21 @@ class QualificationStatisticsService
         $specificRequests = [];
         if (!empty($cities)) {
             foreach ($cities as $city) {
-                $cityRequests = $qualifications->where('city', $city)->flatMap(function($q) {
+                $cityRequestsRaw = $qualifications->where('city', $city)->flatMap(function($q) {
                     return $q->form_data['specificRequests'] ?? [];
                 })->countBy()->sortDesc();
 
-                $specificRequests[$city] = $cityRequests->toArray();
+                $specificRequests[$city] = $this->convertToDisplayMode($cityRequestsRaw->toArray(), $displayMode);
             }
         }
 
         // Top 10 des demandes spécifiques (toutes villes confondues)
-        $topSpecificRequests = $qualifications->flatMap(function($q) {
+        $topSpecificRequestsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['specificRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
         // Autres demandes spécifiques (demandes croisées)
-        $otherSpecificRequests = $qualifications->flatMap(function($q) {
+        $otherSpecificRequestsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['otherSpecificRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
@@ -246,10 +263,10 @@ class QualificationStatisticsService
             ->values();
 
         return [
-            'generalRequests' => $generalRequests->toArray(),
+            'generalRequests' => $this->convertToDisplayMode($generalRequestsRaw->toArray(), $displayMode),
             'specificRequests' => $specificRequests,
-            'topSpecificRequests' => $topSpecificRequests->toArray(),
-            'otherSpecificRequests' => $otherSpecificRequests->toArray(),
+            'topSpecificRequests' => $this->convertToDisplayMode($topSpecificRequestsRaw->toArray(), $displayMode),
+            'otherSpecificRequests' => $this->convertToDisplayMode($otherSpecificRequestsRaw->toArray(), $displayMode),
             'otherRequests' => $otherRequests->toArray(),
         ];
     }
@@ -288,6 +305,44 @@ class QualificationStatisticsService
     }
 
     /**
+     * Get city volumes with reliability indicators
+     */
+    public function getCityVolumes(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
+    {
+        $allCities = Qualification::getCities();
+        $volumes = [];
+
+        // Si des villes spécifiques sont filtrées, utiliser uniquement celles-ci
+        $citiesToProcess = !empty($cities) ? $cities : array_keys($allCities);
+
+        foreach ($citiesToProcess as $cityKey) {
+            $count = $this->baseQuery([$cityKey], $startDate, $endDate, $status)->count();
+
+            // Calcul de la fiabilité selon la taille d'échantillon
+            if ($count >= 100) {
+                $reliability = 'high';
+            } elseif ($count >= 30) {
+                $reliability = 'medium';
+            } else {
+                $reliability = 'low';
+            }
+
+            // Calcul de la marge d'erreur (IC 95% pour proportion)
+            // Formule : 1.96 × √(0.25 / n) × 100
+            $marginError = $count > 0 ? round(1.96 * sqrt(0.25 / $count) * 100, 1) : 0;
+
+            $volumes[$cityKey] = [
+                'name' => $allCities[$cityKey] ?? $cityKey,
+                'count' => $count,
+                'reliability' => $reliability,
+                'marginError' => $marginError,
+            ];
+        }
+
+        return $volumes;
+    }
+
+    /**
      * Base query with filters
      */
     protected function baseQuery(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
@@ -313,5 +368,27 @@ class QualificationStatisticsService
         }
 
         return $query;
+    }
+
+    /**
+     * Convert counts to display mode (normalized or absolute)
+     */
+    protected function convertToDisplayMode(array $data, string $displayMode): array
+    {
+        if ($displayMode !== 'normalized' || empty($data)) {
+            return $data;
+        }
+
+        $total = array_sum($data);
+        if ($total === 0) {
+            return $data;
+        }
+
+        $result = [];
+        foreach ($data as $key => $value) {
+            $result[$key] = round(($value / $total) * 100, 1);
+        }
+
+        return $result;
     }
 }

@@ -101,6 +101,87 @@
             </div>
         </div>
 
+        <!-- Bannière pédagogique (Mode normalisé) -->
+        @if($globalDisplayMode === 'normalized')
+        <div class="bg-gradient-to-r from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-900/20 border-l-4 border-teal-500 rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Vue normalisée activée</h3>
+                    </div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Les statistiques sont affichées en <strong>pourcentages</strong> pour permettre une <strong>comparaison équitable</strong>
+                        entre les villes, indépendamment du nombre de formulaires collectés.
+                    </p>
+                </div>
+                <button wire:click="toggleDisplayMode"
+                    class="ml-4 px-4 py-2 bg-white dark:bg-gray-800 border-2 border-teal-500 text-teal-700 dark:text-teal-300 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all duration-200 whitespace-nowrap">
+                    Voir valeurs absolues
+                </button>
+            </div>
+
+            <!-- Volumes par ville avec badges de fiabilité -->
+            <div class="mt-4 pt-4 border-t border-teal-200 dark:border-teal-700">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Volumes de données par ville :</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    @foreach($statistics['cityVolumes'] as $cityKey => $volume)
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
+                        <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $volume['name'] }}</div>
+                        <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $volume['count'] }}</div>
+                        <div class="mt-2">
+                            @if($volume['reliability'] === 'high')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                                    ✓ Fiable
+                                </span>
+                            @elseif($volume['reliability'] === 'medium')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
+                                    ~ Moyen
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300">
+                                    ! Faible
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <p class="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                    <strong>Fiabilité :</strong> Élevée (≥100 réponses), Moyenne (30-99), Faible (<30).
+                    Plus l'échantillon est grand, plus les pourcentages sont représentatifs.
+                </p>
+            </div>
+        </div>
+        @endif
+
+        <!-- Bannière avertissement (Mode absolu) -->
+        @if($globalDisplayMode === 'absolute')
+        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-l-4 border-yellow-500 rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Attention : Vue en valeurs absolues</h3>
+                    </div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Les statistiques affichées en <strong>valeurs absolues</strong> peuvent être <strong>trompeuses</strong>
+                        car les villes ont des volumes de données très différents.
+                        <strong>Privilégiez la vue normalisée</strong> pour des comparaisons pertinentes.
+                    </p>
+                </div>
+                <button wire:click="toggleDisplayMode"
+                    class="ml-4 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-all duration-200 whitespace-nowrap">
+                    Activer vue normalisée
+                </button>
+            </div>
+        </div>
+        @endif
+
         <!-- Modal Export -->
         <div x-data="{
             open: false,
@@ -354,45 +435,17 @@
                 <!-- Row: Comparatif villes + Provenance -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Comparatif par ville -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
-                        x-data="{ showPercentage: window.cityChartPercentageMode || false }"
-                        x-init="$watch('showPercentage', value => { if (typeof updateCityChart === 'function') updateCityChart(value); })">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Qualifications complétées
-                                par utilisateur</h3>
-                            <button @click="showPercentage = !showPercentage"
-                                class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                                :class="showPercentage ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                <span x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"></span>
-                            </button>
-                        </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées
+                            par utilisateur</h3>
                         <div wire:ignore class="h-80">
                             <canvas id="cityComparisonChart"></canvas>
                         </div>
                     </div>
 
                     <!-- Provenance géographique -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
-                        x-data="{ showPercentage: window.countriesChartPercentageMode || false }"
-                        x-init="$watch('showPercentage', value => { if (typeof updateCountriesChart === 'function') updateCountriesChart(value); })">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pays de provenance</h3>
-                            <button @click="showPercentage = !showPercentage"
-                                class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                                :class="showPercentage ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                <span x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"></span>
-                            </button>
-                        </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pays de provenance</h3>
                         <div wire:ignore class="h-80">
                             <canvas id="countriesChart"></canvas>
                         </div>
@@ -533,6 +586,12 @@
                 // Registre global pour stocker les instances de graphiques
                 let chartInstances = {};
 
+                // Mode d'affichage global (normalized ou absolute)
+                window.globalDisplayMode = '{{ $globalDisplayMode }}';
+
+                // Stockage global des données pour chaque graphique
+                window.chartData = {};
+
                 // Fonction pour détruire tous les graphiques existants
                 function destroyAllCharts() {
                     Object.keys(chartInstances).forEach(key => {
@@ -662,66 +721,34 @@
                     }
 
                     // 2. Comparatif par ville (Stacked bar chart)
-                    // Initialiser l'état du toggle si ce n'est pas déjà fait
-                    if (typeof window.cityChartPercentageMode === 'undefined') {
-                        window.cityChartPercentageMode = false;
-                    }
+                    const cityStats = statistics.cityStats;
+                    const cityLabels = Object.values(cityStats).map(s => s.name);
+                    const isNormalized = window.globalDisplayMode === 'normalized';
 
-                    // Stocker les données dans une variable globale pour le toggle
-                    window.cityStatsData = {
-                        cityStats: statistics.cityStats,
-                        cityLabels: Object.values(statistics.cityStats).map(s => s.name),
-                        allUsers: new Set(),
-                        colors: colors,
-                        textColor: textColor,
-                        gridColor: gridColor
-                    };
-
-                    Object.values(window.cityStatsData.cityStats).forEach(city => {
+                    // Construire la liste unique des utilisateurs (sans "Migration System")
+                    const allUsers = new Set();
+                    Object.values(cityStats).forEach(city => {
                         city.byUser.forEach(user => {
-                            window.cityStatsData.allUsers.add(user.user_name);
+                            if (user.user_name !== 'Migration System') {
+                                allUsers.add(user.user_name);
+                            }
                         });
                     });
 
-                    // Fonction pour créer/mettre à jour le graphique comparatif par ville
-                    window.updateCityChart = function(showPercentage = false) {
-                        const cityCtx = document.getElementById('cityComparisonChart');
-                        if (!cityCtx) return;
+                    // Créer les datasets avec les valeurs du backend (déjà formatées selon le mode)
+                    const cityDatasets = Array.from(allUsers).map((userName, index) => {
+                        return {
+                            label: userName,
+                            data: Object.values(cityStats).map(city => {
+                                const userEntry = city.byUser.find(u => u.user_name === userName);
+                                return userEntry ? userEntry.value : 0; // Utiliser 'value' du backend
+                            }),
+                            backgroundColor: colors[index % colors.length]
+                        };
+                    });
 
-                        // Sauvegarder l'état du toggle
-                        window.cityChartPercentageMode = showPercentage;
-
-                        // Détruire le graphique existant
-                        if (chartInstances.cityComparisonChart) {
-                            chartInstances.cityComparisonChart.destroy();
-                        }
-
-                        const { cityStats, cityLabels, allUsers, colors, textColor, gridColor } = window.cityStatsData;
-
-                        // Calculer les totaux par ville
-                        const cityTotals = Object.values(cityStats).map(city => city.total);
-
-                        // Créer les datasets (valeurs absolues ou pourcentages)
-                        const cityDatasets = Array.from(allUsers).map((userName, index) => {
-                            return {
-                                label: userName,
-                                data: Object.values(cityStats).map((city, cityIndex) => {
-                                    const userEntry = city.byUser.find(u => u.user_name === userName);
-                                    const count = userEntry ? userEntry.count : 0;
-
-                                    if (showPercentage) {
-                                        // Calculer le pourcentage par rapport au total de la ville
-                                        const total = cityTotals[cityIndex];
-                                        return total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
-                                    } else {
-                                        return count;
-                                    }
-                                }),
-                                backgroundColor: colors[index % colors.length]
-                            };
-                        });
-
-                        // Créer le graphique
+                    const cityCtx = document.getElementById('cityComparisonChart');
+                    if (cityCtx) {
                         chartInstances.cityComparisonChart = new Chart(cityCtx, {
                             type: 'bar',
                             data: {
@@ -748,16 +775,7 @@
                                             label: function(context) {
                                                 const label = context.dataset.label || '';
                                                 const value = context.parsed.y;
-
-                                                if (showPercentage) {
-                                                    return `${label}: ${value}%`;
-                                                } else {
-                                                    // Afficher aussi le pourcentage dans le tooltip en mode valeurs
-                                                    const cityIndex = context.dataIndex;
-                                                    const total = cityTotals[cityIndex];
-                                                    const percentage = total > 0 ? Math.round((value / total) * 100 * 10) / 10 : 0;
-                                                    return `${label}: ${value} (${percentage}%)`;
-                                                }
+                                                return isNormalized ? `${label}: ${value}%` : `${label}: ${value}`;
                                             }
                                         }
                                     }
@@ -775,24 +793,21 @@
                                     y: {
                                         stacked: true,
                                         beginAtZero: true,
-                                        max: showPercentage ? 100 : undefined,
+                                        max: isNormalized ? 100 : undefined,
                                         grid: {
                                             color: gridColor
                                         },
                                         ticks: {
                                             color: textColor,
                                             callback: function(value) {
-                                                return showPercentage ? value + '%' : value;
+                                                return isNormalized ? value + '%' : value;
                                             }
                                         }
                                     }
                                 }
                             }
                         });
-                    };
-
-                    // Initialiser le graphique avec l'état préservé (ou en mode valeurs par défaut)
-                    window.updateCityChart(window.cityChartPercentageMode);
+                    }
 
                     // 3. Pays de provenance (Doughnut chart)
                     // Initialiser l'état du toggle si ce n'est pas déjà fait
@@ -1258,6 +1273,19 @@
                 window.addEventListener('statistics-updated', (event) => {
                     console.log('Statistics updated event received', event.detail);
                     const newStatistics = event.detail.statistics;
+                    if (newStatistics.displayMode) {
+                        window.globalDisplayMode = newStatistics.displayMode;
+                    }
+                    initCharts(newStatistics);
+                });
+
+                // Écouter l'événement de changement de mode d'affichage
+                window.addEventListener('display-mode-changed', (event) => {
+                    console.log('Display mode changed event received', event.detail);
+                    const newStatistics = event.detail.statistics;
+                    if (newStatistics.displayMode) {
+                        window.globalDisplayMode = newStatistics.displayMode;
+                    }
                     initCharts(newStatistics);
                 });
             </script>

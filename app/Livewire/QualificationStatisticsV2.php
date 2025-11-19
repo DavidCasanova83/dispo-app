@@ -15,6 +15,7 @@ class QualificationStatisticsV2 extends Component
 {
     public $selectedPeriod = '30days'; // Période sélectionnée dans le formulaire
     public $periodFilter = '30days'; // Période actuellement appliquée
+    public $globalDisplayMode = 'normalized'; // Mode d'affichage global (normalized ou absolute)
 
     public function applyFilter()
     {
@@ -22,6 +23,14 @@ class QualificationStatisticsV2 extends Component
 
         // Émettre un événement avec les nouvelles données pour mettre à jour les graphiques
         $this->dispatch('statistics-updated', statistics: $this->getStatisticsData());
+    }
+
+    public function toggleDisplayMode()
+    {
+        $this->globalDisplayMode = $this->globalDisplayMode === 'normalized' ? 'absolute' : 'normalized';
+
+        // Émettre un événement pour mettre à jour les graphiques avec le nouveau mode
+        $this->dispatch('display-mode-changed', statistics: $this->getStatisticsData());
     }
 
     public function getStatisticsData()
@@ -59,12 +68,14 @@ class QualificationStatisticsV2 extends Component
         $status = 'all';
 
         return [
+            'displayMode' => $this->globalDisplayMode,
             'kpis' => $service->getKPIs($cities, $startDate, $endDate, $status),
-            'cityStats' => $service->getStatsByCity($startDate, $endDate, $status),
+            'cityVolumes' => $service->getCityVolumes($cities, $startDate, $endDate, $status),
+            'cityStats' => $service->getStatsByCity($startDate, $endDate, $status, $this->globalDisplayMode),
             'temporalEvolution' => $service->getTemporalEvolution($cities, $startDate, $endDate, $status, $this->getGroupBy()),
-            'geographic' => $service->getGeographicStats($cities, $startDate, $endDate, $status),
-            'profiles' => $service->getProfileStats($cities, $startDate, $endDate, $status),
-            'demands' => $service->getDemandStats($cities, $startDate, $endDate, $status),
+            'geographic' => $service->getGeographicStats($cities, $startDate, $endDate, $status, $this->globalDisplayMode),
+            'profiles' => $service->getProfileStats($cities, $startDate, $endDate, $status, $this->globalDisplayMode),
+            'demands' => $service->getDemandStats($cities, $startDate, $endDate, $status, $this->globalDisplayMode),
             'contact' => $service->getContactStats($cities, $startDate, $endDate, $status),
         ];
     }
