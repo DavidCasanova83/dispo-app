@@ -53,6 +53,10 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Routes pour l'administration des utilisateurs - requires manage-users permission (Super-admin only)
     Route::middleware(['permission:manage-users'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
+    });
+
+    // Route pour la gestion des images - requires manage-images permission
+    Route::middleware(['permission:manage-images'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
     });
 

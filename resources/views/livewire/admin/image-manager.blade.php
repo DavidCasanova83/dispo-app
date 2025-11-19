@@ -96,13 +96,39 @@
 
                 {{-- Preview des images sélectionnées --}}
                 @if ($images)
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        @foreach($images as $image)
-                            <div class="relative">
-                                <img src="{{ $image->temporaryUrl() }}" class="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600">
-                                <span class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                    Preview
-                                </span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach($images as $index => $image)
+                            <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                                <div class="relative mb-3">
+                                    <img src="{{ $image->temporaryUrl() }}" class="w-full h-32 object-cover rounded-lg">
+                                    <span class="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                                        Image {{ $index + 1 }}
+                                    </span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Texte alternatif (optionnel)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            wire:model="altTexts.{{ $index }}"
+                                            placeholder="Description courte pour l'accessibilité"
+                                            class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Description (optionnel)
+                                        </label>
+                                        <textarea
+                                            wire:model="descriptions.{{ $index }}"
+                                            rows="2"
+                                            placeholder="Description détaillée de l'image"
+                                            class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -159,8 +185,8 @@
                         {{-- Image --}}
                         <div class="aspect-square bg-gray-100 dark:bg-gray-700">
                             <img
-                                src="{{ asset($image->url) }}"
-                                alt="{{ $image->name }}"
+                                src="{{ $image->thumbnail_path ? Storage::url($image->thumbnail_path) : $image->url }}"
+                                alt="{{ $image->alt_text ?? $image->name }}"
                                 class="w-full h-full object-cover"
                             >
                         </div>
@@ -170,7 +196,7 @@
                             <div class="flex gap-2">
                                 {{-- View button --}}
                                 <a
-                                    href="{{ asset($image->url) }}"
+                                    href="{{ $image->url }}"
                                     target="_blank"
                                     class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                                     title="Voir l'image"
@@ -239,7 +265,7 @@
 
                     <div class="mb-6">
                         {{-- Image preview --}}
-                        <img src="{{ asset($selectedImage->url) }}" alt="{{ $selectedImage->name }}" class="w-full h-48 object-cover rounded-lg mb-4">
+                        <img src="{{ $selectedImage->url }}" alt="{{ $selectedImage->alt_text ?? $selectedImage->name }}" class="w-full h-48 object-cover rounded-lg mb-4">
 
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             Êtes-vous sûr de vouloir supprimer cette image ?

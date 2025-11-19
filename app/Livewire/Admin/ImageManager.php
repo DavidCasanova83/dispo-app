@@ -3,7 +3,11 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Image;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager as InterventionImageManager;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Livewire\WithPagination;
@@ -16,6 +20,16 @@ class ImageManager extends Component
     public $search = '';               // Recherche par nom
     public $showDeleteModal = false;
     public $selectedImage = null;
+    public $altTexts = [];             // Alt texts pour chaque image
+    public $descriptions = [];         // Descriptions pour chaque image
+
+    // Whitelist des MIME types autorisés
+    private const ALLOWED_MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+    ];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -41,6 +55,22 @@ class ImageManager extends Component
      */
     public function uploadImages()
     {
+        // Rate limiting: max 10 uploads par minute
+        $executed = RateLimiter::attempt(
+            'upload-images:' . auth()->id(),
+            10,
+            function() {},
+            60
+        );
+
+        if (!$executed) {
+            session()->flash('error', 'Trop de tentatives d\'upload. Veuillez attendre avant de réessayer.');
+            return;
+        }
+
+        // Autorisation
+        $this->authorize('create', Image::class);
+
         $this->validate();
 
         if (empty($this->images)) {
@@ -49,35 +79,99 @@ class ImageManager extends Component
         }
 
         $uploadedCount = 0;
+        $errors = [];
 
-        foreach ($this->images as $image) {
+        foreach ($this->images as $index => $image) {
             try {
-                // Générer un nom unique
-                $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                // Validation MIME type avec whitelist
+                if (!in_array($image->getMimeType(), self::ALLOWED_MIME_TYPES)) {
+                    $errors[] = "{$image->getClientOriginalName()}: Type de fichier non autorisé.";
+                    continue;
+                }
 
-                // Stocker dans storage/app/public/images
+                // Validation de l'extension réelle
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                $extension = strtolower($image->getClientOriginalExtension());
+                if (!in_array($extension, $allowedExtensions)) {
+                    $errors[] = "{$image->getClientOriginalName()}: Extension non autorisée.";
+                    continue;
+                }
+
+                // Sanitiser le nom original
+                $originalName = Str::limit(Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)), 100);
+                if (empty($originalName)) {
+                    $originalName = 'image';
+                }
+
+                // Générer un nom unique sécurisé
+                $filename = $originalName . '_' . time() . '_' . Str::random(10) . '.' . $extension;
+
+                // Stocker l'image temporairement
                 $path = $image->storeAs('images', $filename, 'public');
+                $fullPath = Storage::disk('public')->path($path);
+
+                // Créer l'instance Intervention Image
+                $manager = new InterventionImageManager(new Driver());
+                $img = $manager->read($fullPath);
+
+                // Extraire les dimensions originales
+                $width = $img->width();
+                $height = $img->height();
+
+                // Compression automatique - qualité 85%
+                $img->save($fullPath, quality: 85);
+
+                // Générer le thumbnail (300x300)
+                $thumbnailFilename = 'thumb_' . $filename;
+                $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+                $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+
+                // Créer le dossier thumbnails si il n'existe pas
+                $thumbnailDir = dirname($thumbnailFullPath);
+                if (!file_exists($thumbnailDir)) {
+                    mkdir($thumbnailDir, 0755, true);
+                }
+
+                // Créer et sauvegarder le thumbnail
+                $thumbnail = $manager->read($fullPath);
+                $thumbnail->cover(300, 300);
+                $thumbnail->save($thumbnailFullPath, quality: 80);
+
+                // Obtenir la taille finale du fichier après compression
+                $finalSize = filesize($fullPath);
 
                 // Créer l'entrée en base
                 Image::create([
                     'name' => $image->getClientOriginalName(),
                     'filename' => $filename,
                     'path' => $path,
+                    'thumbnail_path' => $thumbnailPath,
                     'url' => Storage::disk('public')->url($path),
+                    'alt_text' => $this->altTexts[$index] ?? null,
+                    'description' => $this->descriptions[$index] ?? null,
                     'mime_type' => $image->getMimeType(),
-                    'size' => $image->getSize(),
+                    'size' => $finalSize,
+                    'width' => $width,
+                    'height' => $height,
                     'uploaded_by' => auth()->id(),
                 ]);
 
                 $uploadedCount++;
             } catch (\Exception $e) {
-                session()->flash('error', 'Erreur lors de l\'upload : ' . $e->getMessage());
-                return;
+                $errors[] = "{$image->getClientOriginalName()}: {$e->getMessage()}";
             }
         }
 
-        session()->flash('success', "{$uploadedCount} image(s) uploadée(s) avec succès.");
-        $this->reset('images');
+        // Messages de résultat
+        if ($uploadedCount > 0) {
+            session()->flash('success', "{$uploadedCount} image(s) uploadée(s) avec succès.");
+        }
+
+        if (!empty($errors)) {
+            session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
+        }
+
+        $this->reset(['images', 'altTexts', 'descriptions']);
     }
 
     /**
@@ -104,6 +198,9 @@ class ImageManager extends Component
     public function deleteImage($imageId)
     {
         $image = Image::findOrFail($imageId);
+
+        // Vérifier l'autorisation
+        $this->authorize('delete', $image);
 
         // Le fichier physique sera supprimé par le model event
         $image->delete();

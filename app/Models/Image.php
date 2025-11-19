@@ -5,24 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Image extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'filename',
         'path',
         'url',
+        'alt_text',
+        'description',
         'mime_type',
         'size',
+        'width',
+        'height',
+        'thumbnail_path',
         'uploaded_by',
     ];
 
     protected $casts = [
         'size' => 'integer',
+        'width' => 'integer',
+        'height' => 'integer',
     ];
 
     /**
@@ -39,8 +47,14 @@ class Image extends Model
     protected static function booted(): void
     {
         static::deleting(function (Image $image) {
+            // Supprimer l'image principale
             if (Storage::disk('public')->exists($image->path)) {
                 Storage::disk('public')->delete($image->path);
+            }
+
+            // Supprimer le thumbnail si il existe
+            if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
+                Storage::disk('public')->delete($image->thumbnail_path);
             }
         });
     }
