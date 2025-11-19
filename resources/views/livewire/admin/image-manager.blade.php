@@ -108,6 +108,17 @@
                                 <div class="space-y-2">
                                     <div>
                                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Titre
+                                        </label>
+                                        <input
+                                            type="text"
+                                            wire:model="titles.{{ $index }}"
+                                            placeholder="Titre de l'image"
+                                            class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             Texte alternatif (optionnel)
                                         </label>
                                         <input
@@ -127,6 +138,57 @@
                                             placeholder="Description détaillée de l'image"
                                             class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
                                         ></textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Quantité disponible
+                                            </label>
+                                            <input
+                                                type="number"
+                                                wire:model="quantitiesAvailable.{{ $index }}"
+                                                min="0"
+                                                placeholder="0"
+                                                class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                            >
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Qté max commande
+                                            </label>
+                                            <input
+                                                type="number"
+                                                wire:model="maxOrderQuantities.{{ $index }}"
+                                                min="0"
+                                                placeholder="0"
+                                                class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Année d'édition
+                                            </label>
+                                            <input
+                                                type="number"
+                                                wire:model="editionYears.{{ $index }}"
+                                                min="1900"
+                                                max="2100"
+                                                placeholder="2025"
+                                                class="w-full text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                            >
+                                        </div>
+                                        <div class="flex items-end">
+                                            <label class="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    wire:model="printAvailables.{{ $index }}"
+                                                    class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                Print disponible
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -185,7 +247,7 @@
                         {{-- Image --}}
                         <div class="aspect-square bg-gray-100 dark:bg-gray-700">
                             <img
-                                src="{{ $image->thumbnail_path ? Storage::url($image->thumbnail_path) : $image->url }}"
+                                src="{{ $image->thumbnail_path ? asset('storage/' . $image->thumbnail_path) : asset('storage/' . $image->path) }}"
                                 alt="{{ $image->alt_text ?? $image->name }}"
                                 class="w-full h-full object-cover"
                             >
@@ -196,7 +258,7 @@
                             <div class="flex gap-2">
                                 {{-- View button --}}
                                 <a
-                                    href="{{ $image->url }}"
+                                    href="{{ asset('storage/' . $image->path) }}"
                                     target="_blank"
                                     class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                                     title="Voir l'image"
@@ -265,7 +327,7 @@
 
                     <div class="mb-6">
                         {{-- Image preview --}}
-                        <img src="{{ $selectedImage->url }}" alt="{{ $selectedImage->alt_text ?? $selectedImage->name }}" class="w-full h-48 object-cover rounded-lg mb-4">
+                        <img src="{{ asset('storage/' . $selectedImage->path) }}" alt="{{ $selectedImage->alt_text ?? $selectedImage->name }}" class="w-full h-48 object-cover rounded-lg mb-4">
 
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             Êtes-vous sûr de vouloir supprimer cette image ?

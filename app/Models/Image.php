@@ -14,6 +14,7 @@ class Image extends Model
 
     protected $fillable = [
         'name',
+        'title',
         'filename',
         'path',
         'url',
@@ -25,12 +26,20 @@ class Image extends Model
         'height',
         'thumbnail_path',
         'uploaded_by',
+        'quantity_available',
+        'max_order_quantity',
+        'print_available',
+        'edition_year',
     ];
 
     protected $casts = [
         'size' => 'integer',
         'width' => 'integer',
         'height' => 'integer',
+        'quantity_available' => 'integer',
+        'max_order_quantity' => 'integer',
+        'print_available' => 'boolean',
+        'edition_year' => 'integer',
     ];
 
     /**

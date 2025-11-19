@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Image;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,8 +21,13 @@ class ImageManager extends Component
     public $search = '';               // Recherche par nom
     public $showDeleteModal = false;
     public $selectedImage = null;
+    public $titles = [];               // Titres pour chaque image
     public $altTexts = [];             // Alt texts pour chaque image
     public $descriptions = [];         // Descriptions pour chaque image
+    public $quantitiesAvailable = [];  // Quantités disponibles pour chaque image
+    public $maxOrderQuantities = [];   // Quantités max de commande pour chaque image
+    public $printAvailables = [];      // Disponibilité impression pour chaque image
+    public $editionYears = [];         // Années d'édition pour chaque image
 
     // Whitelist des MIME types autorisés
     private const ALLOWED_MIME_TYPES = [
@@ -143,10 +149,11 @@ class ImageManager extends Component
                 // Créer l'entrée en base
                 Image::create([
                     'name' => $image->getClientOriginalName(),
+                    'title' => $this->titles[$index] ?? null,
                     'filename' => $filename,
                     'path' => $path,
                     'thumbnail_path' => $thumbnailPath,
-                    'url' => Storage::disk('public')->url($path),
+                    'url' => $path, // Stocker le chemin, pas l'URL complète
                     'alt_text' => $this->altTexts[$index] ?? null,
                     'description' => $this->descriptions[$index] ?? null,
                     'mime_type' => $image->getMimeType(),
@@ -154,6 +161,10 @@ class ImageManager extends Component
                     'width' => $width,
                     'height' => $height,
                     'uploaded_by' => auth()->id(),
+                    'quantity_available' => $this->quantitiesAvailable[$index] ?? null,
+                    'max_order_quantity' => $this->maxOrderQuantities[$index] ?? null,
+                    'print_available' => isset($this->printAvailables[$index]) ? (bool) $this->printAvailables[$index] : false,
+                    'edition_year' => $this->editionYears[$index] ?? null,
                 ]);
 
                 $uploadedCount++;
@@ -165,13 +176,16 @@ class ImageManager extends Component
         // Messages de résultat
         if ($uploadedCount > 0) {
             session()->flash('success', "{$uploadedCount} image(s) uploadée(s) avec succès.");
+
+            // Régénérer le fichier JSON
+            Artisan::call('images:generate-json');
         }
 
         if (!empty($errors)) {
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'altTexts', 'descriptions']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears']);
     }
 
     /**
@@ -204,6 +218,9 @@ class ImageManager extends Component
 
         // Le fichier physique sera supprimé par le model event
         $image->delete();
+
+        // Régénérer le fichier JSON
+        Artisan::call('images:generate-json');
 
         session()->flash('success', "L'image {$image->name} a été supprimée.");
         $this->closeDeleteModal();

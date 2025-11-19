@@ -112,4 +112,10 @@ Route::middleware(['auth', 'approved'])->group(function () {
 Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])
     ->name('accommodation.response');
 
+// API publique pour les images
+Route::prefix('api')->name('api.')->group(function () {
+    Route::get('/images', [App\Http\Controllers\Api\ImageApiController::class, 'index'])->name('images.index');
+    Route::get('/images/{id}', [App\Http\Controllers\Api\ImageApiController::class, 'show'])->name('images.show');
+});
+
 require __DIR__ . '/auth.php';
