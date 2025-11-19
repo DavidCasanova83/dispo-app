@@ -228,21 +228,36 @@ class QualificationStatisticsService
     public function getDemandStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $displayMode = 'normalized')
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
+        $totalQualifications = $qualifications->count();
 
         // Demandes générales (top 10)
         $generalRequestsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['generalRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
+        // Conversion en pourcentage de visiteurs pour les demandes générales
+        $generalRequests = $this->convertToVisitorPercentage(
+            $generalRequestsRaw->toArray(),
+            $totalQualifications,
+            $displayMode
+        );
+
         // Demandes spécifiques par ville
         $specificRequests = [];
         if (!empty($cities)) {
             foreach ($cities as $city) {
-                $cityRequestsRaw = $qualifications->where('city', $city)->flatMap(function($q) {
+                $cityQualifications = $qualifications->where('city', $city);
+                $cityTotal = $cityQualifications->count();
+
+                $cityRequestsRaw = $cityQualifications->flatMap(function($q) {
                     return $q->form_data['specificRequests'] ?? [];
                 })->countBy()->sortDesc();
 
-                $specificRequests[$city] = $this->convertToDisplayMode($cityRequestsRaw->toArray(), $displayMode);
+                $specificRequests[$city] = $this->convertToVisitorPercentage(
+                    $cityRequestsRaw->toArray(),
+                    $cityTotal,
+                    $displayMode
+                );
             }
         }
 
@@ -251,10 +266,22 @@ class QualificationStatisticsService
             return $q->form_data['specificRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
 
+        $topSpecificRequests = $this->convertToVisitorPercentage(
+            $topSpecificRequestsRaw->toArray(),
+            $totalQualifications,
+            $displayMode
+        );
+
         // Autres demandes spécifiques (demandes croisées)
         $otherSpecificRequestsRaw = $qualifications->flatMap(function($q) {
             return $q->form_data['otherSpecificRequests'] ?? [];
         })->countBy()->sortDesc()->take(10);
+
+        $otherSpecificRequests = $this->convertToVisitorPercentage(
+            $otherSpecificRequestsRaw->toArray(),
+            $totalQualifications,
+            $displayMode
+        );
 
         // Textes libres (pour nuage de mots)
         $otherRequests = $qualifications
@@ -263,10 +290,10 @@ class QualificationStatisticsService
             ->values();
 
         return [
-            'generalRequests' => $this->convertToDisplayMode($generalRequestsRaw->toArray(), $displayMode),
+            'generalRequests' => $generalRequests,
             'specificRequests' => $specificRequests,
-            'topSpecificRequests' => $this->convertToDisplayMode($topSpecificRequestsRaw->toArray(), $displayMode),
-            'otherSpecificRequests' => $this->convertToDisplayMode($otherSpecificRequestsRaw->toArray(), $displayMode),
+            'topSpecificRequests' => $topSpecificRequests,
+            'otherSpecificRequests' => $otherSpecificRequests,
             'otherRequests' => $otherRequests->toArray(),
         ];
     }
@@ -387,6 +414,42 @@ class QualificationStatisticsService
         $result = [];
         foreach ($data as $key => $value) {
             $result[$key] = round(($value / $total) * 100, 1);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Convert demand counts to percentage of visitors
+     *
+     * IMPORTANT: This is different from convertToDisplayMode()!
+     * - convertToDisplayMode: divides by sum of all values (% of total demand count)
+     * - convertToVisitorPercentage: divides by number of visitors (% of visitors who want this)
+     *
+     * Example:
+     * - 450 demands for "Randonnée" from 800 visitors
+     * - convertToDisplayMode: 450 / 2050 total demands = 22% (WRONG - compares volumes)
+     * - convertToVisitorPercentage: 450 / 800 visitors = 56.25% (RIGHT - shows visitor interest)
+     *
+     * @param array $data Demand counts ['Randonnée' => 450, 'VTT' => 380, ...]
+     * @param int $totalVisitors Number of qualifications (visitors)
+     * @param string $displayMode 'normalized' or 'absolute'
+     * @return array Percentages or absolute values
+     */
+    protected function convertToVisitorPercentage(array $data, int $totalVisitors, string $displayMode): array
+    {
+        if ($displayMode !== 'normalized' || empty($data)) {
+            return $data; // Return absolute values
+        }
+
+        if ($totalVisitors === 0) {
+            return $data; // Avoid division by zero
+        }
+
+        $result = [];
+        foreach ($data as $key => $value) {
+            // Calculate what % of visitors selected this option
+            $result[$key] = round(($value / $totalVisitors) * 100, 1);
         }
 
         return $result;
