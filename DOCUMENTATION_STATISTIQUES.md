@@ -918,6 +918,431 @@ window.addEventListener('statistics-updated', (event) => {
 
 ---
 
+## Fonctionnalité avancée : Toggle Valeurs/Pourcentages
+
+### Vue d'ensemble
+
+Le graphique "Comparatif par ville" dispose d'une fonctionnalité de **normalisation en pourcentages** permettant de comparer équitablement la répartition des agents entre villes, indépendamment du volume total de qualifications.
+
+**Problème résolu :** Lorsqu'une ville a 100 qualifications et une autre en a 20, les barres empilées ne permettent pas de comparer facilement la **distribution interne** de chaque ville.
+
+**Solution :** Un bouton toggle bascule entre :
+- **Mode Valeurs** : Nombres absolus (défaut)
+- **Mode Pourcentage** : Pourcentages normalisés (chaque ville = 100%)
+
+### Code HTML - Bouton Toggle
+
+**Localisation :** `resources/views/livewire/qualification/statistics-v2.blade.php` (lignes 357-377)
+
+```blade
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
+    x-data="{ showPercentage: window.cityChartPercentageMode || false }"
+    x-init="$watch('showPercentage', value => { if (typeof updateCityChart === 'function') updateCityChart(value); })">
+
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Qualifications complétées par utilisateur
+        </h3>
+
+        <!-- Bouton Toggle -->
+        <button @click="showPercentage = !showPercentage"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            :class="showPercentage ?
+                'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' :
+                'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'">
+            <svg class="w-4 h-4"><!-- Icône calculatrice --></svg>
+            <span x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"></span>
+        </button>
+    </div>
+
+    <div wire:ignore class="h-80">
+        <canvas id="cityComparisonChart"></canvas>
+    </div>
+</div>
+```
+
+#### Explication du code Alpine.js
+
+**1. Initialisation de l'état**
+
+```javascript
+x-data="{ showPercentage: window.cityChartPercentageMode || false }"
+```
+
+- Crée une variable réactive `showPercentage`
+- Initialise à partir de `window.cityChartPercentageMode` (état global)
+- Par défaut : `false` (mode valeurs)
+
+**2. Observateur de changement**
+
+```javascript
+x-init="$watch('showPercentage', value => {
+    if (typeof updateCityChart === 'function')
+        updateCityChart(value);
+})"
+```
+
+- `x-init` : Exécuté une fois au montage du composant
+- `$watch('showPercentage', ...)` : Observe les changements de `showPercentage`
+- Appelle `updateCityChart(value)` quand l'état change
+- Vérification de sécurité : `typeof updateCityChart === 'function'`
+
+**3. Gestionnaire de clic**
+
+```javascript
+@click="showPercentage = !showPercentage"
+```
+
+- Inverse l'état booléen au clic
+- Déclenche automatiquement le `$watch` qui appelle `updateCityChart()`
+
+**4. Classes CSS conditionnelles**
+
+```javascript
+:class="showPercentage ?
+    'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' :
+    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+```
+
+- Bleu = mode pourcentage (actif)
+- Gris = mode valeurs (défaut)
+- Compatible dark mode
+
+**5. Texte dynamique**
+
+```javascript
+x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"
+```
+
+- Affiche le **prochain** mode disponible (pas le mode actuel)
+
+### Code JavaScript - Gestion du graphique
+
+**Localisation :** `statistics-v2.blade.php` (lignes 636-730)
+
+#### 1. Variables globales
+
+```javascript
+// Initialiser l'état du toggle si ce n'est pas déjà fait
+if (typeof window.cityChartPercentageMode === 'undefined') {
+    window.cityChartPercentageMode = false;
+}
+
+// Stocker les données dans une variable globale pour le toggle
+window.cityStatsData = {
+    cityStats: statistics.cityStats,
+    cityLabels: Object.values(statistics.cityStats).map(s => s.name),
+    allUsers: new Set(),
+    colors: colors,
+    textColor: textColor,
+    gridColor: gridColor
+};
+```
+
+**Pourquoi des variables globales ?**
+
+- `window.cityChartPercentageMode` : Préserve l'état entre les mises à jour de statistiques
+- `window.cityStatsData` : Accessible par `updateCityChart()` à tout moment
+- Permet au toggle de fonctionner même après un changement de période
+
+#### 2. Fonction `updateCityChart(showPercentage)`
+
+**Signature :**
+```javascript
+window.updateCityChart = function(showPercentage = false) {
+    // ...
+}
+```
+
+**Étape 1 : Sauvegarde de l'état**
+
+```javascript
+// Sauvegarder l'état du toggle
+window.cityChartPercentageMode = showPercentage;
+```
+
+Permet de conserver le choix de l'utilisateur lors des mises à jour.
+
+**Étape 2 : Destruction du graphique existant**
+
+```javascript
+// Détruire le graphique existant
+if (chartInstances.cityComparisonChart) {
+    chartInstances.cityComparisonChart.destroy();
+}
+```
+
+Évite les fuites mémoire et les conflits.
+
+**Étape 3 : Calcul des totaux par ville**
+
+```javascript
+// Calculer les totaux par ville
+const cityTotals = Object.values(cityStats).map(city => city.total);
+```
+
+**Exemple :**
+```javascript
+cityStats = {
+    castellane: { name: 'Castellane', total: 100, byUser: [...] },
+    moustiers: { name: 'Moustiers', total: 50, byUser: [...] }
+};
+
+cityTotals = [100, 50];
+```
+
+**Étape 4 : Création des datasets avec calcul conditionnel**
+
+```javascript
+const cityDatasets = Array.from(allUsers).map((userName, index) => {
+    return {
+        label: userName,
+        data: Object.values(cityStats).map((city, cityIndex) => {
+            const userEntry = city.byUser.find(u => u.user_name === userName);
+            const count = userEntry ? userEntry.count : 0;
+
+            if (showPercentage) {
+                // Calculer le pourcentage par rapport au total de la ville
+                const total = cityTotals[cityIndex];
+                return total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
+            } else {
+                return count;
+            }
+        }),
+        backgroundColor: colors[index % colors.length]
+    };
+});
+```
+
+**Explication détaillée du calcul de pourcentage :**
+
+```javascript
+Math.round((count / total) * 100 * 10) / 10
+```
+
+- `(count / total) * 100` : Pourcentage brut (ex: 66.66666...)
+- `* 10` : Multiplie par 10 (666.6666...)
+- `Math.round(...)` : Arrondit (667)
+- `/ 10` : Divise par 10 (66.7)
+
+**Résultat :** Pourcentage avec 1 décimale
+
+**Exemple concret :**
+
+```javascript
+// Ville A : 100 qualifications
+// Agent 1 : 60 qualifications
+// Agent 2 : 40 qualifications
+
+// Mode Valeurs
+data = [60, 40]
+
+// Mode Pourcentage
+data = [
+    Math.round((60 / 100) * 100 * 10) / 10,  // 60.0%
+    Math.round((40 / 100) * 100 * 10) / 10   // 40.0%
+]
+```
+
+**Étape 5 : Configuration des tooltips**
+
+```javascript
+tooltip: {
+    callbacks: {
+        label: function(context) {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+
+            if (showPercentage) {
+                return `${label}: ${value}%`;
+            } else {
+                // Afficher aussi le pourcentage dans le tooltip en mode valeurs
+                const cityIndex = context.dataIndex;
+                const total = cityTotals[cityIndex];
+                const percentage = total > 0 ? Math.round((value / total) * 100 * 10) / 10 : 0;
+                return `${label}: ${value} (${percentage}%)`;
+            }
+        }
+    }
+}
+```
+
+**Bonus :** En mode valeurs, le tooltip affiche **aussi** le pourcentage !
+
+**Exemples de tooltips :**
+- Mode Valeurs : `Marie Dupont: 60 (60%)`
+- Mode Pourcentage : `Marie Dupont: 60%`
+
+**Étape 6 : Configuration de l'axe Y**
+
+```javascript
+y: {
+    stacked: true,
+    beginAtZero: true,
+    max: showPercentage ? 100 : undefined,
+    grid: { color: gridColor },
+    ticks: {
+        color: textColor,
+        callback: function(value) {
+            return showPercentage ? value + '%' : value;
+        }
+    }
+}
+```
+
+**Différences selon le mode :**
+
+| Propriété | Mode Valeurs | Mode Pourcentage |
+|-----------|--------------|------------------|
+| `max` | `undefined` (dynamique) | `100` (fixe) |
+| Label | `60` | `60%` |
+| Échelle | Adaptative | 0-100% |
+
+**Étape 7 : Création du graphique Chart.js**
+
+```javascript
+chartInstances.cityComparisonChart = new Chart(cityCtx, {
+    type: 'bar',
+    data: { labels: cityLabels, datasets: cityDatasets },
+    options: { /* ... */ }
+});
+```
+
+**Étape 8 : Initialisation**
+
+```javascript
+// Initialiser le graphique avec l'état préservé (ou en mode valeurs par défaut)
+window.updateCityChart(window.cityChartPercentageMode);
+```
+
+Utilise `window.cityChartPercentageMode` pour préserver l'état entre les mises à jour.
+
+### Flux de données - Toggle en action
+
+#### Scénario 1 : Premier chargement
+
+```
+1. Page chargée
+   ↓
+2. window.cityChartPercentageMode = undefined
+   ↓
+3. Initialisation à false
+   ↓
+4. Alpine.js : showPercentage = false
+   ↓
+5. updateCityChart(false) appelé
+   ↓
+6. Graphique créé en mode valeurs
+   ↓
+7. Bouton affiche "Voir en %"
+```
+
+#### Scénario 2 : Activation du mode pourcentage
+
+```
+1. Utilisateur clique sur "Voir en %"
+   ↓
+2. Alpine.js : showPercentage = true
+   ↓
+3. $watch détecte le changement
+   ↓
+4. updateCityChart(true) appelé
+   ↓
+5. window.cityChartPercentageMode = true (sauvegarde)
+   ↓
+6. Ancien graphique détruit
+   ↓
+7. Calcul des pourcentages : (count / total) * 100
+   ↓
+8. Nouveau graphique créé avec :
+   - Données en %
+   - max: 100
+   - Labels avec "%"
+   ↓
+9. Bouton affiche "Voir en valeurs" (bleu)
+```
+
+#### Scénario 3 : Changement de période (avec toggle actif)
+
+```
+1. Utilisateur sélectionne "7 derniers jours"
+   ↓
+2. Livewire applyFilter() appelé
+   ↓
+3. dispatch('statistics-updated', statistics: [...])
+   ↓
+4. JavaScript reçoit l'événement
+   ↓
+5. initCharts(newStatistics) appelé
+   ↓
+6. window.cityStatsData mis à jour avec nouvelles données
+   ↓
+7. window.cityChartPercentageMode = true (préservé !)
+   ↓
+8. updateCityChart(window.cityChartPercentageMode)
+   ↓
+9. updateCityChart(true) → graphique en mode %
+   ↓
+10. Alpine.js : showPercentage = true (synchronisé)
+    ↓
+11. Bouton reste en état "Voir en valeurs" (bleu)
+```
+
+**✨ L'état du toggle est préservé !**
+
+### Avantages de l'implémentation
+
+#### 1. Performance
+- Destruction propre du graphique (pas de fuite mémoire)
+- Pas de rechargement de page
+- Transition instantanée
+
+#### 2. UX
+- Feedback visuel immédiat (couleur du bouton)
+- Texte clair ("Voir en %" vs "Voir en valeurs")
+- Tooltips enrichis dans les deux modes
+- État préservé entre les changements de filtre
+
+#### 3. Maintenabilité
+- Code modulaire (`updateCityChart` réutilisable)
+- Variables globales clairement nommées
+- Logique séparée (Alpine.js pour UI, JavaScript pour calculs)
+
+#### 4. Extensibilité
+- Facile d'ajouter d'autres modes (ex: logarithmique)
+- Peut être répliqué sur d'autres graphiques
+- Configuration centralisée dans `cityStatsData`
+
+### Cas d'usage
+
+**Exemple réel :**
+
+```
+Données brutes :
+- Castellane : 150 qualifications (Marie: 90, Jean: 60)
+- Moustiers : 30 qualifications (Marie: 25, Jean: 5)
+```
+
+**Mode Valeurs :**
+```
+Castellane : [90, 60] → barre de 150
+Moustiers  : [25, 5]  → barre de 30
+```
+→ Castellane semble 5× plus importante
+→ Difficile de comparer la répartition interne
+
+**Mode Pourcentage :**
+```
+Castellane : [60%, 40%] → barre de 100%
+Moustiers  : [83.3%, 16.7%] → barre de 100%
+```
+→ On voit que Marie est plus dominante à Moustiers (83%) qu'à Castellane (60%)
+→ Comparaison équitable de la distribution
+
+**Insight découvert :** Marie gère 83% des qualifications à Moustiers contre seulement 60% à Castellane. Jean a besoin de renfort à Moustiers !
+
+---
+
 ## Optimisations et bonnes pratiques
 
 ### 1. Performances base de données
