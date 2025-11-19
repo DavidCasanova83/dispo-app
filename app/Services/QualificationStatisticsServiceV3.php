@@ -228,7 +228,7 @@ class QualificationStatisticsServiceV3
             function($qualifications) {
                 // Dénominateur : nombre de qualifications France avec départements connus
                 return $qualifications->filter(function($q) {
-                    return $this->isFrance($q) && !($q->form_data['departmentUnknown'] ?? false);
+                    return $this->isFrance($q) && !$this->fd($q, 'departmentUnknown', false);
                 })->count();
             }
         );
@@ -266,7 +266,7 @@ class QualificationStatisticsServiceV3
             $citiesToAnalyze,
             function($qualifications) {
                 return $qualifications
-                    ->pluck('form_data.profile')
+                    ->map(fn($q) => $this->fd($q, 'profile'))
                     ->filter()
                     ->countBy();
             }
@@ -275,14 +275,10 @@ class QualificationStatisticsServiceV3
         // Calculer les tranches d'âge avec pondération
         $weightedAgeGroups = $this->calculateCityWeightedStats(
             $citiesToAnalyze,
-            function($qualifications) {
-                return $qualifications
-                    ->flatMap(fn($q) => $q->form_data['ageGroups'] ?? [])
-                    ->countBy();
-            },
+            fn($qualifications) => $this->countFromArrayField($qualifications, 'ageGroups'),
             function($qualifications) {
                 // Dénominateur : nombre de qualifications avec au moins une tranche d'âge
-                return $qualifications->filter(fn($q) => !empty($q->form_data['ageGroups'] ?? []))->count();
+                return $qualifications->filter(fn($q) => !empty($this->fd($q, 'ageGroups', [])))->count();
             }
         );
 
@@ -319,40 +315,22 @@ class QualificationStatisticsServiceV3
         // Demandes générales (pondérées)
         $weightedGeneralRequests = $this->calculateCityWeightedStats(
             $citiesToAnalyze,
-            function($qualifications) {
-                return $qualifications
-                    ->flatMap(fn($q) => $q->form_data['generalRequests'] ?? [])
-                    ->countBy();
-            },
-            function($qualifications) {
-                return $qualifications->filter(fn($q) => !empty($q->form_data['generalRequests'] ?? []))->count();
-            }
+            fn($qualifications) => $this->countFromArrayField($qualifications, 'generalRequests'),
+            fn($qualifications) => $qualifications->filter(fn($q) => !empty($this->fd($q, 'generalRequests', [])))->count()
         );
 
         // Demandes spécifiques (pondérées)
         $weightedTopSpecificRequests = $this->calculateCityWeightedStats(
             $citiesToAnalyze,
-            function($qualifications) {
-                return $qualifications
-                    ->flatMap(fn($q) => $q->form_data['specificRequests'] ?? [])
-                    ->countBy();
-            },
-            function($qualifications) {
-                return $qualifications->filter(fn($q) => !empty($q->form_data['specificRequests'] ?? []))->count();
-            }
+            fn($qualifications) => $this->countFromArrayField($qualifications, 'specificRequests'),
+            fn($qualifications) => $qualifications->filter(fn($q) => !empty($this->fd($q, 'specificRequests', [])))->count()
         );
 
         // Autres demandes spécifiques croisées (pondérées)
         $weightedOtherSpecificRequests = $this->calculateCityWeightedStats(
             $citiesToAnalyze,
-            function($qualifications) {
-                return $qualifications
-                    ->flatMap(fn($q) => $q->form_data['otherSpecificRequests'] ?? [])
-                    ->countBy();
-            },
-            function($qualifications) {
-                return $qualifications->filter(fn($q) => !empty($q->form_data['otherSpecificRequests'] ?? []))->count();
-            }
+            fn($qualifications) => $this->countFromArrayField($qualifications, 'otherSpecificRequests'),
+            fn($qualifications) => $qualifications->filter(fn($q) => !empty($this->fd($q, 'otherSpecificRequests', [])))->count()
         );
 
         // Demandes spécifiques par ville (NON pondérées, pour affichage détaillé)
@@ -360,9 +338,7 @@ class QualificationStatisticsServiceV3
         foreach ($citiesToAnalyze as $cityKey) {
             $qualifications = $this->filterByCity($cityKey);
             if (!$qualifications->isEmpty()) {
-                $citySpecificRequests = $qualifications
-                    ->flatMap(fn($q) => $q->form_data['specificRequests'] ?? [])
-                    ->countBy()
+                $citySpecificRequests = $this->countFromArrayField($qualifications, 'specificRequests')
                     ->sortDesc();
                 $specificRequestsByCity[$cityKey] = $citySpecificRequests->toArray();
             }
@@ -373,7 +349,7 @@ class QualificationStatisticsServiceV3
         foreach ($citiesToAnalyze as $cityKey) {
             $qualifications = $this->filterByCity($cityKey);
             $otherRequests = $qualifications
-                ->pluck('form_data.otherRequest')
+                ->map(fn($q) => $this->fd($q, 'otherRequest'))
                 ->filter()
                 ->values();
             $allOtherRequests = array_merge($allOtherRequests, $otherRequests->toArray());
@@ -416,7 +392,7 @@ class QualificationStatisticsServiceV3
             $citiesToAnalyze,
             function($qualifications) {
                 return $qualifications
-                    ->pluck('form_data.contactMethod')
+                    ->map(fn($q) => $this->fd($q, 'contactMethod'))
                     ->filter()
                     ->countBy();
             }
@@ -499,6 +475,7 @@ class QualificationStatisticsServiceV3
     /**
      * Filter cached qualifications by city
      * Uses the currently active cache key
+     * Always returns a fresh collection with reset keys
      *
      * @param string $cityKey City key to filter
      * @return \Illuminate\Support\Collection
@@ -509,12 +486,44 @@ class QualificationStatisticsServiceV3
             return collect([]);
         }
 
-        return $this->cachedQualifications[$this->currentCacheKey]->where('city', $cityKey);
+        return $this->cachedQualifications[$this->currentCacheKey]
+            ->where('city', $cityKey)
+            ->values(); // Reset array keys for clean iteration
     }
 
     // ============================================================
     // HELPER METHODS - Data Extraction
     // ============================================================
+
+    /**
+     * Safe form_data accessor
+     * Utilise data_get de Laravel pour un accès sécurisé aux données JSON
+     *
+     * @param Qualification $qualification
+     * @param string $key Key to extract (supports dot notation)
+     * @param mixed $default Default value if key not found
+     * @return mixed
+     */
+    protected function fd($qualification, $key, $default = null)
+    {
+        return data_get($qualification->form_data, $key, $default);
+    }
+
+    /**
+     * Count occurrences from array field in form_data
+     * Helper générique pour compter les éléments dans les champs tableau
+     *
+     * @param \Illuminate\Support\Collection $qualifications
+     * @param string $field Field name in form_data
+     * @return \Illuminate\Support\Collection CountBy collection
+     */
+    protected function countFromArrayField($qualifications, $field)
+    {
+        return $qualifications
+            ->flatMap(fn($q) => $this->fd($q, $field, []))
+            ->filter()
+            ->countBy();
+    }
 
     /**
      * Extract country from qualification
@@ -525,9 +534,9 @@ class QualificationStatisticsServiceV3
      */
     protected function extractCountry($qualification)
     {
-        $country = $qualification->form_data['country'] ?? null;
-        if ($country === 'Autre' && isset($qualification->form_data['otherCountry'])) {
-            return $qualification->form_data['otherCountry'];
+        $country = $this->fd($qualification, 'country');
+        if ($country === 'Autre' && $this->fd($qualification, 'otherCountry')) {
+            return $this->fd($qualification, 'otherCountry');
         }
         return $country;
     }
@@ -541,10 +550,10 @@ class QualificationStatisticsServiceV3
      */
     protected function extractDepartments($qualification)
     {
-        if ($qualification->form_data['departmentUnknown'] ?? false) {
+        if ($this->fd($qualification, 'departmentUnknown', false)) {
             return [];
         }
-        return $qualification->form_data['departments'] ?? [];
+        return $this->fd($qualification, 'departments', []);
     }
 
     /**
@@ -555,7 +564,7 @@ class QualificationStatisticsServiceV3
      */
     protected function isFrance($qualification)
     {
-        return ($qualification->form_data['country'] ?? null) === 'France';
+        return $this->fd($qualification, 'country') === 'France';
     }
 
     /**
@@ -566,7 +575,7 @@ class QualificationStatisticsServiceV3
      */
     protected function hasEmail($qualification)
     {
-        return !empty($qualification->form_data['email'] ?? null);
+        return !empty($this->fd($qualification, 'email'));
     }
 
     /**
@@ -577,7 +586,7 @@ class QualificationStatisticsServiceV3
      */
     protected function hasNewsletterConsent($qualification)
     {
-        return $this->hasEmail($qualification) && ($qualification->form_data['consentNewsletter'] ?? false);
+        return $this->hasEmail($qualification) && $this->fd($qualification, 'consentNewsletter', false);
     }
 
     // ============================================================
@@ -645,6 +654,7 @@ class QualificationStatisticsServiceV3
     /**
      * Calculate city-weighted statistics
      * Méthode universelle pour calculer des stats pondérées par ville
+     * Protection contre division par zéro intégrée
      *
      * @param array $citiesToAnalyze Cities to analyze
      * @param callable $extractor Function to extract data from qualifications (receives Collection, returns countBy array)
@@ -654,6 +664,7 @@ class QualificationStatisticsServiceV3
     protected function calculateCityWeightedStats($citiesToAnalyze, $extractor, $denominator = null)
     {
         $weighted = [];
+        $validCities = 0;
 
         foreach ($citiesToAnalyze as $cityKey) {
             $qualifications = $this->filterByCity($cityKey);
@@ -662,7 +673,9 @@ class QualificationStatisticsServiceV3
                 continue;
             }
 
+            // Calculer le dénominateur et protéger contre division par zéro
             $cityTotal = $denominator ? $denominator($qualifications) : $qualifications->count();
+            $cityTotal = max(1, $cityTotal); // Protection: minimum 1
 
             if ($cityTotal <= 0) {
                 continue;
@@ -673,9 +686,12 @@ class QualificationStatisticsServiceV3
             foreach ($cityCounts as $key => $count) {
                 $this->addWeighted($weighted, $key, $count, $cityTotal);
             }
+
+            $validCities++;
         }
 
-        return $this->normalizeByCity($weighted, count($citiesToAnalyze));
+        // Normaliser par le nombre de villes qui ont effectivement des données
+        return $this->normalizeByCity($weighted, max(1, $validCities));
     }
 
     // ============================================================
