@@ -16,20 +16,51 @@ use Carbon\Carbon;
 class QualificationStatisticsServiceV3
 {
     /**
-     * Get KPIs overview avec pondération par ville
+     * Cached qualifications data to avoid multiple DB queries
+     * Multi-key cache: stores different datasets by cache key
+     * @var array<string, \Illuminate\Support\Collection>
+     */
+    protected $cachedQualifications = [];
+
+    /**
+     * Current active cache key for filterByCity operations
+     * @var string|null
+     */
+    protected $currentCacheKey = null;
+
+    /**
+     * Top N items limit for rankings
+     */
+    const TOP_N_LIMIT = 10;
+
+    /**
+     * Get KPIs overview
+     *
+     * Calcule les indicateurs clés de performance (KPIs) :
+     * - Total des qualifications
+     * - Taux de complétion
+     * - Compteurs journaliers et hebdomadaires
+     * - Croissance par rapport à la période précédente
+     *
+     * @param array $cities Villes à analyser (vide = toutes)
+     * @param mixed $startDate Date de début (null = depuis le début)
+     * @param mixed $endDate Date de fin (null = jusqu'à maintenant)
+     * @param string $status Statut ('all', 'completed', 'incomplete')
+     * @return array KPIs avec total, completed, completionRate, today, thisWeek, growth
      */
     public function getKPIs(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
-        $query = $this->baseQuery($cities, $startDate, $endDate, $status);
+        // Charger les données principales une seule fois
+        $qualifications = $this->loadQualificationsOnce($cities, $startDate, $endDate, $status);
 
-        $total = $query->count();
-        $completed = $query->where('completed', true)->count();
+        $total = $qualifications->count();
+        $completed = $qualifications->where('completed', true)->count();
         $completionRate = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
 
-        // Aujourd'hui
+        // Aujourd'hui - nouvelle requête car différentes dates
         $today = $this->baseQuery($cities, now()->startOfDay(), now()->endOfDay(), $status)->count();
 
-        // Cette semaine
+        // Cette semaine - nouvelle requête car différentes dates
         $thisWeek = $this->baseQuery($cities, now()->startOfWeek(), now()->endOfWeek(), $status)->count();
 
         // Période précédente pour la croissance
@@ -37,7 +68,7 @@ class QualificationStatisticsServiceV3
         $previousStart = $startDate ? Carbon::parse($startDate)->subDays($daysDiff) : now()->subDays($daysDiff * 2);
         $previousEnd = $startDate ? Carbon::parse($startDate)->subDay() : now()->subDays($daysDiff);
 
-        $currentPeriod = $this->baseQuery($cities, $startDate, $endDate, $status)->count();
+        $currentPeriod = $total; // Utilise le total déjà calculé
         $previousPeriod = $this->baseQuery($cities, $previousStart, $previousEnd, $status)->count();
 
         $growth = $previousPeriod > 0 ? round((($currentPeriod - $previousPeriod) / $previousPeriod) * 100, 1) : 0;
@@ -55,31 +86,32 @@ class QualificationStatisticsServiceV3
 
     /**
      * Get statistics by city for comparison
+     *
+     * Retourne les statistiques brutes par ville sans pondération :
+     * - Nombre total de qualifications par ville
+     * - Répartition par utilisateur dans chaque ville
+     * Utile pour comparer la performance entre villes
+     *
+     * @param mixed $startDate Date de début (null = depuis le début)
+     * @param mixed $endDate Date de fin (null = jusqu'à maintenant)
+     * @param string $status Statut du filtre ('all', 'completed', 'incomplete')
+     * @return array Stats par ville avec name, total, byUser
      */
     public function getStatsByCity($startDate = null, $endDate = null, $status = 'all')
     {
         $cities = Qualification::getCities();
         $stats = [];
 
-        // Récupérer toutes les qualifications complétées avec les utilisateurs
-        $qualifications = Qualification::with('user')
-            ->where('completed', true);
-
-        if ($startDate) {
-            $qualifications->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
-        }
-
-        if ($endDate) {
-            $qualifications->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
-        }
-
-        $qualifications = $qualifications->get();
+        // Utiliser baseQuery() pour centraliser les filtres + charger la relation user
+        $qualifications = $this->baseQuery([], $startDate, $endDate, $status)
+            ->with('user')
+            ->get();
 
         // Grouper par ville et par utilisateur
         foreach ($cities as $cityKey => $cityName) {
             $cityQualifications = $qualifications->where('city', $cityKey);
 
-            // Compter les qualifications complétées par utilisateur
+            // Compter les qualifications par utilisateur
             $byUser = $cityQualifications->groupBy('user_id')->map(function($userQuals) {
                 $user = $userQuals->first()->user;
                 return [
@@ -100,6 +132,18 @@ class QualificationStatisticsServiceV3
 
     /**
      * Get temporal evolution data
+     *
+     * Retourne l'évolution temporelle des qualifications sans pondération :
+     * - Groupement par heure, jour, semaine, mois ou année
+     * - Données globales ou par ville
+     * - Compatible MySQL/MariaDB et SQLite
+     *
+     * @param array $cities Villes à analyser (vide = global)
+     * @param mixed $startDate Date de début (null = depuis la première qualification)
+     * @param mixed $endDate Date de fin (null = jusqu'à maintenant)
+     * @param string $status Statut du filtre
+     * @param string $groupBy Groupement : 'hour', 'day', 'week', 'month', 'year'
+     * @return array Données temporelles (global ou par ville)
      */
     public function getTemporalEvolution(array $cities = [], $startDate = null, $endDate = null, $status = 'all', $groupBy = 'day')
     {
@@ -107,31 +151,8 @@ class QualificationStatisticsServiceV3
             Carbon::parse(Qualification::min('created_at') ?? Carbon::now()->subYear());
         $endDate = $endDate ? Carbon::parse($endDate) : Carbon::now();
 
-        // Détecter le driver de la base de données
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'sqlite') {
-            $dateFormat = match($groupBy) {
-                'hour' => '%Y-%m-%d %H:00:00',
-                'day' => '%Y-%m-%d',
-                'week' => '%Y-%W',
-                'month' => '%Y-%m',
-                'year' => '%Y',
-                default => '%Y-%m-%d',
-            };
-            $dateFormatSql = "strftime('{$dateFormat}', created_at)";
-        } else {
-            // MySQL/MariaDB
-            $dateFormat = match($groupBy) {
-                'hour' => '%Y-%m-%d %H:00:00',
-                'day' => '%Y-%m-%d',
-                'week' => '%Y-%u',
-                'month' => '%Y-%m',
-                'year' => '%Y',
-                default => '%Y-%m-%d',
-            };
-            $dateFormatSql = "DATE_FORMAT(created_at, '{$dateFormat}')";
-        }
+        // Obtenir la formule SQL pour le groupement temporel
+        $dateFormatSql = $this->getDateFormatSql($groupBy);
 
         $query = $this->baseQuery($cities, $startDate, $endDate, $status);
 
@@ -164,141 +185,106 @@ class QualificationStatisticsServiceV3
 
     /**
      * Get geographic origin statistics AVEC PONDÉRATION PAR VILLE
-     * Chaque ville a le même poids dans le calcul
+     *
+     * Calcule la répartition géographique des visiteurs :
+     * - Pays d'origine (top 10)
+     * - Départements français (top 10)
+     * Chaque ville a le même poids dans le calcul pour éviter les biais
+     *
+     * @param array $cities Villes à analyser (vide = toutes)
+     * @param mixed $startDate Date de début
+     * @param mixed $endDate Date de fin
+     * @param string $status Statut du filtre
+     * @return array ['countries' => array, 'departments' => array]
      */
     public function getGeographicStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
+        // Charger les données une fois
+        $this->loadQualificationsOnce($cities, $startDate, $endDate, $status);
+
         $allCities = Qualification::getCities();
         $citiesToAnalyze = !empty($cities) ? $cities : array_keys($allCities);
 
-        $weightedCountries = [];
-        $weightedDepartments = [];
-
-        // Pour chaque ville, calculer les pourcentages locaux
-        foreach ($citiesToAnalyze as $cityKey) {
-            $qualifications = $this->baseQuery([$cityKey], $startDate, $endDate, $status)->get();
-
-            if ($qualifications->isEmpty()) {
-                continue;
+        // Calculer les pays avec pondération
+        $weightedCountries = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->map(fn($q) => $this->extractCountry($q))
+                    ->filter()
+                    ->countBy();
             }
+        );
 
-            $cityTotal = $qualifications->count();
-
-            // Pays pour cette ville
-            $cityCountries = $qualifications->map(function($q) {
-                $country = $q->form_data['country'] ?? null;
-                if ($country === 'Autre' && isset($q->form_data['otherCountry'])) {
-                    return $q->form_data['otherCountry'];
-                }
-                return $country;
-            })->filter()->countBy();
-
-            // Ajouter avec pondération (chaque ville compte pour 1)
-            foreach ($cityCountries as $country => $count) {
-                $percentage = ($count / $cityTotal) * 100;
-                $weightedCountries[$country] = ($weightedCountries[$country] ?? 0) + $percentage;
+        // Calculer les départements avec pondération (seulement France, sans departmentUnknown)
+        $weightedDepartments = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->filter(fn($q) => $this->isFrance($q))
+                    ->flatMap(fn($q) => $this->extractDepartments($q))
+                    ->countBy();
+            },
+            function($qualifications) {
+                // Dénominateur : nombre de qualifications France avec départements connus
+                return $qualifications->filter(function($q) {
+                    return $this->isFrance($q) && !($q->form_data['departmentUnknown'] ?? false);
+                })->count();
             }
-
-            // Départements pour cette ville (seulement France)
-            $cityDepartments = $qualifications->filter(function($q) {
-                return ($q->form_data['country'] ?? null) === 'France' && !($q->form_data['departmentUnknown'] ?? false);
-            })->flatMap(function($q) {
-                return $q->form_data['departments'] ?? [];
-            })->countBy();
-
-            $franceDepartmentsTotal = $qualifications->filter(function($q) {
-                return ($q->form_data['country'] ?? null) === 'France' && !($q->form_data['departmentUnknown'] ?? false);
-            })->count();
-
-            if ($franceDepartmentsTotal > 0) {
-                foreach ($cityDepartments as $dept => $count) {
-                    $percentage = ($count / $franceDepartmentsTotal) * 100;
-                    $weightedDepartments[$dept] = ($weightedDepartments[$dept] ?? 0) + $percentage;
-                }
-            }
-        }
-
-        // Normaliser par le nombre de villes
-        $nbCities = count($citiesToAnalyze);
-        if ($nbCities > 0) {
-            foreach ($weightedCountries as $country => $value) {
-                $weightedCountries[$country] = round($value / $nbCities, 2);
-            }
-            foreach ($weightedDepartments as $dept => $value) {
-                $weightedDepartments[$dept] = round($value / $nbCities, 2);
-            }
-        }
-
-        // Trier et prendre le top 10
-        arsort($weightedCountries);
-        $weightedCountries = array_slice($weightedCountries, 0, 10, true);
-
-        arsort($weightedDepartments);
-        $weightedDepartments = array_slice($weightedDepartments, 0, 10, true);
+        );
 
         return [
-            'countries' => $weightedCountries,
-            'departments' => $weightedDepartments,
+            'countries' => $this->getTopN($weightedCountries),
+            'departments' => $this->getTopN($weightedDepartments),
         ];
     }
 
     /**
      * Get visitor profile statistics AVEC PONDÉRATION PAR VILLE
+     *
+     * Calcule les profils des visiteurs :
+     * - Types de profils (touriste, résident, etc.)
+     * - Tranches d'âge
+     * Chaque ville a le même poids dans le calcul
+     *
+     * @param array $cities Villes à analyser (vide = toutes)
+     * @param mixed $startDate Date de début
+     * @param mixed $endDate Date de fin
+     * @param string $status Statut du filtre
+     * @return array ['profiles' => array, 'ageGroups' => array]
      */
     public function getProfileStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
+        // Charger les données une fois
+        $this->loadQualificationsOnce($cities, $startDate, $endDate, $status);
+
         $allCities = Qualification::getCities();
         $citiesToAnalyze = !empty($cities) ? $cities : array_keys($allCities);
 
-        $weightedProfiles = [];
-        $weightedAgeGroups = [];
-
-        // Pour chaque ville, calculer les pourcentages locaux
-        foreach ($citiesToAnalyze as $cityKey) {
-            $qualifications = $this->baseQuery([$cityKey], $startDate, $endDate, $status)->get();
-
-            if ($qualifications->isEmpty()) {
-                continue;
+        // Calculer les profils avec pondération
+        $weightedProfiles = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->pluck('form_data.profile')
+                    ->filter()
+                    ->countBy();
             }
+        );
 
-            $cityTotal = $qualifications->count();
-
-            // Profils pour cette ville
-            $cityProfiles = $qualifications->pluck('form_data.profile')->filter()->countBy();
-
-            foreach ($cityProfiles as $profile => $count) {
-                $percentage = ($count / $cityTotal) * 100;
-                $weightedProfiles[$profile] = ($weightedProfiles[$profile] ?? 0) + $percentage;
+        // Calculer les tranches d'âge avec pondération
+        $weightedAgeGroups = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->flatMap(fn($q) => $q->form_data['ageGroups'] ?? [])
+                    ->countBy();
+            },
+            function($qualifications) {
+                // Dénominateur : nombre de qualifications avec au moins une tranche d'âge
+                return $qualifications->filter(fn($q) => !empty($q->form_data['ageGroups'] ?? []))->count();
             }
-
-            // Tranches d'âge pour cette ville
-            $cityAgeGroups = $qualifications->flatMap(function($q) {
-                return $q->form_data['ageGroups'] ?? [];
-            })->countBy();
-
-            // Compter le total d'entrées avec des tranches d'âge pour normaliser
-            $ageGroupEntries = $qualifications->filter(function($q) {
-                return !empty($q->form_data['ageGroups'] ?? []);
-            })->count();
-
-            if ($ageGroupEntries > 0) {
-                foreach ($cityAgeGroups as $ageGroup => $count) {
-                    $percentage = ($count / $ageGroupEntries) * 100;
-                    $weightedAgeGroups[$ageGroup] = ($weightedAgeGroups[$ageGroup] ?? 0) + $percentage;
-                }
-            }
-        }
-
-        // Normaliser par le nombre de villes
-        $nbCities = count($citiesToAnalyze);
-        if ($nbCities > 0) {
-            foreach ($weightedProfiles as $profile => $value) {
-                $weightedProfiles[$profile] = round($value / $nbCities, 2);
-            }
-            foreach ($weightedAgeGroups as $ageGroup => $value) {
-                $weightedAgeGroups[$ageGroup] = round($value / $nbCities, 2);
-            }
-        }
+        );
 
         return [
             'profiles' => $weightedProfiles,
@@ -308,186 +294,166 @@ class QualificationStatisticsServiceV3
 
     /**
      * Get demand statistics AVEC PONDÉRATION PAR VILLE
+     *
+     * Calcule les demandes des visiteurs :
+     * - Demandes générales (top 10 pondéré)
+     * - Demandes spécifiques (par ville + top 10 global pondéré)
+     * - Autres demandes spécifiques (top 10 pondéré)
+     * - Demandes en texte libre (toutes)
+     * Chaque ville a le même poids dans le calcul
+     *
+     * @param array $cities Villes à analyser (vide = toutes)
+     * @param mixed $startDate Date de début
+     * @param mixed $endDate Date de fin
+     * @param string $status Statut du filtre
+     * @return array ['generalRequests', 'specificRequests', 'topSpecificRequests', 'otherSpecificRequests', 'otherRequests']
      */
     public function getDemandStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
+        // Charger les données une fois
+        $this->loadQualificationsOnce($cities, $startDate, $endDate, $status);
+
         $allCities = Qualification::getCities();
         $citiesToAnalyze = !empty($cities) ? $cities : array_keys($allCities);
 
-        $weightedGeneralRequests = [];
-        $weightedTopSpecificRequests = [];
-        $weightedOtherSpecificRequests = [];
-        $allOtherRequests = [];
+        // Demandes générales (pondérées)
+        $weightedGeneralRequests = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->flatMap(fn($q) => $q->form_data['generalRequests'] ?? [])
+                    ->countBy();
+            },
+            function($qualifications) {
+                return $qualifications->filter(fn($q) => !empty($q->form_data['generalRequests'] ?? []))->count();
+            }
+        );
+
+        // Demandes spécifiques (pondérées)
+        $weightedTopSpecificRequests = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->flatMap(fn($q) => $q->form_data['specificRequests'] ?? [])
+                    ->countBy();
+            },
+            function($qualifications) {
+                return $qualifications->filter(fn($q) => !empty($q->form_data['specificRequests'] ?? []))->count();
+            }
+        );
+
+        // Autres demandes spécifiques croisées (pondérées)
+        $weightedOtherSpecificRequests = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->flatMap(fn($q) => $q->form_data['otherSpecificRequests'] ?? [])
+                    ->countBy();
+            },
+            function($qualifications) {
+                return $qualifications->filter(fn($q) => !empty($q->form_data['otherSpecificRequests'] ?? []))->count();
+            }
+        );
+
+        // Demandes spécifiques par ville (NON pondérées, pour affichage détaillé)
         $specificRequestsByCity = [];
-
-        // Pour chaque ville, calculer les pourcentages locaux
         foreach ($citiesToAnalyze as $cityKey) {
-            $qualifications = $this->baseQuery([$cityKey], $startDate, $endDate, $status)->get();
-
-            if ($qualifications->isEmpty()) {
-                continue;
+            $qualifications = $this->filterByCity($cityKey);
+            if (!$qualifications->isEmpty()) {
+                $citySpecificRequests = $qualifications
+                    ->flatMap(fn($q) => $q->form_data['specificRequests'] ?? [])
+                    ->countBy()
+                    ->sortDesc();
+                $specificRequestsByCity[$cityKey] = $citySpecificRequests->toArray();
             }
+        }
 
-            // Demandes générales
-            $generalRequestsCount = $qualifications->filter(function($q) {
-                return !empty($q->form_data['generalRequests'] ?? []);
-            })->count();
-
-            if ($generalRequestsCount > 0) {
-                $cityGeneralRequests = $qualifications->flatMap(function($q) {
-                    return $q->form_data['generalRequests'] ?? [];
-                })->countBy();
-
-                foreach ($cityGeneralRequests as $request => $count) {
-                    $percentage = ($count / $generalRequestsCount) * 100;
-                    $weightedGeneralRequests[$request] = ($weightedGeneralRequests[$request] ?? 0) + $percentage;
-                }
-            }
-
-            // Demandes spécifiques par ville (pour le graphique par ville)
-            $citySpecificRequests = $qualifications->flatMap(function($q) {
-                return $q->form_data['specificRequests'] ?? [];
-            })->countBy()->sortDesc();
-
-            $specificRequestsByCity[$cityKey] = $citySpecificRequests->toArray();
-
-            // Top demandes spécifiques (toutes villes)
-            $specificRequestsCount = $qualifications->filter(function($q) {
-                return !empty($q->form_data['specificRequests'] ?? []);
-            })->count();
-
-            if ($specificRequestsCount > 0) {
-                $cityTopSpecificRequests = $qualifications->flatMap(function($q) {
-                    return $q->form_data['specificRequests'] ?? [];
-                })->countBy();
-
-                foreach ($cityTopSpecificRequests as $request => $count) {
-                    $percentage = ($count / $specificRequestsCount) * 100;
-                    $weightedTopSpecificRequests[$request] = ($weightedTopSpecificRequests[$request] ?? 0) + $percentage;
-                }
-            }
-
-            // Autres demandes spécifiques (croisées)
-            $otherSpecificRequestsCount = $qualifications->filter(function($q) {
-                return !empty($q->form_data['otherSpecificRequests'] ?? []);
-            })->count();
-
-            if ($otherSpecificRequestsCount > 0) {
-                $cityOtherSpecificRequests = $qualifications->flatMap(function($q) {
-                    return $q->form_data['otherSpecificRequests'] ?? [];
-                })->countBy();
-
-                foreach ($cityOtherSpecificRequests as $request => $count) {
-                    $percentage = ($count / $otherSpecificRequestsCount) * 100;
-                    $weightedOtherSpecificRequests[$request] = ($weightedOtherSpecificRequests[$request] ?? 0) + $percentage;
-                }
-            }
-
-            // Textes libres (on les garde tous)
+        // Textes libres (toutes les demandes, non pondérées)
+        $allOtherRequests = [];
+        foreach ($citiesToAnalyze as $cityKey) {
+            $qualifications = $this->filterByCity($cityKey);
             $otherRequests = $qualifications
                 ->pluck('form_data.otherRequest')
                 ->filter()
                 ->values();
-
             $allOtherRequests = array_merge($allOtherRequests, $otherRequests->toArray());
         }
 
-        // Normaliser par le nombre de villes
-        $nbCities = count($citiesToAnalyze);
-        if ($nbCities > 0) {
-            foreach ($weightedGeneralRequests as $request => $value) {
-                $weightedGeneralRequests[$request] = round($value / $nbCities, 2);
-            }
-            foreach ($weightedTopSpecificRequests as $request => $value) {
-                $weightedTopSpecificRequests[$request] = round($value / $nbCities, 2);
-            }
-            foreach ($weightedOtherSpecificRequests as $request => $value) {
-                $weightedOtherSpecificRequests[$request] = round($value / $nbCities, 2);
-            }
-        }
-
-        // Trier et prendre le top 10
-        arsort($weightedGeneralRequests);
-        $weightedGeneralRequests = array_slice($weightedGeneralRequests, 0, 10, true);
-
-        arsort($weightedTopSpecificRequests);
-        $weightedTopSpecificRequests = array_slice($weightedTopSpecificRequests, 0, 10, true);
-
-        arsort($weightedOtherSpecificRequests);
-        $weightedOtherSpecificRequests = array_slice($weightedOtherSpecificRequests, 0, 10, true);
-
         return [
-            'generalRequests' => $weightedGeneralRequests,
+            'generalRequests' => $this->getTopN($weightedGeneralRequests),
             'specificRequests' => $specificRequestsByCity,
-            'topSpecificRequests' => $weightedTopSpecificRequests,
-            'otherSpecificRequests' => $weightedOtherSpecificRequests,
+            'topSpecificRequests' => $this->getTopN($weightedTopSpecificRequests),
+            'otherSpecificRequests' => $this->getTopN($weightedOtherSpecificRequests),
             'otherRequests' => $allOtherRequests,
         ];
     }
 
     /**
      * Get contact data statistics AVEC PONDÉRATION PAR VILLE
+     *
+     * Calcule les statistiques de contact :
+     * - Nombre et taux d'emails fournis (pondéré)
+     * - Nombre et taux d'acceptation newsletter (pondéré)
+     * - Méthodes de contact préférées (pondéré)
+     * Chaque ville a le même poids dans le calcul des taux
+     *
+     * @param array $cities Villes à analyser (vide = toutes)
+     * @param mixed $startDate Date de début
+     * @param mixed $endDate Date de fin
+     * @param string $status Statut du filtre
+     * @return array ['emailProvided', 'emailRate', 'newsletterAccepted', 'newsletterRate', 'contactMethods']
      */
     public function getContactStats(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
+        // Charger les données une fois
+        $this->loadQualificationsOnce($cities, $startDate, $endDate, $status);
+
         $allCities = Qualification::getCities();
         $citiesToAnalyze = !empty($cities) ? $cities : array_keys($allCities);
 
+        // Méthodes de contact (pondérées)
+        $weightedContactMethods = $this->calculateCityWeightedStats(
+            $citiesToAnalyze,
+            function($qualifications) {
+                return $qualifications
+                    ->pluck('form_data.contactMethod')
+                    ->filter()
+                    ->countBy();
+            }
+        );
+
+        // Calculer les taux email et newsletter (pondérés par ville)
         $totalEmailRate = 0;
         $totalNewsletterRate = 0;
-        $weightedContactMethods = [];
         $totalEmailProvided = 0;
         $totalNewsletterAccepted = 0;
-        $totalEntries = 0;
 
-        // Pour chaque ville, calculer les taux locaux
         foreach ($citiesToAnalyze as $cityKey) {
-            $qualifications = $this->baseQuery([$cityKey], $startDate, $endDate, $status)->get();
+            $qualifications = $this->filterByCity($cityKey);
 
             if ($qualifications->isEmpty()) {
                 continue;
             }
 
             $cityTotal = $qualifications->count();
-            $totalEntries += $cityTotal;
 
             // Emails fournis
-            $emailProvided = $qualifications->filter(function($q) {
-                return !empty($q->form_data['email'] ?? null);
-            })->count();
+            $emailProvided = $qualifications->filter(fn($q) => $this->hasEmail($q))->count();
             $totalEmailProvided += $emailProvided;
-
             $emailRate = $cityTotal > 0 ? ($emailProvided / $cityTotal) * 100 : 0;
             $totalEmailRate += $emailRate;
 
             // Newsletter
-            $newsletterAccepted = $qualifications->filter(function($q) {
-                return !empty($q->form_data['email'] ?? null) && ($q->form_data['consentNewsletter'] ?? false);
-            })->count();
+            $newsletterAccepted = $qualifications->filter(fn($q) => $this->hasNewsletterConsent($q))->count();
             $totalNewsletterAccepted += $newsletterAccepted;
-
             $newsletterRate = $emailProvided > 0 ? ($newsletterAccepted / $emailProvided) * 100 : 0;
             $totalNewsletterRate += $newsletterRate;
-
-            // Méthodes de contact
-            $cityContactMethods = $qualifications->pluck('form_data.contactMethod')->filter()->countBy();
-
-            foreach ($cityContactMethods as $method => $count) {
-                $percentage = ($count / $cityTotal) * 100;
-                $weightedContactMethods[$method] = ($weightedContactMethods[$method] ?? 0) + $percentage;
-            }
         }
 
-        // Normaliser par le nombre de villes
+        // Normaliser les taux par le nombre de villes
         $nbCities = count($citiesToAnalyze);
         $avgEmailRate = $nbCities > 0 ? round($totalEmailRate / $nbCities, 1) : 0;
         $avgNewsletterRate = $nbCities > 0 ? round($totalNewsletterRate / $nbCities, 1) : 0;
-
-        if ($nbCities > 0) {
-            foreach ($weightedContactMethods as $method => $value) {
-                $weightedContactMethods[$method] = round($value / $nbCities, 2);
-            }
-        }
 
         return [
             'emailProvided' => $totalEmailProvided,
@@ -498,8 +464,269 @@ class QualificationStatisticsServiceV3
         ];
     }
 
+    // ============================================================
+    // HELPER METHODS - Data Loading & Caching
+    // ============================================================
+
+    /**
+     * Load qualifications once and cache them
+     * Évite de recharger plusieurs fois les mêmes données de la DB
+     * Multi-key cache: peut stocker plusieurs jeux de données simultanément
+     *
+     * @param array $cities Cities to filter
+     * @param mixed $startDate Start date filter
+     * @param mixed $endDate End date filter
+     * @param string $status Status filter ('all', 'completed', 'incomplete')
+     * @return \Illuminate\Support\Collection Cached collection of qualifications
+     */
+    protected function loadQualificationsOnce(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
+    {
+        $cacheKey = md5(json_encode([$cities, $startDate, $endDate, $status]));
+
+        // Check if this specific dataset is already cached
+        if (isset($this->cachedQualifications[$cacheKey])) {
+            $this->currentCacheKey = $cacheKey;
+            return $this->cachedQualifications[$cacheKey];
+        }
+
+        // Load from database and cache
+        $this->cachedQualifications[$cacheKey] = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
+        $this->currentCacheKey = $cacheKey;
+
+        return $this->cachedQualifications[$cacheKey];
+    }
+
+    /**
+     * Filter cached qualifications by city
+     * Uses the currently active cache key
+     *
+     * @param string $cityKey City key to filter
+     * @return \Illuminate\Support\Collection
+     */
+    protected function filterByCity($cityKey)
+    {
+        if ($this->currentCacheKey === null || !isset($this->cachedQualifications[$this->currentCacheKey])) {
+            return collect([]);
+        }
+
+        return $this->cachedQualifications[$this->currentCacheKey]->where('city', $cityKey);
+    }
+
+    // ============================================================
+    // HELPER METHODS - Data Extraction
+    // ============================================================
+
+    /**
+     * Extract country from qualification
+     * Gère la logique 'Autre' + 'otherCountry'
+     *
+     * @param Qualification $qualification
+     * @return string|null Country name or null
+     */
+    protected function extractCountry($qualification)
+    {
+        $country = $qualification->form_data['country'] ?? null;
+        if ($country === 'Autre' && isset($qualification->form_data['otherCountry'])) {
+            return $qualification->form_data['otherCountry'];
+        }
+        return $country;
+    }
+
+    /**
+     * Extract departments from qualification
+     * Retourne un tableau vide si departmentUnknown est true
+     *
+     * @param Qualification $qualification
+     * @return array Array of department codes
+     */
+    protected function extractDepartments($qualification)
+    {
+        if ($qualification->form_data['departmentUnknown'] ?? false) {
+            return [];
+        }
+        return $qualification->form_data['departments'] ?? [];
+    }
+
+    /**
+     * Check if qualification is from France
+     *
+     * @param Qualification $qualification
+     * @return bool
+     */
+    protected function isFrance($qualification)
+    {
+        return ($qualification->form_data['country'] ?? null) === 'France';
+    }
+
+    /**
+     * Check if qualification has email
+     *
+     * @param Qualification $qualification
+     * @return bool
+     */
+    protected function hasEmail($qualification)
+    {
+        return !empty($qualification->form_data['email'] ?? null);
+    }
+
+    /**
+     * Check if qualification has newsletter consent
+     *
+     * @param Qualification $qualification
+     * @return bool
+     */
+    protected function hasNewsletterConsent($qualification)
+    {
+        return $this->hasEmail($qualification) && ($qualification->form_data['consentNewsletter'] ?? false);
+    }
+
+    // ============================================================
+    // HELPER METHODS - Weighting & Normalization
+    // ============================================================
+
+    /**
+     * Add weighted value to accumulator
+     * Méthode standard de pondération utilisée partout
+     *
+     * @param array &$store Accumulator array (passed by reference)
+     * @param string $key Key to add/update
+     * @param int $count Count in this city
+     * @param int $cityTotal Total items in this city
+     * @return void
+     */
+    protected function addWeighted(&$store, $key, $count, $cityTotal)
+    {
+        if ($cityTotal <= 0) {
+            return;
+        }
+
+        $percentage = ($count / $cityTotal) * 100;
+        $store[$key] = ($store[$key] ?? 0) + $percentage;
+    }
+
+    /**
+     * Normalize weighted array by number of cities
+     * Divise chaque valeur par le nombre de villes pour obtenir la moyenne
+     *
+     * @param array $array Array to normalize
+     * @param int $nbCities Number of cities
+     * @param int $precision Decimal precision (default: 2)
+     * @return array Normalized array
+     */
+    protected function normalizeByCity($array, $nbCities, $precision = 2)
+    {
+        if ($nbCities <= 0) {
+            return $array;
+        }
+
+        $normalized = [];
+        foreach ($array as $key => $value) {
+            $normalized[$key] = round($value / $nbCities, $precision);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Get top N items from array
+     * Trie par valeur décroissante et retourne les N premiers
+     *
+     * @param array $array Array to extract from
+     * @param int $n Number of items to return (default: TOP_N_LIMIT)
+     * @return array Top N items
+     */
+    protected function getTopN($array, $n = null)
+    {
+        $n = $n ?? self::TOP_N_LIMIT;
+        arsort($array);
+        return array_slice($array, 0, $n, true);
+    }
+
+    /**
+     * Calculate city-weighted statistics
+     * Méthode universelle pour calculer des stats pondérées par ville
+     *
+     * @param array $citiesToAnalyze Cities to analyze
+     * @param callable $extractor Function to extract data from qualifications (receives Collection, returns countBy array)
+     * @param callable|null $denominator Function to calculate denominator (receives Collection, returns int). If null, uses collection count
+     * @return array Weighted statistics
+     */
+    protected function calculateCityWeightedStats($citiesToAnalyze, $extractor, $denominator = null)
+    {
+        $weighted = [];
+
+        foreach ($citiesToAnalyze as $cityKey) {
+            $qualifications = $this->filterByCity($cityKey);
+
+            if ($qualifications->isEmpty()) {
+                continue;
+            }
+
+            $cityTotal = $denominator ? $denominator($qualifications) : $qualifications->count();
+
+            if ($cityTotal <= 0) {
+                continue;
+            }
+
+            $cityCounts = $extractor($qualifications);
+
+            foreach ($cityCounts as $key => $count) {
+                $this->addWeighted($weighted, $key, $count, $cityTotal);
+            }
+        }
+
+        return $this->normalizeByCity($weighted, count($citiesToAnalyze));
+    }
+
+    // ============================================================
+    // DATABASE COMPATIBILITY HELPERS
+    // ============================================================
+
+    /**
+     * Get date format SQL for temporal grouping
+     * Compatible avec SQLite et MySQL/MariaDB
+     *
+     * @param string $groupBy Groupement : 'hour', 'day', 'week', 'month', 'year'
+     * @return string SQL expression for date formatting
+     */
+    protected function getDateFormatSql($groupBy)
+    {
+        $driver = DB::connection()->getDriverName();
+
+        // Définir les formats selon le type de groupement
+        $formats = [
+            'hour' => '%Y-%m-%d %H:00:00',
+            'day' => '%Y-%m-%d',
+            'week' => $driver === 'sqlite' ? '%Y-%W' : '%Y-%u',
+            'month' => '%Y-%m',
+            'year' => '%Y',
+        ];
+
+        $dateFormat = $formats[$groupBy] ?? '%Y-%m-%d';
+
+        // Retourner la fonction SQL appropriée selon le driver
+        return $driver === 'sqlite'
+            ? "strftime('{$dateFormat}', created_at)"
+            : "DATE_FORMAT(created_at, '{$dateFormat}')";
+    }
+
+    // ============================================================
+    // BASE QUERY
+    // ============================================================
+
     /**
      * Base query with filters
+     *
+     * Construit une requête Eloquent de base avec les filtres communs :
+     * - Villes (whereIn)
+     * - Dates de début et fin
+     * - Statut de complétion
+     *
+     * @param array $cities Villes à filtrer (vide = toutes)
+     * @param mixed $startDate Date de début (null = pas de limite)
+     * @param mixed $endDate Date de fin (null = pas de limite)
+     * @param string $status Statut : 'all', 'completed', 'incomplete'
+     * @return \Illuminate\Database\Eloquent\Builder Query builder
      */
     protected function baseQuery(array $cities = [], $startDate = null, $endDate = null, $status = 'all')
     {
