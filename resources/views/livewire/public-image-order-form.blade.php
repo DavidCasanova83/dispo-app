@@ -1,28 +1,28 @@
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-white dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Commander des images</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
                 Remplissez le formulaire ci-dessous pour commander vos images
             </p>
         </div>
 
         {{-- Message de succès --}}
         @if($showSuccessMessage)
-            <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 p-6 border border-green-200 dark:border-green-800">
+            <div class="mb-6 rounded-lg bg-gradient-to-r from-green-500 to-green-600 p-6 shadow-lg">
                 <div class="flex items-start">
-                    <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">Commande confirmée !</h3>
-                        <p class="mt-1 text-sm text-green-700 dark:text-green-300">
+                        <h3 class="text-lg font-semibold text-white">Commande confirmée !</h3>
+                        <p class="mt-1 text-white">
                             Votre commande <strong>{{ $orderNumber }}</strong> a été enregistrée avec succès.
                             Vous allez recevoir un email de confirmation à l'adresse indiquée.
                         </p>
                     </div>
-                    <button type="button" wire:click="closeSuccessMessage" class="text-green-600 dark:text-green-400 hover:text-green-800">
+                    <button type="button" wire:click="closeSuccessMessage" class="text-white hover:text-gray-200 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -46,235 +46,291 @@
 
         <form wire:submit.prevent="submitOrder" class="space-y-6">
             {{-- Formulaire --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Informations client</h2>
+            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8 space-y-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Informations client</h2>
 
                 {{-- Type de client --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Êtes-vous un professionnel ou un particulier ? <span class="text-red-500">*</span>
                     </label>
-                    <select
-                        wire:model.live="customer_type"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
-                    >
-                        <option value="">-- Sélectionnez une option --</option>
-                        <option value="particulier">Particulier</option>
-                        <option value="professionnel">Professionnel</option>
-                    </select>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            wire:click="$set('customer_type', 'particulier')"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'particulier' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Particulier
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('customer_type', 'professionnel')"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'professionnel' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Professionnel
+                        </button>
+                    </div>
                     @error('customer_type')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 {{-- Langue --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Choisissez votre langue favorite <span class="text-red-500">*</span>
                     </label>
-                    <select
-                        wire:model="language"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
-                    >
-                        <option value="francais">Français</option>
-                        <option value="anglais">Anglais</option>
-                        <option value="neerlandais">Néerlandais</option>
-                        <option value="italien">Italien</option>
-                        <option value="allemand">Allemand</option>
-                        <option value="espagnol">Espagnol</option>
-                    </select>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'francais')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'francais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Français
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'anglais')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'anglais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Anglais
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'neerlandais')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'neerlandais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Néerlandais
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'italien')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'italien' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Italien
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'allemand')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'allemand' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Allemand
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('language', 'espagnol')"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'espagnol' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Espagnol
+                        </button>
+                    </div>
                     @error('language')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 {{-- Société (seulement si professionnel) --}}
                 @if($customer_type === 'professionnel')
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Société <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             wire:model.blur="company"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Nom de la société"
                         >
                         @error('company')
-                            <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                            <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
                 @endif
 
+                <hr class="my-6 border-gray-300 dark:border-gray-600">
+
                 {{-- Civilité --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Civilité <span class="text-red-500">*</span>
                     </label>
-                    <div class="flex gap-6">
-                        <label class="flex items-center">
-                            <input type="radio" wire:model="civility" value="mr" class="mr-2 text-[#3E9B90] focus:ring-[#3E9B90]">
-                            <span class="text-gray-700 dark:text-gray-300">Mr</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" wire:model="civility" value="mme" class="mr-2 text-[#3E9B90] focus:ring-[#3E9B90]">
-                            <span class="text-gray-700 dark:text-gray-300">Mme</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" wire:model="civility" value="autre" class="mr-2 text-[#3E9B90] focus:ring-[#3E9B90]">
-                            <span class="text-gray-700 dark:text-gray-300">Autre</span>
-                        </label>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            wire:click="$set('civility', 'mr')"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mr' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Mr
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('civility', 'mme')"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mme' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Mme
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('civility', 'autre')"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'autre' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                        >
+                            Autre
+                        </button>
                     </div>
                     @error('civility')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 {{-- Nom et Prénom --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Nom <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             wire:model.blur="last_name"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Nom"
                         >
                         @error('last_name')
-                            <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                            <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Prénom <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             wire:model.blur="first_name"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Prénom"
                         >
                         @error('first_name')
-                            <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                            <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
                 </div>
 
+                <hr class="my-6 border-gray-300 dark:border-gray-600">
+
                 {{-- Adresse --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Adresse 1 <span class="text-red-500">*</span>
                     </label>
                     <input
                         type="text"
                         wire:model.blur="address_line1"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Adresse 1"
                     >
                     @error('address_line1')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Adresse 2
                     </label>
                     <input
                         type="text"
                         wire:model.blur="address_line2"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Adresse 2 (optionnel)"
                     >
                 </div>
 
                 {{-- Code postal et Ville --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Code Postal <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             wire:model.blur="postal_code"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Code Postal"
                         >
                         @error('postal_code')
-                            <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                            <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Ville <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             wire:model.blur="city"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Ville"
                         >
                         @error('city')
-                            <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                            <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
                 </div>
 
                 {{-- Pays --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Pays <span class="text-red-500">*</span>
                     </label>
                     <input
                         type="text"
                         wire:model.blur="country"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Pays"
                     >
                     @error('country')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
+                <hr class="my-6 border-gray-300 dark:border-gray-600">
+
                 {{-- Email --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Mail <span class="text-red-500">*</span>
                     </label>
                     <input
                         type="email"
                         wire:model.blur="email"
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="exemple@email.com"
                     >
                     @error('email')
-                        <span class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</span>
+                        <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
                 {{-- Téléphone --}}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Indicatif pays
                         </label>
                         <input
                             type="text"
                             wire:model="phone_country_code"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="+33"
                         >
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Numéro de téléphone
                         </label>
                         <input
                             type="tel"
                             wire:model="phone_number"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="6 12 34 56 78"
                         >
                     </div>
@@ -282,8 +338,8 @@
             </div>
 
             {{-- Sélection des images --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Images disponibles</h2>
+            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Images disponibles</h2>
 
                 @if($customer_type === 'particulier' && count($cart) > 0)
                     <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -336,7 +392,7 @@
                                         <button
                                             type="button"
                                             wire:click="addToCart({{ $image->id }}, 1)"
-                                            class="mt-2 w-full px-3 py-1.5 bg-[#3E9B90] text-white text-sm rounded-lg hover:bg-[#357f76] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            class="mt-2 w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                             @if($customer_type === 'particulier' && count($cart) > 0) disabled @endif
                                         >
                                             Ajouter
@@ -351,8 +407,8 @@
 
             {{-- Panier --}}
             @if(!empty($cartItems))
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Votre sélection</h2>
+                <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Votre sélection</h2>
 
                     <div class="space-y-3">
                         @foreach($cartItems as $item)
@@ -388,18 +444,18 @@
             @endif
 
             {{-- Notes --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
+                <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                     Commentaires ou remarques (optionnel)
                 </label>
                 <textarea
                     wire:model="customer_notes"
                     rows="4"
                     maxlength="1000"
-                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"
+                    class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                     placeholder="Ajoutez vos commentaires ici..."
                 ></textarea>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {{ strlen($customer_notes) }}/1000 caractères
                 </p>
             </div>
@@ -408,7 +464,7 @@
             <div class="flex justify-end">
                 <button
                     type="submit"
-                    class="px-8 py-3 bg-[#3E9B90] hover:bg-[#357f76] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-8 py-3 bg-[#3E9B90] text-white text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md"
                     wire:loading.attr="disabled"
                 >
                     <span wire:loading.remove>Envoyer ma commande</span>
