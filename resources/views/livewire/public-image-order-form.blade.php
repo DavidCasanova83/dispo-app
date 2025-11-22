@@ -528,10 +528,13 @@
             @if(config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key'))
                 <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
                     <div class="flex justify-center">
-                        <x-turnstile-widget
-                            theme="auto"
-                            size="normal"
-                        />
+                        <div
+                            class="cf-turnstile"
+                            data-sitekey="{{ config('turnstile.turnstile_site_key') }}"
+                            data-theme="auto"
+                            data-size="normal"
+                            data-callback="onTurnstileSuccess"
+                        ></div>
                     </div>
                     @error('cf-turnstile-response')
                         <p class="text-sm text-red-600 dark:text-red-400 mt-2 text-center">{{ $message }}</p>
@@ -552,4 +555,40 @@
             </div>
         </form>
     </div>
+
+    @if(config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key'))
+        @push('scripts')
+            {{-- Cloudflare Turnstile JavaScript SDK --}}
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+            <script>
+                // Callback appelé lorsque le CAPTCHA est validé avec succès
+                function onTurnstileSuccess(token) {
+                    console.log('✅ Turnstile token reçu:', token.substring(0, 20) + '...');
+
+                    // Envoyer le token directement à la propriété Livewire
+                    const component = Livewire.find(
+                        document.querySelector('[wire\\:id]').getAttribute('wire:id')
+                    );
+
+                    if (component) {
+                        component.set('turnstileToken', token);
+                        console.log('✅ Token envoyé à Livewire property');
+                    } else {
+                        console.error('❌ Composant Livewire non trouvé');
+                    }
+                }
+
+                // Reset du widget après soumission
+                document.addEventListener('livewire:init', () => {
+                    Livewire.on('resetTurnstile', () => {
+                        console.log('🔄 Reset Turnstile widget');
+                        if (typeof turnstile !== 'undefined') {
+                            turnstile.reset();
+                        }
+                    });
+                });
+            </script>
+        @endpush
+    @endif
 </div>

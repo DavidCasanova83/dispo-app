@@ -57,6 +57,9 @@ class PublicImageOrderForm extends Component
     // Quantités temporaires pour les pros (avant ajout au panier)
     public $quantities = [];
 
+    // CAPTCHA Turnstile token
+    public $turnstileToken = '';
+
     public $showSuccessMessage = false;
     public $orderNumber = '';
 
@@ -202,13 +205,62 @@ class PublicImageOrderForm extends Component
             return;
         }
 
-        // Validation CAPTCHA Cloudflare Turnstile (seulement si configuré)
         if (config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key')) {
-            $turnstileResponse = LaravelTurnstile::validate();
-            if (!$turnstileResponse['success']) {
-                $this->addError('cf-turnstile-response', 'La vérification CAPTCHA a échoué. Veuillez réessayer.');
+
+            // Log 1: Configuration
+            logger('🔐 Turnstile Configuration:', [
+                'site_key' => config('turnstile.turnstile_site_key'),
+                'secret_key_preview' => substr(config('turnstile.turnstile_secret_key'), 0, 10) . '...',
+            ]);
+
+            // Log 2: Token reçu depuis la propriété Livewire
+            logger('🎫 Turnstile Token reçu:', [
+                'token_present' => !empty($this->turnstileToken),
+                'token_length' => $this->turnstileToken ? strlen($this->turnstileToken) : 0,
+                'token_preview' => $this->turnstileToken ? substr($this->turnstileToken, 0, 20) . '...' : 'NULL',
+                'livewire_property' => true,
+            ]);
+
+            // Si le token n'est pas dans la propriété Livewire, vérifier dans la requête
+            if (empty($this->turnstileToken)) {
+                $requestToken = request()->get('cf-turnstile-response');
+                logger('🔍 Vérification du token dans la requête:', [
+                    'request_token_present' => !empty($requestToken),
+                    'request_token_length' => $requestToken ? strlen($requestToken) : 0,
+                ]);
+
+                if (!empty($requestToken)) {
+                    $this->turnstileToken = $requestToken;
+                }
+            }
+
+            // Vérifier que le token est présent
+            if (empty($this->turnstileToken)) {
+                logger('❌ Aucun token Turnstile trouvé');
+                $this->addError('turnstileToken', 'La vérification CAPTCHA a échoué. Veuillez réessayer.');
                 return;
             }
+
+            // Validation avec Cloudflare
+            $turnstileResponse = LaravelTurnstile::validate($this->turnstileToken);
+
+            // Log 3: Réponse complète de Cloudflare
+            logger('📡 Turnstile API Response:', $turnstileResponse);
+
+            if (!$turnstileResponse['success']) {
+                // Log 4: Détails de l'échec
+                logger('❌ Turnstile Validation Failed:', [
+                    'error_codes' => $turnstileResponse['error-codes'] ?? [],
+                    'success' => $turnstileResponse['success'],
+                    'full_response' => $turnstileResponse,
+                ]);
+
+                $this->addError('turnstileToken', 'La vérification CAPTCHA a échoué. Veuillez réessayer.');
+                return;
+            }
+
+            // Log 5: Succès
+            logger('✅ Turnstile Validation Success');
         }
 
         // Valider le formulaire
@@ -225,6 +277,7 @@ class PublicImageOrderForm extends Component
             'country' => Purify::clean($this->country),
             'customer_notes' => Purify::clean($this->customer_notes),
         ];
+
 
         try {
             DB::beginTransaction();
@@ -294,7 +347,6 @@ class PublicImageOrderForm extends Component
 
             // Réinitialiser le formulaire
             $this->resetForm();
-
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', 'Une erreur est survenue lors de la création de votre commande. Veuillez réessayer.');
@@ -336,6 +388,7 @@ class PublicImageOrderForm extends Component
         $this->showSuccessMessage = false;
         $this->orderNumber = '';
     }
+
 
     public function render()
     {

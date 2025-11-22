@@ -66,7 +66,7 @@ class OrderManager extends Component
         $orders = ImageOrder::with(['items.image'])
             ->search($this->search)
             ->byStatus($this->statusFilter)
-            ->oldest()
+            ->latest()
             ->get();
 
         $filename = 'commandes_' . date('Y-m-d_His') . '.csv';
@@ -133,7 +133,7 @@ class OrderManager extends Component
         $orders = ImageOrder::with(['items.image'])
             ->search($this->search)
             ->byStatus($this->statusFilter)
-            ->oldest()
+            ->latest()
             ->paginate(20);
 
         $stats = [
