@@ -22,7 +22,7 @@
                             Vous allez recevoir un email de confirmation à l'adresse indiquée.
                         </p>
                     </div>
-                    <button wire:click="closeSuccessMessage" class="text-green-600 dark:text-green-400 hover:text-green-800">
+                    <button type="button" wire:click="closeSuccessMessage" class="text-green-600 dark:text-green-400 hover:text-green-800">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -325,6 +325,7 @@
                                                 class="w-16 px-2 py-1 text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                             >
                                             <button
+                                                type="button"
                                                 wire:click="removeFromCart({{ $image->id }})"
                                                 class="text-xs text-red-600 dark:text-red-400 hover:underline"
                                             >
@@ -333,8 +334,9 @@
                                         </div>
                                     @else
                                         <button
+                                            type="button"
                                             wire:click="addToCart({{ $image->id }}, 1)"
-                                            class="mt-2 w-full px-3 py-1.5 bg-[#3E9B90] text-white text-sm rounded-lg hover:bg-[#357f76] transition-colors"
+                                            class="mt-2 w-full px-3 py-1.5 bg-[#3E9B90] text-white text-sm rounded-lg hover:bg-[#357f76] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             @if($customer_type === 'particulier' && count($cart) > 0) disabled @endif
                                         >
                                             Ajouter
@@ -371,6 +373,7 @@
                                     </div>
                                 </div>
                                 <button
+                                    type="button"
                                     wire:click="removeFromCart({{ $item['image']->id }})"
                                     class="text-red-600 dark:text-red-400 hover:text-red-800"
                                 >
