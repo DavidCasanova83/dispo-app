@@ -44,6 +44,9 @@ class PublicImageOrderForm extends Component
     // Panier d'images
     public $cart = []; // Format: ['image_id' => 'quantity']
 
+    // Quantités temporaires pour les pros (avant ajout au panier)
+    public $quantities = [];
+
     public $showSuccessMessage = false;
     public $orderNumber = '';
 

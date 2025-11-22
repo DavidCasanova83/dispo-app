@@ -339,13 +339,49 @@
 
             {{-- Sélection des images --}}
             <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Images disponibles</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Images disponibles</h2>
 
-                @if($customer_type === 'particulier' && count($cart) > 0)
-                    <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p class="text-sm text-blue-800 dark:text-blue-200">
-                            En tant que particulier, vous ne pouvez commander qu'une seule image.
-                        </p>
+                {{-- Messages d'information selon le type de client --}}
+                @if($customer_type === 'particulier')
+                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-blue-800 dark:text-blue-200">Particulier</p>
+                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                                    Vous pouvez commander <strong>1 seule image</strong> (quantité fixe : 1).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($customer_type === 'professionnel')
+                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-green-800 dark:text-green-200">Professionnel</p>
+                                <p class="text-sm text-green-700 dark:text-green-300 mt-1">
+                                    Vous pouvez commander <strong>plusieurs images</strong> et choisir la <strong>quantité désirée</strong> pour chaque image.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    Veuillez d'abord sélectionner si vous êtes un <strong>particulier</strong> ou un <strong>professionnel</strong> pour commander des images.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 @endif
 
@@ -371,6 +407,7 @@
                                     </p>
 
                                     @if(isset($cart[$image->id]))
+                                        {{-- Image déjà dans le panier --}}
                                         <div class="mt-2 flex items-center gap-2">
                                             <input
                                                 type="number"
@@ -389,14 +426,38 @@
                                             </button>
                                         </div>
                                     @else
-                                        <button
-                                            type="button"
-                                            wire:click="addToCart({{ $image->id }}, 1)"
-                                            class="mt-2 w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                            @if($customer_type === 'particulier' && count($cart) > 0) disabled @endif
-                                        >
-                                            Ajouter
-                                        </button>
+                                        {{-- Ajout au panier --}}
+                                        @if($customer_type === 'professionnel')
+                                            {{-- Pour les pros: champ quantité + bouton ajouter --}}
+                                            <div class="mt-2 space-y-2">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="{{ $image->quantity_available }}"
+                                                    value="1"
+                                                    wire:model.defer="quantities.{{ $image->id }}"
+                                                    class="w-full px-2 py-1.5 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                                    placeholder="Quantité"
+                                                >
+                                                <button
+                                                    type="button"
+                                                    wire:click="addToCart({{ $image->id }}, $wire.quantities[{{ $image->id }}] ?? 1)"
+                                                    class="w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
+                                                >
+                                                    Ajouter
+                                                </button>
+                                            </div>
+                                        @else
+                                            {{-- Pour les particuliers: bouton ajouter direct (quantité 1) --}}
+                                            <button
+                                                type="button"
+                                                wire:click="addToCart({{ $image->id }}, 1)"
+                                                class="mt-2 w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                                @if(count($cart) > 0) disabled @endif
+                                            >
+                                                Ajouter
+                                            </button>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
