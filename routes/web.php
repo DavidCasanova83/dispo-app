@@ -10,7 +10,10 @@ Route::get('/', function () {
 })->name('home');
 
 // Route publique pour commander des images (pas d'authentification requise)
-Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)->name('order.images');
+// Protection: 10 consultations par minute, 5 soumissions par heure
+Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
+    ->middleware('throttle:order-form')
+    ->name('order.images');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])

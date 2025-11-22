@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-white dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -45,6 +45,9 @@
         @endif
 
         <form wire:submit.prevent="submitOrder" class="space-y-6">
+            {{-- Protection Honeypot anti-spam --}}
+            <x-honeypot wire:model="honeypot" />
+
             {{-- Formulaire --}}
             <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8 space-y-6">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Informations client</h2>
@@ -58,14 +61,14 @@
                         <button
                             type="button"
                             wire:click="$set('customer_type', 'particulier')"
-                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'particulier' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'particulier' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Particulier
                         </button>
                         <button
                             type="button"
                             wire:click="$set('customer_type', 'professionnel')"
-                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'professionnel' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $customer_type === 'professionnel' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Professionnel
                         </button>
@@ -84,42 +87,42 @@
                         <button
                             type="button"
                             wire:click="$set('language', 'francais')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'francais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'francais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Français
                         </button>
                         <button
                             type="button"
                             wire:click="$set('language', 'anglais')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'anglais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'anglais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Anglais
                         </button>
                         <button
                             type="button"
                             wire:click="$set('language', 'neerlandais')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'neerlandais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'neerlandais' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Néerlandais
                         </button>
                         <button
                             type="button"
                             wire:click="$set('language', 'italien')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'italien' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'italien' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Italien
                         </button>
                         <button
                             type="button"
                             wire:click="$set('language', 'allemand')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'allemand' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'allemand' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Allemand
                         </button>
                         <button
                             type="button"
                             wire:click="$set('language', 'espagnol')"
-                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'espagnol' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="px-4 py-2.5 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $language === 'espagnol' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Espagnol
                         </button>
@@ -138,7 +141,7 @@
                         <input
                             type="text"
                             wire:model.blur="company"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Nom de la société"
                         >
                         @error('company')
@@ -147,7 +150,7 @@
                     </div>
                 @endif
 
-                <hr class="my-6 border-gray-300 dark:border-gray-600">
+                <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Civilité --}}
                 <div>
@@ -158,21 +161,21 @@
                         <button
                             type="button"
                             wire:click="$set('civility', 'mr')"
-                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mr' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mr' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Mr
                         </button>
                         <button
                             type="button"
                             wire:click="$set('civility', 'mme')"
-                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mme' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'mme' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Mme
                         </button>
                         <button
                             type="button"
                             wire:click="$set('civility', 'autre')"
-                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'autre' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' }}"
+                            class="flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 {{ $civility === 'autre' ? 'bg-[#3E9B90] text-white shadow-md scale-105' : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 border border-gray-300 dark:border-transparent' }}"
                         >
                             Autre
                         </button>
@@ -191,7 +194,7 @@
                         <input
                             type="text"
                             wire:model.blur="last_name"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Nom"
                         >
                         @error('last_name')
@@ -205,7 +208,7 @@
                         <input
                             type="text"
                             wire:model.blur="first_name"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Prénom"
                         >
                         @error('first_name')
@@ -214,7 +217,7 @@
                     </div>
                 </div>
 
-                <hr class="my-6 border-gray-300 dark:border-gray-600">
+                <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Adresse --}}
                 <div>
@@ -224,7 +227,7 @@
                     <input
                         type="text"
                         wire:model.blur="address_line1"
-                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Adresse 1"
                     >
                     @error('address_line1')
@@ -239,7 +242,7 @@
                     <input
                         type="text"
                         wire:model.blur="address_line2"
-                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Adresse 2 (optionnel)"
                     >
                 </div>
@@ -253,7 +256,7 @@
                         <input
                             type="text"
                             wire:model.blur="postal_code"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Code Postal"
                         >
                         @error('postal_code')
@@ -267,7 +270,7 @@
                         <input
                             type="text"
                             wire:model.blur="city"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="Ville"
                         >
                         @error('city')
@@ -284,7 +287,7 @@
                     <input
                         type="text"
                         wire:model.blur="country"
-                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="Pays"
                     >
                     @error('country')
@@ -292,7 +295,7 @@
                     @enderror
                 </div>
 
-                <hr class="my-6 border-gray-300 dark:border-gray-600">
+                <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Email --}}
                 <div>
@@ -302,7 +305,7 @@
                     <input
                         type="email"
                         wire:model.blur="email"
-                        class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                         placeholder="exemple@email.com"
                     >
                     @error('email')
@@ -319,7 +322,7 @@
                         <input
                             type="text"
                             wire:model="phone_country_code"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="+33"
                         >
                     </div>
@@ -330,7 +333,7 @@
                         <input
                             type="tel"
                             wire:model="phone_number"
-                            class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                             placeholder="6 12 34 56 78"
                         >
                     </div>
@@ -343,7 +346,7 @@
 
                 {{-- Messages d'information selon le type de client --}}
                 @if($customer_type === 'particulier')
-                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div class="mb-6 p-4 bg-blue-100 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-800">
                         <div class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -357,7 +360,7 @@
                         </div>
                     </div>
                 @elseif($customer_type === 'professionnel')
-                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-300 dark:border-green-800">
                         <div class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -371,7 +374,7 @@
                         </div>
                     </div>
                 @else
-                    <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div class="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700">
                         <div class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -392,7 +395,7 @@
                 @else
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         @foreach($availableImages as $image)
-                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div class="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-transparent shadow-sm">
                                 <img
                                     src="{{ asset('storage/' . $image->thumbnail_path) }}"
                                     alt="{{ $image->title }}"
@@ -415,7 +418,7 @@
                                                 max="{{ $image->quantity_available }}"
                                                 value="{{ $cart[$image->id] }}"
                                                 wire:change="updateCartQuantity({{ $image->id }}, $event.target.value)"
-                                                class="w-16 px-2 py-1 text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                class="w-16 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             >
                                             <button
                                                 type="button"
@@ -436,7 +439,7 @@
                                                     max="{{ $image->quantity_available }}"
                                                     value="1"
                                                     wire:model.defer="quantities.{{ $image->id }}"
-                                                    class="w-full px-2 py-1.5 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                                    class="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
                                                     placeholder="Quantité"
                                                 >
                                                 <button
@@ -473,7 +476,7 @@
 
                     <div class="space-y-3">
                         @foreach($cartItems as $item)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-transparent">
                                 <div class="flex items-center gap-3">
                                     <img
                                         src="{{ asset('storage/' . $item['image']->thumbnail_path) }}"
@@ -513,13 +516,28 @@
                     wire:model="customer_notes"
                     rows="4"
                     maxlength="1000"
-                    class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
                     placeholder="Ajoutez vos commentaires ici..."
                 ></textarea>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {{ strlen($customer_notes) }}/1000 caractères
                 </p>
             </div>
+
+            {{-- Protection CAPTCHA Cloudflare Turnstile --}}
+            @if(config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key'))
+                <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
+                    <div class="flex justify-center">
+                        <x-turnstile-widget
+                            theme="auto"
+                            size="normal"
+                        />
+                    </div>
+                    @error('cf-turnstile-response')
+                        <p class="text-sm text-red-600 dark:text-red-400 mt-2 text-center">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
 
             {{-- Bouton de soumission --}}
             <div class="flex justify-end">

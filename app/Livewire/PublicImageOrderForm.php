@@ -7,13 +7,23 @@ use App\Models\ImageOrder;
 use App\Models\ImageOrderItem;
 use App\Models\OrderNotificationUser;
 use App\Models\User;
+use App\Rules\NoSpamContent;
+use App\Rules\NotDisposableEmail;
+use Coderflex\LaravelTurnstile\Facades\LaravelTurnstile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Component;
+use Spatie\Honeypot\Http\Livewire\Concerns\HoneypotData;
+use Spatie\Honeypot\Http\Livewire\Concerns\UsesSpamProtection;
+use Stevebauman\Purify\Facades\Purify;
 
 class PublicImageOrderForm extends Component
 {
+    use UsesSpamProtection;
+
+    public HoneypotData $honeypot;
+
     // Type de client
     public $customer_type = '';
 
@@ -50,28 +60,36 @@ class PublicImageOrderForm extends Component
     public $showSuccessMessage = false;
     public $orderNumber = '';
 
+    /**
+     * Initialiser le composant
+     */
+    public function mount()
+    {
+        $this->honeypot = new HoneypotData();
+    }
+
     protected function rules()
     {
         $rules = [
             'customer_type' => 'required|in:professionnel,particulier',
             'language' => 'required|in:francais,anglais,neerlandais,italien,allemand,espagnol',
             'civility' => 'required|in:mr,mme,autre',
-            'last_name' => 'required|string|max:255',
-            'first_name' => 'required|string|max:255',
+            'last_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
+            'first_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
             'address_line1' => 'required|string|max:255',
             'address_line2' => 'nullable|string|max:255',
-            'postal_code' => 'required|string|max:20',
-            'city' => 'required|string|max:255',
-            'country' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone_country_code' => 'nullable|string|max:10',
-            'phone_number' => 'nullable|string|max:20',
-            'customer_notes' => 'nullable|string|max:1000',
+            'postal_code' => ['required', 'string', 'max:20', 'regex:/^[0-9A-Za-z\s\-]+$/'],
+            'city' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
+            'country' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
+            'email' => ['required', 'email:rfc,dns', 'max:255', new NotDisposableEmail()],
+            'phone_country_code' => ['nullable', 'string', 'max:10', 'regex:/^\+?[0-9]+$/'],
+            'phone_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\(\)]+$/'],
+            'customer_notes' => ['nullable', 'string', 'max:1000', new NoSpamContent()],
         ];
 
         // Société obligatoire si professionnel
         if ($this->customer_type === 'professionnel') {
-            $rules['company'] = 'required|string|max:255';
+            $rules['company'] = ['required', 'string', 'max:255', new NoSpamContent()];
         }
 
         return $rules;
@@ -175,14 +193,38 @@ class PublicImageOrderForm extends Component
      */
     public function submitOrder()
     {
+        // Protection anti-spam honeypot
+        $this->protectAgainstSpam();
+
         // Vérifier qu'il y a au moins une image
         if (empty($this->cart)) {
             session()->flash('error', 'Veuillez ajouter au moins une image à votre commande.');
             return;
         }
 
+        // Validation CAPTCHA Cloudflare Turnstile (seulement si configuré)
+        if (config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key')) {
+            $turnstileResponse = LaravelTurnstile::validate();
+            if (!$turnstileResponse['success']) {
+                $this->addError('cf-turnstile-response', 'La vérification CAPTCHA a échoué. Veuillez réessayer.');
+                return;
+            }
+        }
+
         // Valider le formulaire
-        $validated = $this->validate();
+        $this->validate();
+
+        // Sanitiser les données textuelles pour éviter les injections XSS
+        $sanitizedData = [
+            'last_name' => Purify::clean($this->last_name),
+            'first_name' => Purify::clean($this->first_name),
+            'company' => $this->customer_type === 'professionnel' ? Purify::clean($this->company) : null,
+            'address_line1' => Purify::clean($this->address_line1),
+            'address_line2' => Purify::clean($this->address_line2),
+            'city' => Purify::clean($this->city),
+            'country' => Purify::clean($this->country),
+            'customer_notes' => Purify::clean($this->customer_notes),
+        ];
 
         try {
             DB::beginTransaction();
@@ -192,25 +234,28 @@ class PublicImageOrderForm extends Component
                 'order_number' => ImageOrder::generateOrderNumber(),
                 'customer_type' => $this->customer_type,
                 'language' => $this->language,
-                'company' => $this->customer_type === 'professionnel' ? $this->company : null,
+                'company' => $sanitizedData['company'],
                 'civility' => $this->civility,
-                'last_name' => $this->last_name,
-                'first_name' => $this->first_name,
-                'address_line1' => $this->address_line1,
-                'address_line2' => $this->address_line2,
+                'last_name' => $sanitizedData['last_name'],
+                'first_name' => $sanitizedData['first_name'],
+                'address_line1' => $sanitizedData['address_line1'],
+                'address_line2' => $sanitizedData['address_line2'],
                 'postal_code' => $this->postal_code,
-                'city' => $this->city,
-                'country' => $this->country,
-                'email' => $this->email,
+                'city' => $sanitizedData['city'],
+                'country' => $sanitizedData['country'],
+                'email' => strtolower(trim($this->email)),
                 'phone_country_code' => $this->phone_country_code,
                 'phone_number' => $this->phone_number,
-                'customer_notes' => $this->customer_notes,
+                'customer_notes' => $sanitizedData['customer_notes'],
                 'status' => 'pending',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
             ]);
 
             // Créer les items de commande et décrémenter le stock
+            // Utilisation de lockForUpdate() pour éviter les race conditions
             foreach ($this->cart as $imageId => $quantity) {
-                $image = Image::find($imageId);
+                $image = Image::where('id', $imageId)->lockForUpdate()->first();
 
                 if ($image && $image->quantity_available >= $quantity) {
                     // Créer l'item
@@ -220,8 +265,13 @@ class PublicImageOrderForm extends Component
                         'quantity' => $quantity,
                     ]);
 
-                    // Décrémenter le stock
+                    // Décrémenter le stock de manière atomique
                     $image->decrement('quantity_available', $quantity);
+                } else {
+                    // Stock insuffisant - annuler la transaction
+                    DB::rollBack();
+                    session()->flash('error', 'Stock insuffisant pour une ou plusieurs images. Veuillez réessayer.');
+                    return;
                 }
             }
 

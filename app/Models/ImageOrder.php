@@ -30,6 +30,8 @@ class ImageOrder extends Model
         'status',
         'customer_notes',
         'admin_notes',
+        'ip_address',
+        'user_agent',
     ];
 
     protected $casts = [
