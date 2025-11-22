@@ -855,3 +855,427 @@ Si vous rencontrez des problèmes :
 **Temps total estimé : 30-45 minutes**
 
 Bonne implémentation ! 🎉
+
+---
+
+# 📧 Configuration des Notifications Email
+
+## Vue d'ensemble
+
+Le système de commande d'images est **déjà préparé** pour envoyer des emails, mais les notifications ne sont pas encore activées. Cette section explique comment configurer et activer les emails de confirmation.
+
+---
+
+## 🎯 Emails à implémenter
+
+### 1. Email de confirmation client
+- **Destinataire** : Client qui a passé la commande
+- **Contenu** :
+  - Numéro de commande
+  - Résumé des informations saisies
+  - Liste des images commandées avec quantités
+  - Message de confirmation
+
+### 2. Email de notification admin
+- **Destinataires** : Utilisateurs désignés dans `order_notification_users`
+- **Contenu** :
+  - Nouvelle commande reçue
+  - Informations du client
+  - Lien direct vers les détails de la commande
+  - Liste des images commandées
+
+---
+
+## ⚙️ Configuration .env
+
+### Étape 1 : Configurer le serveur SMTP
+
+Ajouter/modifier ces lignes dans votre fichier `.env` :
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io  # ou smtp.gmail.com, smtp.sendgrid.net, etc.
+MAIL_PORT=2525              # 587 pour la plupart des serveurs
+MAIL_USERNAME=your_username
+MAIL_PASSWORD=your_password
+MAIL_ENCRYPTION=tls         # ou ssl
+MAIL_FROM_ADDRESS=noreply@votredomaine.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+### Options de services email :
+
+**Pour le développement (recommandé) :**
+- **Mailtrap** : https://mailtrap.io (gratuit, test d'emails)
+- **MailHog** : Local, pas de config externe
+
+**Pour la production :**
+- **Gmail** : Facile à configurer mais limité
+- **SendGrid** : Professionnel, quota gratuit généreux
+- **Mailgun** : Bon pour volumes importants
+- **Amazon SES** : Très fiable et économique
+
+---
+
+## 🔧 Étapes d'implémentation
+
+### Étape 1 : Créer les classes Mailable
+
+#### Email de confirmation client
+
+```bash
+php artisan make:mail OrderConfirmation --markdown=emails.orders.confirmation
+```
+
+**Fichier** : `app/Mail/OrderConfirmation.php`
+
+```php
+<?php
+
+namespace App\Mail;
+
+use App\Models\ImageOrder;
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class OrderConfirmation extends Mailable
+{
+    use Queueable, SerializesModels;
+
+    public function __construct(
+        public ImageOrder $order
+    ) {}
+
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: 'Confirmation de votre commande ' . $this->order->order_number,
+        );
+    }
+
+    public function content(): Content
+    {
+        return new Content(
+            markdown: 'emails.orders.confirmation',
+        );
+    }
+}
+```
+
+**Vue** : `resources/views/emails/orders/confirmation.blade.php`
+
+```blade
+@component('mail::message')
+# Commande confirmée !
+
+Bonjour {{ $order->civility }} {{ $order->full_name }},
+
+Votre commande **{{ $order->order_number }}** a bien été enregistrée.
+
+## Images commandées
+
+@foreach($order->items as $item)
+- {{ $item->image->title ?? $item->image->name }} (Quantité: {{ $item->quantity }})
+@endforeach
+
+## Informations de livraison
+
+{{ $order->full_address }}
+
+@if($order->customer_notes)
+## Vos remarques
+
+{{ $order->customer_notes }}
+@endif
+
+Nous vous tiendrons informé de l'avancement de votre commande.
+
+Merci,<br>
+{{ config('app.name') }}
+@endcomponent
+```
+
+---
+
+#### Email de notification admin
+
+```bash
+php artisan make:notification NewOrderNotification
+```
+
+**Fichier** : `app/Notifications/NewOrderNotification.php`
+
+```php
+<?php
+
+namespace App\Notifications;
+
+use App\Models\ImageOrder;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class NewOrderNotification extends Notification
+{
+    use Queueable;
+
+    public function __construct(
+        public ImageOrder $order
+    ) {}
+
+    public function via($notifiable): array
+    {
+        return ['mail'];
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Nouvelle commande d\'images - ' . $this->order->order_number)
+            ->greeting('Nouvelle commande reçue !')
+            ->line('Une nouvelle commande d\'images a été passée.')
+            ->line('**Numéro** : ' . $this->order->order_number)
+            ->line('**Client** : ' . $this->order->full_name)
+            ->line('**Email** : ' . $this->order->email)
+            ->line('**Type** : ' . ucfirst($this->order->customer_type))
+            ->line('**Images** : ' . $this->order->items->count())
+            ->action('Voir la commande', route('admin.orders'))
+            ->line('Merci de traiter cette commande rapidement.');
+    }
+}
+```
+
+---
+
+### Étape 2 : Activer l'envoi dans le code
+
+**Fichier** : `app/Livewire/PublicImageOrderForm.php`
+
+Décommenter et activer les lignes suivantes (lignes 228-236) :
+
+```php
+// Envoyer email de confirmation au client
+Mail::to($this->email)->send(new OrderConfirmation($order));
+
+// Notifier les admins
+$notifiableUsers = OrderNotificationUser::getNotifiableUsers();
+if ($notifiableUsers->isNotEmpty()) {
+    Notification::send($notifiableUsers, new NewOrderNotification($order));
+}
+```
+
+Ajouter les imports en haut du fichier :
+
+```php
+use App\Mail\OrderConfirmation;
+use App\Notifications\NewOrderNotification;
+```
+
+---
+
+### Étape 3 : Gérer les utilisateurs à notifier
+
+Pour permettre aux admins de choisir qui reçoit les notifications, créer une page de configuration.
+
+#### Option 1 : Via Tinker (rapide pour tester)
+
+```bash
+php artisan tinker
+
+# Ajouter un utilisateur aux notifications
+App\Models\OrderNotificationUser::create(['user_id' => 1]);
+
+# Lister les utilisateurs notifiés
+App\Models\OrderNotificationUser::with('user')->get();
+
+# Retirer un utilisateur
+App\Models\OrderNotificationUser::where('user_id', 1)->delete();
+```
+
+#### Option 2 : Créer une interface admin (recommandé)
+
+Créer un composant Livewire pour gérer les notifications :
+
+```bash
+php artisan make:livewire Admin/NotificationSettings
+```
+
+Ajouter une page dans l'admin pour sélectionner les utilisateurs qui doivent recevoir les notifications de nouvelles commandes.
+
+---
+
+## 📋 Configuration par service
+
+### Gmail (Développement/Production limitée)
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=votre.email@gmail.com
+MAIL_PASSWORD=votre_mot_de_passe_application  # Pas votre mot de passe Gmail !
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=votre.email@gmail.com
+MAIL_FROM_NAME="Nom de votre app"
+```
+
+⚠️ **Important Gmail** : Utilisez un "Mot de passe d'application", pas votre mot de passe Gmail normal.
+1. Allez dans Paramètres Google > Sécurité > Validation en deux étapes
+2. Créez un mot de passe d'application
+3. Utilisez ce mot de passe dans `.env`
+
+---
+
+### Mailtrap (Développement - Recommandé)
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=votre_username_mailtrap
+MAIL_PASSWORD=votre_password_mailtrap
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=test@example.com
+MAIL_FROM_NAME="Dispo App"
+```
+
+Créez un compte sur https://mailtrap.io et récupérez vos identifiants.
+
+---
+
+### SendGrid (Production)
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.sendgrid.net
+MAIL_PORT=587
+MAIL_USERNAME=apikey
+MAIL_PASSWORD=votre_api_key_sendgrid
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@votredomaine.com
+MAIL_FROM_NAME="Dispo App"
+```
+
+---
+
+## 🧪 Tester l'envoi d'emails
+
+### Commande de test
+
+```bash
+php artisan tinker
+```
+
+```php
+// Tester l'envoi d'un email de confirmation
+$order = App\Models\ImageOrder::first();
+Mail::to('test@example.com')->send(new App\Mail\OrderConfirmation($order));
+```
+
+### Vérifier la configuration
+
+```bash
+# Vérifier la config mail
+php artisan config:clear
+php artisan config:cache
+
+# Tester avec un email simple
+php artisan tinker
+Mail::raw('Test email', function($msg) {
+    $msg->to('test@example.com')->subject('Test');
+});
+```
+
+---
+
+## 🚀 Utilisation des queues (Optionnel mais recommandé)
+
+Pour ne pas ralentir le formulaire lors de l'envoi, utiliser les queues Laravel :
+
+### Étape 1 : Configuration
+
+```env
+QUEUE_CONNECTION=database
+```
+
+### Étape 2 : Créer la table des jobs
+
+```bash
+php artisan queue:table
+php artisan migrate
+```
+
+### Étape 3 : Modifier les Mailables
+
+Ajouter `implements ShouldQueue` :
+
+```php
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class OrderConfirmation extends Mailable implements ShouldQueue
+{
+    // ...
+}
+```
+
+### Étape 4 : Lancer le worker
+
+```bash
+php artisan queue:work
+```
+
+En production, utilisez Supervisor pour gérer le worker automatiquement.
+
+---
+
+## 📊 Checklist d'activation des emails
+
+- [ ] Configurer `.env` avec les paramètres SMTP
+- [ ] Créer `OrderConfirmation` Mailable
+- [ ] Créer `NewOrderNotification` Notification
+- [ ] Créer les vues emails (Blade)
+- [ ] Décommenter les lignes d'envoi dans `PublicImageOrderForm.php`
+- [ ] Ajouter les imports nécessaires
+- [ ] Ajouter au moins un utilisateur dans `order_notification_users`
+- [ ] Tester l'envoi en local avec Mailtrap
+- [ ] (Optionnel) Configurer les queues pour les performances
+
+---
+
+## 🔍 Dépannage
+
+### Les emails ne partent pas
+
+1. Vérifier la configuration `.env`
+2. Nettoyer le cache : `php artisan config:clear`
+3. Vérifier les logs : `storage/logs/laravel.log`
+4. Tester la connexion SMTP manuellement
+
+### Les emails vont dans les spams
+
+1. Configurer SPF, DKIM, DMARC sur votre domaine
+2. Utiliser un service professionnel (SendGrid, Mailgun)
+3. Réchauffer votre IP si vous utilisez un serveur dédié
+
+### Erreur "Connection refused"
+
+- Vérifier que le port n'est pas bloqué par un firewall
+- Vérifier les identifiants SMTP
+- Essayer un autre port (587, 465, 2525)
+
+---
+
+## 📚 Ressources
+
+- [Laravel Mail Documentation](https://laravel.com/docs/11.x/mail)
+- [Laravel Notifications](https://laravel.com/docs/11.x/notifications)
+- [Laravel Queues](https://laravel.com/docs/11.x/queues)
+- [Mailtrap](https://mailtrap.io)
+- [SendGrid](https://sendgrid.com)
+
+---
+
+**Note** : Les emails sont actuellement désactivés pour ne pas bloquer le développement. Suivez ce guide pour les activer quand vous serez prêt.

@@ -9,6 +9,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Route publique pour commander des images (pas d'authentification requise)
+Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)->name('order.images');
+
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])
     ->name('dashboard');
@@ -58,6 +61,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Route pour la gestion des images - requires manage-images permission
     Route::middleware(['permission:manage-images'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
+    });
+
+    // Route pour la gestion des commandes - requires manage-orders permission
+    Route::middleware(['permission:manage-orders'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/commandes', \App\Livewire\Admin\OrderManager::class)->name('orders');
     });
 
     // Routes pour le module Qualification

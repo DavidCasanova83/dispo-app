@@ -17,12 +17,24 @@
             <flux:navlist.group :heading="__('Platform')" class="grid">
                 <flux:navlist.item icon="home" :href="route('dashboard')" :current="request() -> routeIs('dashboard')"
                     wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-
-                @can('manage-users')
-                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.*')"
-                        wire:navigate>{{ __('Administration') }}</flux:navlist.item>
-                @endcan
             </flux:navlist.group>
+
+            @can('manage-users')
+                <flux:navlist.group :heading="__('Administration')" class="grid">
+                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.users')"
+                        wire:navigate>{{ __('Utilisateurs') }}</flux:navlist.item>
+
+                    @can('manage-images')
+                        <flux:navlist.item icon="photo" :href="route('admin.images')" :current="request() -> routeIs('admin.images')"
+                            wire:navigate>{{ __('Images') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('manage-orders')
+                        <flux:navlist.item icon="shopping-bag" :href="route('admin.orders')" :current="request() -> routeIs('admin.orders')"
+                            wire:navigate>{{ __('Commandes') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcan
 
             @can('view-qualification')
                 <flux:navlist.group :heading="__('Qualification')" class="grid">
