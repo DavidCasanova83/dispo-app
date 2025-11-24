@@ -49,6 +49,7 @@ class QualificationForm extends Component
     // État UI
     public $showSuccessMessage = false;
     public $qualificationId = null;
+    public $formResetKey = 0;
 
     // Options de formulaire
     public $specificOptions = [];
@@ -426,6 +427,9 @@ class QualificationForm extends Component
         $this->otherRequest = '';
         $this->showOtherSpecificDropdown = false;
         $this->otherSpecificSearchQuery = '';
+
+        // Incrémenter le compteur de reset pour forcer la recréation des composants enfants
+        $this->formResetKey++;
 
         // Afficher le message de succès
         $this->showSuccessMessage = true;
