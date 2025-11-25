@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Accommodation extends Model
 {
@@ -89,6 +90,14 @@ class Accommodation extends Model
   }
 
   /**
+   * Get all responses for this accommodation.
+   */
+  public function responses(): HasMany
+  {
+    return $this->hasMany(AccommodationResponse::class);
+  }
+
+  /**
    * Generate a unique response token for email tracking.
    */
   public function generateResponseToken(): string
@@ -108,9 +117,19 @@ class Accommodation extends Model
 
   /**
    * Update the availability status based on email response.
+   * Also records the response in the history.
    */
-  public function updateAvailability(bool $available): void
+  public function updateAvailability(bool $available, ?string $token = null, ?string $ipAddress = null, ?string $userAgent = null): void
   {
+    // Enregistrer dans l'historique
+    $this->responses()->create([
+      'is_available' => $available,
+      'response_token' => $token,
+      'ip_address' => $ipAddress,
+      'user_agent' => $userAgent,
+    ]);
+
+    // Mettre à jour le statut actuel
     $this->update([
       'status' => $available ? 'disponible' : 'indisponible',
       'last_response_at' => now(),

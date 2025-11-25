@@ -38,8 +38,13 @@ class AccommodationResponseController extends Controller
             ]);
         }
 
-        // Met à jour la disponibilité
-        $accommodation->updateAvailability($available);
+        // Met à jour la disponibilité avec les métadonnées
+        $accommodation->updateAvailability(
+            $available,
+            $token,
+            $request->ip(),
+            $request->userAgent()
+        );
 
         $status = $available ? 'disponible' : 'indisponible';
         Log::info("Accommodation {$accommodation->id} updated status to {$status}");
