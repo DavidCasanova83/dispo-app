@@ -12,7 +12,9 @@
       "Bash(del test_export.php)",
       "Bash(sqlite3:*)",
       "Bash(del \"C:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\app\\Livewire\\QualificationStatistics.php\")",
-      "Bash(del \"C:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\resources\\views\\livewire\\qualification\\statistics.blade.php\")"
+      "Bash(del \"C:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\resources\\views\\livewire\\qualification\\statistics.blade.php\")",
+      "Bash(curl:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
