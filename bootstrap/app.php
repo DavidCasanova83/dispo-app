@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function ($schedule) {
         // Import Apidae tous les jours à 5h du matin
-        $schedule->command('apidae:fetch --test')
+        $schedule->command('apidae:fetch --all')
             ->dailyAt('05:00')
             ->withoutOverlapping()
             ->runInBackground()
