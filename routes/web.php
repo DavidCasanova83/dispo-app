@@ -53,6 +53,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Routes pour l'administration des utilisateurs - requires manage-users permission (Super-admin only)
     Route::middleware(['permission:manage-users'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
+        Route::get('/contact-submissions', \App\Livewire\Admin\ContactFormSubmissions::class)->name('contact-submissions');
     });
 
     // Routes pour le module Qualification

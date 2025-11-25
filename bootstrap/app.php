@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'approved' => \App\Http\Middleware\EnsureUserIsApproved::class,
             'role' => \App\Http\Middleware\CheckRole::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'wordpress.api' => \App\Http\Middleware\VerifyWordPressApiToken::class,
         ]);
     })
     ->withSchedule(function ($schedule) {
