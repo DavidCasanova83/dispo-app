@@ -14,7 +14,9 @@
       "Bash(del \"C:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\app\\Livewire\\QualificationStatistics.php\")",
       "Bash(del \"C:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\resources\\views\\livewire\\qualification\\statistics.blade.php\")",
       "Bash(curl:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(xargs ls:*)",
+      "Bash(del \"c:\\Users\\casan\\Desktop\\VT\\PANEL\\dispo-app\\seed_test_responses.php\")"
     ],
     "deny": [],
     "ask": []

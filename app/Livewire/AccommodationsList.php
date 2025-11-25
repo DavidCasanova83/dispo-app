@@ -18,6 +18,7 @@ class AccommodationsList extends Component
   public $hasEmail = false;
   public $hasPhone = false;
   public $hasWebsite = false;
+  public $sortBy = 'name'; // name, responses_desc, responses_asc
 
   // Options pour les filtres
   public $statusOptions = [];
@@ -32,6 +33,7 @@ class AccommodationsList extends Component
     'hasEmail' => ['except' => false],
     'hasPhone' => ['except' => false],
     'hasWebsite' => ['except' => false],
+    'sortBy' => ['except' => 'name'],
   ];
 
   public function mount()
@@ -84,6 +86,11 @@ class AccommodationsList extends Component
     $this->resetPage();
   }
 
+  public function updatedSortBy()
+  {
+    $this->resetPage();
+  }
+
   public function clearFilters()
   {
     $this->reset([
@@ -93,7 +100,8 @@ class AccommodationsList extends Component
       'typeFilter',
       'hasEmail',
       'hasPhone',
-      'hasWebsite'
+      'hasWebsite',
+      'sortBy'
     ]);
     $this->resetPage();
   }
@@ -166,7 +174,26 @@ class AccommodationsList extends Component
       $query->whereNotNull('website');
     }
 
-    $accommodations = $query->orderBy('name')->paginate(100);
+    $query->withCount([
+      'responses',
+      'responses as available_responses_count' => function ($query) {
+        $query->where('is_available', true);
+      },
+      'responses as unavailable_responses_count' => function ($query) {
+        $query->where('is_available', false);
+      },
+    ]);
+
+    // Tri selon le choix de l'utilisateur
+    if ($this->sortBy === 'responses_desc') {
+      $query->orderBy('responses_count', 'desc');
+    } elseif ($this->sortBy === 'responses_asc') {
+      $query->orderBy('responses_count', 'asc');
+    } else {
+      $query->orderBy('name');
+    }
+
+    $accommodations = $query->paginate(100);
 
     // Calcul des statistiques pour les résultats filtrés
     $filteredQuery = clone $query;
