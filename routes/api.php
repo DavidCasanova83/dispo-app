@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccommodationApiController;
+use App\Http\Controllers\Api\ContactFormController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,3 +16,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/accommodations', [AccommodationApiController::class, 'index']);
+
+// WordPress Contact Form 7 submissions (protected by API token)
+Route::post('/contact-form/submit', [ContactFormController::class, 'store'])
+    ->middleware('wordpress.api');
