@@ -24,6 +24,10 @@ class ImageManager extends Component
     public $titles = [];               // Titres pour chaque image
     public $altTexts = [];             // Alt texts pour chaque image
     public $descriptions = [];         // Descriptions pour chaque image
+    public $linkUrls = [];             // URLs de liens pour chaque image
+    public $linkTexts = [];            // Textes de liens pour chaque image
+    public $calameoLinkUrls = [];      // URLs de liens Calameo pour chaque image
+    public $calameoLinkTexts = [];     // Textes de liens Calameo pour chaque image
     public $quantitiesAvailable = [];  // Quantités disponibles pour chaque image
     public $maxOrderQuantities = [];   // Quantités max de commande pour chaque image
     public $printAvailables = [];      // Disponibilité impression pour chaque image
@@ -156,6 +160,10 @@ class ImageManager extends Component
                     'url' => $path, // Stocker le chemin, pas l'URL complète
                     'alt_text' => $this->altTexts[$index] ?? null,
                     'description' => $this->descriptions[$index] ?? null,
+                    'link_url' => $this->linkUrls[$index] ?? null,
+                    'link_text' => $this->linkTexts[$index] ?? null,
+                    'calameo_link_url' => $this->calameoLinkUrls[$index] ?? null,
+                    'calameo_link_text' => $this->calameoLinkTexts[$index] ?? null,
                     'mime_type' => $image->getMimeType(),
                     'size' => $finalSize,
                     'width' => $width,
@@ -185,7 +193,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears']);
     }
 
     /**
