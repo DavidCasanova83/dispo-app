@@ -2,9 +2,9 @@
     <div class="max-w-4xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Commander des images</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Commander des brochures</h1>
             <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                Remplissez le formulaire ci-dessous pour commander vos images
+                Remplissez le formulaire ci-dessous pour commander vos brochures
             </p>
         </div>
 
@@ -342,7 +342,7 @@
 
             {{-- Sélection des images --}}
             <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Images disponibles</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Brochures disponibles</h2>
 
                 {{-- Messages d'information selon le type de client --}}
                 @if($customer_type === 'particulier')
@@ -354,7 +354,7 @@
                             <div>
                                 <p class="font-semibold text-blue-800 dark:text-blue-200">Particulier</p>
                                 <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                                    Vous pouvez commander <strong>1 seule image</strong> (quantité fixe : 1).
+                                    Vous pouvez commander <strong>1 seule brochure</strong> (quantité fixe : 1).
                                 </p>
                             </div>
                         </div>
@@ -368,7 +368,7 @@
                             <div>
                                 <p class="font-semibold text-green-800 dark:text-green-200">Professionnel</p>
                                 <p class="text-sm text-green-700 dark:text-green-300 mt-1">
-                                    Vous pouvez commander <strong>plusieurs images</strong> et choisir la <strong>quantité désirée</strong> pour chaque image.
+                                    Vous pouvez commander <strong>plusieurs brochures</strong> et choisir la <strong>quantité désirée</strong> pour chaque brochure.
                                 </p>
                             </div>
                         </div>
@@ -381,7 +381,7 @@
                             </svg>
                             <div>
                                 <p class="text-sm text-gray-700 dark:text-gray-300">
-                                    Veuillez d'abord sélectionner si vous êtes un <strong>particulier</strong> ou un <strong>professionnel</strong> pour commander des images.
+                                    Veuillez d'abord sélectionner si vous êtes un <strong>particulier</strong> ou un <strong>professionnel</strong> pour commander des brochures.
                                 </p>
                             </div>
                         </div>
@@ -390,7 +390,7 @@
 
                 @if($availableImages->isEmpty())
                     <p class="text-gray-500 dark:text-gray-400 text-center py-8">
-                        Aucune image disponible pour le moment.
+                        Aucune brochure disponible pour le moment.
                     </p>
                 @else
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

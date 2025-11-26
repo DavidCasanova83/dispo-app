@@ -2,9 +2,9 @@
     <div class="max-w-7xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Gestion des Images</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Gestion des Brochures</h1>
             <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                Uploadez et gérez les images de l'application
+                Uploadez et gérez les brochures de l'application
             </p>
         </div>
 
@@ -38,7 +38,7 @@
             <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Images</p>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Brochures</p>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
                     </div>
                     <div class="rounded-lg bg-[#3E9B90]/10 dark:bg-[#3E9B90]/20 p-3">
@@ -93,13 +93,13 @@
 
         {{-- Upload Section --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8 mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Uploader des images</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Uploader des brochures</h2>
 
             <form wire:submit.prevent="uploadImages">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                            Sélectionner des images (max 10 MB chacune)
+                            Sélectionner des brochures (max 10 MB chacune)
                         </label>
                         <input type="file" wire:model="images" multiple accept="image/*"
                             class="block w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-4 py-3">
@@ -119,7 +119,7 @@
                                             class="w-full h-32 object-cover rounded-lg">
                                         <span
                                             class="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                            Image {{ $index + 1 }}
+                                            Brochure {{ $index + 1 }}
                                         </span>
                                     </div>
                                     <div class="space-y-2">
@@ -129,7 +129,7 @@
                                                 Titre
                                             </label>
                                             <input type="text" wire:model="titles.{{ $index }}"
-                                                placeholder="Titre de l'image"
+                                                placeholder="Titre de la brochure"
                                                 class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                         </div>
                                         <div>
@@ -146,7 +146,7 @@
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                 Description (optionnel)
                                             </label>
-                                            <textarea wire:model="descriptions.{{ $index }}" rows="2" placeholder="Description détaillée de l'image"
+                                            <textarea wire:model="descriptions.{{ $index }}" rows="2" placeholder="Description détaillée de la brochure"
                                                 class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"></textarea>
                                         </div>
                                         <div class="grid grid-cols-2 gap-2">
@@ -263,13 +263,13 @@
 
         {{-- Search --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher une image..."
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher une brochure..."
                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
         </div>
 
         {{-- Images Grid --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Images uploadées</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Brochures uploadées</h2>
 
             @if ($imagesList->count() > 0)
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -368,8 +368,8 @@
                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
                         </path>
                     </svg>
-                    <p class="mt-4 text-sm font-medium text-gray-900 dark:text-white">Aucune image</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Uploadez votre première image ci-dessus</p>
+                    <p class="mt-4 text-sm font-medium text-gray-900 dark:text-white">Aucune brochure</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Uploadez votre première brochure ci-dessus</p>
                 </div>
             @endif
         </div>
@@ -393,7 +393,7 @@
                                 class="w-full h-48 object-cover rounded-lg mb-4">
 
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                Êtes-vous sûr de vouloir supprimer cette image ?
+                                Êtes-vous sûr de vouloir supprimer cette brochure ?
                             </p>
                             <p class="font-medium text-gray-900 dark:text-white">{{ $selectedImage->name }}</p>
                             <p class="text-sm text-gray-500 dark:text-gray-400">{{ $selectedImage->formattedSize() }}

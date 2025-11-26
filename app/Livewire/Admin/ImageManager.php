@@ -84,7 +84,7 @@ class ImageManager extends Component
         $this->validate();
 
         if (empty($this->images)) {
-            session()->flash('error', 'Veuillez sélectionner au moins une image.');
+            session()->flash('error', 'Veuillez sélectionner au moins une brochure.');
             return;
         }
 
@@ -183,7 +183,7 @@ class ImageManager extends Component
 
         // Messages de résultat
         if ($uploadedCount > 0) {
-            session()->flash('success', "{$uploadedCount} image(s) uploadée(s) avec succès.");
+            session()->flash('success', "{$uploadedCount} brochure(s) uploadée(s) avec succès.");
 
             // Régénérer le fichier JSON
             Artisan::call('images:generate-json');
@@ -230,7 +230,7 @@ class ImageManager extends Component
         // Régénérer le fichier JSON
         Artisan::call('images:generate-json');
 
-        session()->flash('success', "L'image {$image->name} a été supprimée.");
+        session()->flash('success', "La brochure {$image->name} a été supprimée.");
         $this->closeDeleteModal();
     }
 

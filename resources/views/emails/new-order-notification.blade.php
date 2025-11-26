@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nouvelle commande d'images</title>
+    <title>Nouvelle commande de brochures</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -218,7 +218,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Nouvelle commande d'images</h1>
+            <h1>Nouvelle commande de brochures</h1>
         </div>
 
         <div class="content">
@@ -269,12 +269,12 @@
                 <p>{{ $country }}</p>
             </div>
 
-            <div class="section-title">Images commandees</div>
+            <div class="section-title">Brochures commandees</div>
 
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>Image</th>
+                        <th>Brochure</th>
                         <th style="text-align: center;">Quantite</th>
                     </tr>
                 </thead>

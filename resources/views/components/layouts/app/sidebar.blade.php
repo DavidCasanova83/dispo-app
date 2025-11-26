@@ -26,7 +26,7 @@
 
                     @can('manage-images')
                         <flux:navlist.item icon="photo" :href="route('admin.images')" :current="request() -> routeIs('admin.images')"
-                            wire:navigate>{{ __('Images') }}</flux:navlist.item>
+                            wire:navigate>{{ __('Brochures') }}</flux:navlist.item>
                     @endcan
 
                     @can('manage-orders')

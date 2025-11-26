@@ -186,7 +186,7 @@
             </p>
 
             <p>
-                Nous avons bien recu votre commande d'images et nous vous en remercions.
+                Nous avons bien recu votre commande de brochures et nous vous en remercions.
             </p>
 
             <div class="order-number">
@@ -194,12 +194,12 @@
                 <strong>{{ $orderNumber }}</strong>
             </div>
 
-            <div class="section-title">Images commandees</div>
+            <div class="section-title">Brochures commandees</div>
 
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>Image</th>
+                        <th>Brochure</th>
                         <th style="text-align: center;">Quantite</th>
                     </tr>
                 </thead>
