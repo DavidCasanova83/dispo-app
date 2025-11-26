@@ -125,10 +125,30 @@ class AccommodationsList extends Component
 
     session()->flash('success', "Envoi de {$accommodations->count()} emails en cours...");
   }
-  
+
+  public function updateStatus($accommodationId, $status)
+  {
+    $accommodation = Accommodation::findOrFail($accommodationId);
+
+    // Utiliser updateAvailability pour bénéficier de la logique "1 réponse/jour"
+    $accommodation->updateAvailability(
+      $status === 'disponible',
+      null,
+      request()->ip(),
+      'Manual update via admin panel'
+    );
+
+    session()->flash('success', "Statut de \"{$accommodation->name}\" mis à jour : {$this->getStatusLabel($status)}");
+  }
+
   public function getStatusLabel($status)
   {
     $labels = [
+      // Valeurs françaises (actuelles)
+      'disponible' => 'Disponible',
+      'indisponible' => 'Non disponible',
+      'en_attente' => 'En attente',
+      // Valeurs anglaises (legacy)
       'active' => 'Disponible',
       'inactive' => 'Non disponible',
       'pending' => 'En attente',

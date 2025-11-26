@@ -117,17 +117,32 @@ class Accommodation extends Model
 
   /**
    * Update the availability status based on email response.
-   * Also records the response in the history.
+   * Also records the response in the history (max 1 per day).
    */
   public function updateAvailability(bool $available, ?string $token = null, ?string $ipAddress = null, ?string $userAgent = null): void
   {
-    // Enregistrer dans l'historique
-    $this->responses()->create([
-      'is_available' => $available,
-      'response_token' => $token,
-      'ip_address' => $ipAddress,
-      'user_agent' => $userAgent,
-    ]);
+    // Vérifier s'il existe déjà une réponse aujourd'hui
+    $todayResponse = $this->responses()
+      ->whereDate('created_at', today())
+      ->first();
+
+    if ($todayResponse) {
+      // Mettre à jour la réponse existante
+      $todayResponse->update([
+        'is_available' => $available,
+        'response_token' => $token,
+        'ip_address' => $ipAddress,
+        'user_agent' => $userAgent,
+      ]);
+    } else {
+      // Créer une nouvelle réponse
+      $this->responses()->create([
+        'is_available' => $available,
+        'response_token' => $token,
+        'ip_address' => $ipAddress,
+        'user_agent' => $userAgent,
+      ]);
+    }
 
     // Mettre à jour le statut actuel
     $this->update([
