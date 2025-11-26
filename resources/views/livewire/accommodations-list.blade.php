@@ -226,11 +226,37 @@
                             <h3 class="font-semibold text-gray-900 dark:text-white">{{ $accommodation->name }}</h3>
                            <span
                                 class="px-2 py-1 text-xs rounded-full
-                                @if ($accommodation->status === 'active') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200
-                                @elseif($accommodation->status === 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200
+                                @if ($accommodation->status === 'disponible' || $accommodation->status === 'active') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200
+                                @elseif($accommodation->status === 'en_attente' || $accommodation->status === 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200
                                 @else bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200 @endif">
                                 {{ $this->getStatusLabel($accommodation->status) }}
                             </span>
+                        </div>
+
+                        <!-- Boutons de mise à jour manuelle du statut -->
+                        <div class="flex gap-1 mb-3">
+                            <button
+                                wire:click="updateStatus({{ $accommodation->id }}, 'disponible')"
+                                @class([
+                                    'px-2 py-1 text-xs rounded transition-colors',
+                                    'bg-green-500 text-white hover:bg-green-600' => $accommodation->status !== 'disponible',
+                                    'bg-green-200 text-green-600 cursor-not-allowed opacity-50' => $accommodation->status === 'disponible',
+                                ])
+                                @if($accommodation->status === 'disponible') disabled @endif
+                            >
+                                ✓ Disponible
+                            </button>
+                            <button
+                                wire:click="updateStatus({{ $accommodation->id }}, 'indisponible')"
+                                @class([
+                                    'px-2 py-1 text-xs rounded transition-colors',
+                                    'bg-red-500 text-white hover:bg-red-600' => $accommodation->status !== 'indisponible',
+                                    'bg-red-200 text-red-600 cursor-not-allowed opacity-50' => $accommodation->status === 'indisponible',
+                                ])
+                                @if($accommodation->status === 'indisponible') disabled @endif
+                            >
+                                ✗ Indisponible
+                            </button>
                         </div>
 
                         <div class="space-y-2 text-sm">
