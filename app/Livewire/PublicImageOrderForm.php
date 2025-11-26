@@ -5,14 +5,11 @@ namespace App\Livewire;
 use App\Models\Image;
 use App\Models\ImageOrder;
 use App\Models\ImageOrderItem;
-use App\Models\OrderNotificationUser;
-use App\Models\User;
 use App\Rules\NoSpamContent;
 use App\Rules\NotDisposableEmail;
+use App\Services\MailjetService;
 use Coderflex\LaravelTurnstile\Facades\LaravelTurnstile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 use Livewire\Component;
 use Spatie\Honeypot\Http\Livewire\Concerns\HoneypotData;
 use Spatie\Honeypot\Http\Livewire\Concerns\UsesSpamProtection;
@@ -330,15 +327,21 @@ class PublicImageOrderForm extends Component
 
             DB::commit();
 
-            // Envoyer email de confirmation au client
-            // TODO: Créer la notification email
-            // Mail::to($this->email)->send(new OrderConfirmation($order));
+            // Envoyer les emails de notification
+            try {
+                $mailjetService = app(MailjetService::class);
 
-            // Notifier les admins
-            $notifiableUsers = OrderNotificationUser::getNotifiableUsers();
-            if ($notifiableUsers->isNotEmpty()) {
-                // TODO: Envoyer email aux admins
-                // Notification::send($notifiableUsers, new NewOrderNotification($order));
+                // Email de confirmation au client
+                $mailjetService->sendOrderConfirmation($order);
+
+                // Notification a l'admin si email configure
+                $adminEmail = config('services.orders.notification_email');
+                if ($adminEmail) {
+                    $mailjetService->sendNewOrderNotification($order, $adminEmail);
+                }
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne pas bloquer la commande
+                logger()->error('Erreur envoi email commande: ' . $e->getMessage());
             }
 
             // Afficher le message de succès

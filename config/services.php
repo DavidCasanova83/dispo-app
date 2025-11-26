@@ -40,4 +40,8 @@ return [
         'secret' => env('MAILJET_APISECRET'),
     ],
 
+    'orders' => [
+        'notification_email' => env('ORDER_NOTIFICATION_EMAIL'),
+    ],
+
 ];

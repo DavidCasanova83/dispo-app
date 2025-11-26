@@ -18,6 +18,10 @@ class UsersList extends Component
     public $selectedUser = null;
     public $showApprovalModal = false;
     public $showRolesModal = false;
+    public $showPermissionsModal = false;
+    public $selectedRoleId = null;
+    public $showCreateRoleModal = false;
+    public $newRoleName = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -74,6 +78,76 @@ class UsersList extends Component
     public function handleRolesUpdated()
     {
         $this->closeRolesModal();
+    }
+
+    #[On('openPermissionsModal')]
+    public function openPermissionsModal($roleId)
+    {
+        // Only Super-admin can access this
+        if (!auth()->user()->hasRole('Super-admin')) {
+            return;
+        }
+
+        $this->selectedRoleId = $roleId;
+        $this->showPermissionsModal = true;
+    }
+
+    public function closePermissionsModal()
+    {
+        $this->showPermissionsModal = false;
+        $this->selectedRoleId = null;
+    }
+
+    #[On('closePermissionsModal')]
+    public function handleClosePermissionsModal()
+    {
+        $this->closePermissionsModal();
+    }
+
+    #[On('permissionsUpdated')]
+    public function handlePermissionsUpdated()
+    {
+        $this->closePermissionsModal();
+    }
+
+    public function openCreateRoleModal()
+    {
+        // Only Super-admin can create roles
+        if (!auth()->user()->hasRole('Super-admin')) {
+            return;
+        }
+
+        $this->newRoleName = '';
+        $this->showCreateRoleModal = true;
+    }
+
+    public function closeCreateRoleModal()
+    {
+        $this->showCreateRoleModal = false;
+        $this->newRoleName = '';
+    }
+
+    public function createRole()
+    {
+        // Only Super-admin can create roles
+        if (!auth()->user()->hasRole('Super-admin')) {
+            session()->flash('error', 'Vous n\'avez pas la permission d\'effectuer cette action.');
+            return;
+        }
+
+        $this->validate([
+            'newRoleName' => 'required|string|min:2|max:50|unique:roles,name',
+        ], [
+            'newRoleName.required' => 'Le nom du rôle est requis.',
+            'newRoleName.min' => 'Le nom du rôle doit contenir au moins 2 caractères.',
+            'newRoleName.max' => 'Le nom du rôle ne peut pas dépasser 50 caractères.',
+            'newRoleName.unique' => 'Ce nom de rôle existe déjà.',
+        ]);
+
+        Role::create(['name' => $this->newRoleName, 'guard_name' => 'web']);
+
+        session()->flash('success', "Le rôle '{$this->newRoleName}' a été créé avec succès.");
+        $this->closeCreateRoleModal();
     }
 
     public function approveUser($userId)
