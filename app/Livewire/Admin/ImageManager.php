@@ -33,6 +33,21 @@ class ImageManager extends Component
     public $printAvailables = [];      // Disponibilité impression pour chaque image
     public $editionYears = [];         // Années d'édition pour chaque image
 
+    // Propriétés pour l'édition
+    public $showEditModal = false;
+    public $editingImage = null;
+    public $editTitle = '';
+    public $editAltText = '';
+    public $editDescription = '';
+    public $editLinkUrl = '';
+    public $editLinkText = '';
+    public $editCalameoLinkUrl = '';
+    public $editCalameoLinkText = '';
+    public $editQuantityAvailable = null;
+    public $editMaxOrderQuantity = null;
+    public $editPrintAvailable = false;
+    public $editEditionYear = null;
+
     // Whitelist des MIME types autorisés
     private const ALLOWED_MIME_TYPES = [
         'image/jpeg',
@@ -232,6 +247,91 @@ class ImageManager extends Component
 
         session()->flash('success', "La brochure {$image->name} a été supprimée.");
         $this->closeDeleteModal();
+    }
+
+    /**
+     * Ouvrir le modal d'édition
+     */
+    public function openEditModal($imageId)
+    {
+        $this->editingImage = Image::findOrFail($imageId);
+
+        // Charger les valeurs actuelles
+        $this->editTitle = $this->editingImage->title ?? '';
+        $this->editAltText = $this->editingImage->alt_text ?? '';
+        $this->editDescription = $this->editingImage->description ?? '';
+        $this->editLinkUrl = $this->editingImage->link_url ?? '';
+        $this->editLinkText = $this->editingImage->link_text ?? '';
+        $this->editCalameoLinkUrl = $this->editingImage->calameo_link_url ?? '';
+        $this->editCalameoLinkText = $this->editingImage->calameo_link_text ?? '';
+        $this->editQuantityAvailable = $this->editingImage->quantity_available;
+        $this->editMaxOrderQuantity = $this->editingImage->max_order_quantity;
+        $this->editPrintAvailable = (bool) $this->editingImage->print_available;
+        $this->editEditionYear = $this->editingImage->edition_year;
+
+        $this->showEditModal = true;
+    }
+
+    /**
+     * Fermer le modal d'édition
+     */
+    public function closeEditModal()
+    {
+        $this->showEditModal = false;
+        $this->editingImage = null;
+        $this->reset([
+            'editTitle', 'editAltText', 'editDescription',
+            'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
+            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear'
+        ]);
+    }
+
+    /**
+     * Mettre à jour une image
+     */
+    public function updateImage()
+    {
+        if (!$this->editingImage) {
+            return;
+        }
+
+        // Vérifier l'autorisation
+        $this->authorize('update', $this->editingImage);
+
+        // Validation
+        $this->validate([
+            'editTitle' => 'nullable|string|max:255',
+            'editAltText' => 'nullable|string|max:255',
+            'editDescription' => 'nullable|string|max:1000',
+            'editLinkUrl' => 'nullable|url|max:500',
+            'editLinkText' => 'nullable|string|max:255',
+            'editCalameoLinkUrl' => 'nullable|url|max:500',
+            'editCalameoLinkText' => 'nullable|string|max:255',
+            'editQuantityAvailable' => 'nullable|integer|min:0',
+            'editMaxOrderQuantity' => 'nullable|integer|min:0',
+            'editEditionYear' => 'nullable|integer|min:1900|max:2100',
+        ]);
+
+        // Mettre à jour
+        $this->editingImage->update([
+            'title' => $this->editTitle ?: null,
+            'alt_text' => $this->editAltText ?: null,
+            'description' => $this->editDescription ?: null,
+            'link_url' => $this->editLinkUrl ?: null,
+            'link_text' => $this->editLinkText ?: null,
+            'calameo_link_url' => $this->editCalameoLinkUrl ?: null,
+            'calameo_link_text' => $this->editCalameoLinkText ?: null,
+            'quantity_available' => $this->editQuantityAvailable,
+            'max_order_quantity' => $this->editMaxOrderQuantity,
+            'print_available' => $this->editPrintAvailable,
+            'edition_year' => $this->editEditionYear,
+        ]);
+
+        // Régénérer le fichier JSON
+        Artisan::call('images:generate-json');
+
+        session()->flash('success', "La brochure a été mise à jour avec succès.");
+        $this->closeEditModal();
     }
 
     public function render()

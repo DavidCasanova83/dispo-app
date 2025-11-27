@@ -300,6 +300,18 @@
                                         </svg>
                                     </a>
 
+                                    {{-- Edit button --}}
+                                    <button wire:click="openEditModal({{ $image->id }})"
+                                        class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                                        title="Modifier">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                            </path>
+                                        </svg>
+                                    </button>
+
                                     {{-- Delete button --}}
                                     <button wire:click="openDeleteModal({{ $image->id }})"
                                         class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
@@ -411,6 +423,153 @@
                                 Supprimer
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Edit Modal --}}
+        @if ($showEditModal && $editingImage)
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="flex min-h-screen items-center justify-center px-4 py-6">
+                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                        wire:click="closeEditModal"></div>
+
+                    <div class="relative bg-white dark:bg-[#001716] rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                            Modifier la brochure
+                        </h3>
+
+                        <form wire:submit.prevent="updateImage">
+                            {{-- Image preview --}}
+                            <div class="mb-4">
+                                <img src="{{ asset('storage/' . $editingImage->thumbnail_path) }}"
+                                    alt="{{ $editingImage->alt_text ?? $editingImage->name }}"
+                                    class="w-32 h-32 object-cover rounded-lg">
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ $editingImage->name }}</p>
+                            </div>
+
+                            <div class="space-y-4">
+                                {{-- Titre --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Titre
+                                    </label>
+                                    <input type="text" wire:model="editTitle"
+                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                    @error('editTitle') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                </div>
+
+                                {{-- Texte alternatif --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Texte alternatif
+                                    </label>
+                                    <input type="text" wire:model="editAltText"
+                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                    @error('editAltText') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                </div>
+
+                                {{-- Description --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Description
+                                    </label>
+                                    <textarea wire:model="editDescription" rows="3"
+                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"></textarea>
+                                    @error('editDescription') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                </div>
+
+                                {{-- Liens --}}
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Texte du lien
+                                        </label>
+                                        <input type="text" wire:model="editLinkText"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            URL du lien
+                                        </label>
+                                        <input type="url" wire:model="editLinkUrl"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editLinkUrl') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                {{-- Liens Calameo --}}
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Texte du lien Calameo
+                                        </label>
+                                        <input type="text" wire:model="editCalameoLinkText"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            URL du lien Calameo
+                                        </label>
+                                        <input type="url" wire:model="editCalameoLinkUrl"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editCalameoLinkUrl') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                {{-- Quantités --}}
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Quantité disponible
+                                        </label>
+                                        <input type="number" wire:model="editQuantityAvailable" min="0"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editQuantityAvailable') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Quantité max par commande
+                                        </label>
+                                        <input type="number" wire:model="editMaxOrderQuantity" min="0"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editMaxOrderQuantity') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                {{-- Année et Print --}}
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Année d'édition
+                                        </label>
+                                        <input type="number" wire:model="editEditionYear" min="1900" max="2100"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editEditionYear') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="flex items-end pb-2">
+                                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            <input type="checkbox" wire:model="editPrintAvailable"
+                                                class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-[#3E9B90] focus:ring-2 focus:ring-[#3E9B90]">
+                                            Disponible à la commande
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 justify-end mt-6">
+                                <button type="button" wire:click="closeEditModal"
+                                    class="px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                                    Annuler
+                                </button>
+
+                                <button type="submit"
+                                    class="px-6 py-3 text-sm font-medium text-white bg-[#3E9B90] hover:bg-[#2d7a72] rounded-lg transition-colors shadow-md">
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
