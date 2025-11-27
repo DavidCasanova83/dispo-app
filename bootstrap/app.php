@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function ($schedule) {
+        // Réinitialiser les statuts tous les jours à 3h du matin
+        $schedule->command('accommodations:reset-status')
+            ->dailyAt('03:00')
+            ->appendOutputTo(storage_path('logs/status-reset.log'));
+
         // Import Apidae tous les jours à 5h du matin
         $schedule->command('apidae:fetch --all')
             ->dailyAt('05:00')
