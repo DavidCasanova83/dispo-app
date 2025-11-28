@@ -40,7 +40,7 @@
             <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
                 Préciser le(s) département(s) <span class="text-red-500">*</span>
             </label>
-            <livewire:department-selector :departments="$departments" :unknown="$departmentUnknown" :key="'department-selector-' . $country" />
+            <livewire:department-selector :departments="$departments" :unknown="$departmentUnknown" :key="'department-selector-' . $country . '-' . $formResetKey" />
             @error('departments')
                 <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror

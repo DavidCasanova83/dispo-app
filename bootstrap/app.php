@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -16,9 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'approved' => \App\Http\Middleware\EnsureUserIsApproved::class,
             'role' => \App\Http\Middleware\CheckRole::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'wordpress.api' => \App\Http\Middleware\VerifyWordPressApiToken::class,
         ]);
     })
     ->withSchedule(function ($schedule) {
+        // Réinitialiser les statuts tous les jours à 3h du matin
+        $schedule->command('accommodations:reset-status')
+            ->dailyAt('03:00')
+            ->appendOutputTo(storage_path('logs/status-reset.log'));
+
         // Import Apidae tous les jours à 5h du matin
         $schedule->command('apidae:fetch --all')
             ->dailyAt('05:00')

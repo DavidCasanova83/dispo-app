@@ -354,17 +354,45 @@
                 <!-- Row: Comparatif villes + Provenance -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Comparatif par ville -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Qualifications complétées
-                            par utilisateur</h3>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
+                        x-data="{ showPercentage: window.cityChartPercentageMode || false }"
+                        x-init="$watch('showPercentage', value => { if (typeof updateCityChart === 'function') updateCityChart(value); })">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Qualifications complétées
+                                par utilisateur</h3>
+                            <button @click="showPercentage = !showPercentage"
+                                class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                                :class="showPercentage ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                <span x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"></span>
+                            </button>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="cityComparisonChart"></canvas>
                         </div>
                     </div>
 
                     <!-- Provenance géographique -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pays de provenance</h3>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
+                        x-data="{ showPercentage: window.countriesChartPercentageMode || false }"
+                        x-init="$watch('showPercentage', value => { if (typeof updateCountriesChart === 'function') updateCountriesChart(value); })">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pays de provenance</h3>
+                            <button @click="showPercentage = !showPercentage"
+                                class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                                :class="showPercentage ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                <span x-text="showPercentage ? 'Voir en valeurs' : 'Voir en %'"></span>
+                            </button>
+                        </div>
                         <div wire:ignore class="h-80">
                             <canvas id="countriesChart"></canvas>
                         </div>
@@ -634,29 +662,66 @@
                     }
 
                     // 2. Comparatif par ville (Stacked bar chart)
-                    const cityStats = statistics.cityStats;
-                    const cityLabels = Object.values(cityStats).map(s => s.name);
+                    // Initialiser l'état du toggle si ce n'est pas déjà fait
+                    if (typeof window.cityChartPercentageMode === 'undefined') {
+                        window.cityChartPercentageMode = false;
+                    }
 
-                    const allUsers = new Set();
-                    Object.values(cityStats).forEach(city => {
+                    // Stocker les données dans une variable globale pour le toggle
+                    window.cityStatsData = {
+                        cityStats: statistics.cityStats,
+                        cityLabels: Object.values(statistics.cityStats).map(s => s.name),
+                        allUsers: new Set(),
+                        colors: colors,
+                        textColor: textColor,
+                        gridColor: gridColor
+                    };
+
+                    Object.values(window.cityStatsData.cityStats).forEach(city => {
                         city.byUser.forEach(user => {
-                            allUsers.add(user.user_name);
+                            window.cityStatsData.allUsers.add(user.user_name);
                         });
                     });
 
-                    const cityDatasets = Array.from(allUsers).map((userName, index) => {
-                        return {
-                            label: userName,
-                            data: Object.values(cityStats).map(city => {
-                                const userEntry = city.byUser.find(u => u.user_name === userName);
-                                return userEntry ? userEntry.count : 0;
-                            }),
-                            backgroundColor: colors[index % colors.length]
-                        };
-                    });
+                    // Fonction pour créer/mettre à jour le graphique comparatif par ville
+                    window.updateCityChart = function(showPercentage = false) {
+                        const cityCtx = document.getElementById('cityComparisonChart');
+                        if (!cityCtx) return;
 
-                    const cityCtx = document.getElementById('cityComparisonChart');
-                    if (cityCtx) {
+                        // Sauvegarder l'état du toggle
+                        window.cityChartPercentageMode = showPercentage;
+
+                        // Détruire le graphique existant
+                        if (chartInstances.cityComparisonChart) {
+                            chartInstances.cityComparisonChart.destroy();
+                        }
+
+                        const { cityStats, cityLabels, allUsers, colors, textColor, gridColor } = window.cityStatsData;
+
+                        // Calculer les totaux par ville
+                        const cityTotals = Object.values(cityStats).map(city => city.total);
+
+                        // Créer les datasets (valeurs absolues ou pourcentages)
+                        const cityDatasets = Array.from(allUsers).map((userName, index) => {
+                            return {
+                                label: userName,
+                                data: Object.values(cityStats).map((city, cityIndex) => {
+                                    const userEntry = city.byUser.find(u => u.user_name === userName);
+                                    const count = userEntry ? userEntry.count : 0;
+
+                                    if (showPercentage) {
+                                        // Calculer le pourcentage par rapport au total de la ville
+                                        const total = cityTotals[cityIndex];
+                                        return total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
+                                    } else {
+                                        return count;
+                                    }
+                                }),
+                                backgroundColor: colors[index % colors.length]
+                            };
+                        });
+
+                        // Créer le graphique
                         chartInstances.cityComparisonChart = new Chart(cityCtx, {
                             type: 'bar',
                             data: {
@@ -677,6 +742,24 @@
                                                 size: 12
                                             }
                                         }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const label = context.dataset.label || '';
+                                                const value = context.parsed.y;
+
+                                                if (showPercentage) {
+                                                    return `${label}: ${value}%`;
+                                                } else {
+                                                    // Afficher aussi le pourcentage dans le tooltip en mode valeurs
+                                                    const cityIndex = context.dataIndex;
+                                                    const total = cityTotals[cityIndex];
+                                                    const percentage = total > 0 ? Math.round((value / total) * 100 * 10) / 10 : 0;
+                                                    return `${label}: ${value} (${percentage}%)`;
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 scales: {
@@ -692,31 +775,74 @@
                                     y: {
                                         stacked: true,
                                         beginAtZero: true,
+                                        max: showPercentage ? 100 : undefined,
                                         grid: {
                                             color: gridColor
                                         },
                                         ticks: {
-                                            color: textColor
+                                            color: textColor,
+                                            callback: function(value) {
+                                                return showPercentage ? value + '%' : value;
+                                            }
                                         }
                                     }
                                 }
                             }
                         });
-                    }
+                    };
+
+                    // Initialiser le graphique avec l'état préservé (ou en mode valeurs par défaut)
+                    window.updateCityChart(window.cityChartPercentageMode);
 
                     // 3. Pays de provenance (Doughnut chart)
-                    const countries = statistics.geographic.countries;
-                    const countryLabels = Object.keys(countries);
-                    const countryValues = Object.values(countries);
+                    // Initialiser l'état du toggle si ce n'est pas déjà fait
+                    if (typeof window.countriesChartPercentageMode === 'undefined') {
+                        window.countriesChartPercentageMode = false;
+                    }
 
-                    const countriesCtx = document.getElementById('countriesChart');
-                    if (countriesCtx) {
+                    // Stocker les données dans une variable globale pour le toggle
+                    window.countriesStatsData = {
+                        countries: statistics.geographic.countries,
+                        countryLabels: Object.keys(statistics.geographic.countries),
+                        countryValues: Object.values(statistics.geographic.countries),
+                        colors: colors,
+                        textColor: textColor
+                    };
+
+                    // Fonction pour créer/mettre à jour le graphique des pays
+                    window.updateCountriesChart = function(showPercentage = false) {
+                        const countriesCtx = document.getElementById('countriesChart');
+                        if (!countriesCtx) return;
+
+                        // Sauvegarder l'état du toggle
+                        window.countriesChartPercentageMode = showPercentage;
+
+                        // Détruire le graphique existant
+                        if (chartInstances.countriesChart) {
+                            chartInstances.countriesChart.destroy();
+                        }
+
+                        const { countryLabels, countryValues, colors, textColor } = window.countriesStatsData;
+
+                        // Calculer le total pour les pourcentages
+                        const total = countryValues.reduce((sum, val) => sum + val, 0);
+
+                        // Calculer les données (valeurs absolues ou pourcentages)
+                        const chartData = countryValues.map(value => {
+                            if (showPercentage) {
+                                return total > 0 ? Math.round((value / total) * 100 * 10) / 10 : 0;
+                            } else {
+                                return value;
+                            }
+                        });
+
+                        // Créer le graphique
                         chartInstances.countriesChart = new Chart(countriesCtx, {
                             type: 'doughnut',
                             data: {
                                 labels: countryLabels,
                                 datasets: [{
-                                    data: countryValues,
+                                    data: chartData,
                                     backgroundColor: colors
                                 }]
                             },
@@ -734,11 +860,31 @@
                                                 size: 11
                                             }
                                         }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const label = context.label || '';
+                                                const value = context.parsed;
+
+                                                if (showPercentage) {
+                                                    return `${label}: ${value}%`;
+                                                } else {
+                                                    // Afficher aussi le pourcentage dans le tooltip en mode valeurs
+                                                    const originalValue = countryValues[context.dataIndex];
+                                                    const percentage = total > 0 ? Math.round((originalValue / total) * 100 * 10) / 10 : 0;
+                                                    return `${label}: ${value} (${percentage}%)`;
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         });
-                    }
+                    };
+
+                    // Initialiser le graphique avec l'état préservé (ou en mode valeurs par défaut)
+                    window.updateCountriesChart(window.countriesChartPercentageMode);
 
                     // 4. Profils visiteurs (Pie chart)
                     const profiles = statistics.profiles.profiles;

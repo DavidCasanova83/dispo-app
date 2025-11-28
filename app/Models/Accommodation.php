@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Accommodation extends Model
 {
@@ -89,6 +90,14 @@ class Accommodation extends Model
   }
 
   /**
+   * Get all responses for this accommodation.
+   */
+  public function responses(): HasMany
+  {
+    return $this->hasMany(AccommodationResponse::class);
+  }
+
+  /**
    * Generate a unique response token for email tracking.
    */
   public function generateResponseToken(): string
@@ -108,9 +117,34 @@ class Accommodation extends Model
 
   /**
    * Update the availability status based on email response.
+   * Also records the response in the history (max 1 per day).
    */
-  public function updateAvailability(bool $available): void
+  public function updateAvailability(bool $available, ?string $token = null, ?string $ipAddress = null, ?string $userAgent = null): void
   {
+    // Vérifier s'il existe déjà une réponse aujourd'hui
+    $todayResponse = $this->responses()
+      ->whereDate('created_at', today())
+      ->first();
+
+    if ($todayResponse) {
+      // Mettre à jour la réponse existante
+      $todayResponse->update([
+        'is_available' => $available,
+        'response_token' => $token,
+        'ip_address' => $ipAddress,
+        'user_agent' => $userAgent,
+      ]);
+    } else {
+      // Créer une nouvelle réponse
+      $this->responses()->create([
+        'is_available' => $available,
+        'response_token' => $token,
+        'ip_address' => $ipAddress,
+        'user_agent' => $userAgent,
+      ]);
+    }
+
+    // Mettre à jour le statut actuel
     $this->update([
       'status' => $available ? 'disponible' : 'indisponible',
       'last_response_at' => now(),

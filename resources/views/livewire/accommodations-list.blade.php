@@ -201,6 +201,19 @@
                 <span class="text-sm text-gray-700 dark:text-gray-300">🌐 Avec site web</span>
             </label>
         </div>
+
+        <!-- Tri par nombre de réponses -->
+        <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                🔢 Trier par
+            </label>
+            <select wire:model.live="sortBy"
+                class="w-full md:w-64 px-3 py-2 border text-black border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                <option value="name">Nom (A-Z)</option>
+                <option value="responses_desc">Réponses (+ au -)</option>
+                <option value="responses_asc">Réponses (- au +)</option>
+            </select>
+        </div>
     </div>
 
     <!-- Liste des hébergements -->
@@ -213,11 +226,37 @@
                             <h3 class="font-semibold text-gray-900 dark:text-white">{{ $accommodation->name }}</h3>
                            <span
                                 class="px-2 py-1 text-xs rounded-full
-                                @if ($accommodation->status === 'active') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200
-                                @elseif($accommodation->status === 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200
+                                @if ($accommodation->status === 'disponible' || $accommodation->status === 'active') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200
+                                @elseif($accommodation->status === 'en_attente' || $accommodation->status === 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200
                                 @else bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200 @endif">
                                 {{ $this->getStatusLabel($accommodation->status) }}
                             </span>
+                        </div>
+
+                        <!-- Boutons de mise à jour manuelle du statut -->
+                        <div class="flex gap-1 mb-3">
+                            <button
+                                wire:click="updateStatus({{ $accommodation->id }}, 'disponible')"
+                                @class([
+                                    'px-2 py-1 text-xs rounded transition-colors',
+                                    'bg-green-500 text-white hover:bg-green-600' => $accommodation->status !== 'disponible',
+                                    'bg-green-200 text-green-600 cursor-not-allowed opacity-50' => $accommodation->status === 'disponible',
+                                ])
+                                @if($accommodation->status === 'disponible') disabled @endif
+                            >
+                                ✓ Disponible
+                            </button>
+                            <button
+                                wire:click="updateStatus({{ $accommodation->id }}, 'indisponible')"
+                                @class([
+                                    'px-2 py-1 text-xs rounded transition-colors',
+                                    'bg-red-500 text-white hover:bg-red-600' => $accommodation->status !== 'indisponible',
+                                    'bg-red-200 text-red-600 cursor-not-allowed opacity-50' => $accommodation->status === 'indisponible',
+                                ])
+                                @if($accommodation->status === 'indisponible') disabled @endif
+                            >
+                                ✗ Indisponible
+                            </button>
                         </div>
 
                         <div class="space-y-2 text-sm">
@@ -269,6 +308,28 @@
                                 <span class="mr-2">🆔</span>
                                 <span class="font-mono text-xs">{{ $accommodation->apidae_id }}</span>
                             </div>
+
+                            {{-- Compteur de réponses --}}
+                            @if ($accommodation->responses_count > 0)
+                                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300 mt-2">
+                                    <span class="mr-2">📊</span>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200">
+                                            {{ $accommodation->responses_count }} réponse{{ $accommodation->responses_count > 1 ? 's' : '' }}
+                                        </span>
+                                        @if ($accommodation->available_responses_count > 0)
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                {{ $accommodation->available_responses_count }} dispo
+                                            </span>
+                                        @endif
+                                        @if ($accommodation->unavailable_responses_count > 0)
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                {{ $accommodation->unavailable_responses_count }} indispo
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">

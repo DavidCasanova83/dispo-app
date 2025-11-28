@@ -134,26 +134,32 @@
             </p>
 
             <div class="buttons-container">
-                <a href="{{ $availableUrl }}" class="button button-available text-amber-50">
+                <a href="{{ $availableUrl }}" class="button button-available" style="color: #ffffff !important; text-decoration: none;">
                     ✓ Disponibilités
                 </a>
 
-                <a href="{{ $notAvailableUrl }}" class="button button-not-available text-amber-50">
+                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="color: #ffffff !important; text-decoration: none;">
                     ✗ Pas de disponibilités
                 </a>
             </div>
 
             <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
                 Cliquez sur le bouton correspondant à votre situation actuelle. Votre réponse nous permettra de mettre à
-                jour instantanément vos informations.
+                jour instantanément vos informations.<br>
+                <strong>Ces boutons sont actifs toutes la journée.</strong> Vous pouvez les utiliser
+                autant de fois que nécessaire.
             </p>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">La réponse apportée permet de mettre à jour les informations présentes sur cette page :</p>
+            <p><a href="https://www.verdontourisme.com/disponibilites/">Hébergements disponibles ce soir</a></p>
         </div>
 
         <div class="footer">
             <p>
                 Merci de votre collaboration.<br>
-                Cet email a été envoyé automatiquement, vous pouvez y répondre si vous avez des questions.
-                Nous vous répondrons dès que possible.
+                Cet email a été envoyé automatiquement.<br>
+                <strong>Vous pouvez y répondre si vous avez des questions.</strong><br>
+                Nous vous répondrons dès que possible.<br>
             </p>
         </div>
     </div>

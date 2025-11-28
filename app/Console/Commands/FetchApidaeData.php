@@ -159,7 +159,8 @@ class FetchApidaeData extends Command
             $this->info('✓ ' . count($allResults) . ' hébergements récupérés au total');
             $this->line("");
 
-            return $this->processResults($allResults);
+            // Supprimer les absents uniquement en mode --all (synchronisation complète)
+            return $this->processResults($allResults, $all);
 
         } catch (\Exception $e) {
             $this->error('Exception lors de l\'exécution : ' . $e->getMessage());
@@ -263,10 +264,14 @@ class FetchApidaeData extends Command
     /**
      * Process the results and save to database
      */
-    private function processResults($results)
+    private function processResults($results, bool $deleteAbsent = false)
     {
         $created = 0;
         $updated = 0;
+        $deleted = 0;
+
+        // Collecter les apidae_id pour la suppression
+        $apidaeIds = [];
 
         foreach ($results as $item) {
             // Extraction de l'email de manière plus sûre
@@ -289,8 +294,11 @@ class FetchApidaeData extends Command
                 }
             }
 
+            $apidaeId = $item['id'] ?? $item['identifiant'] ?? null;
+            $apidaeIds[] = $apidaeId;
+
             $accommodation = Accommodation::updateOrCreate(
-                ['apidae_id' => $item['id'] ?? $item['identifiant'] ?? $item['id'] ?? null],
+                ['apidae_id' => $apidaeId],
                 [
                     'name' => $item['nom']['libelleFr'] ?? $item['nom'] ?? 'Nom inconnu',
                     'city' => $item['localisation']['adresse']['commune']['nom'] ?? null,
@@ -299,7 +307,7 @@ class FetchApidaeData extends Command
                     'website' => $website,
                     'description' => $item['presentation']['descriptifCourt']['libelleFr'] ?? null,
                     'type' => $item['type'] ?? null,
-                    'status' => $item['status'] ?? 'pending',
+                    'status' => $item['status'] ?? 'en_attente',
                 ]
             );
 
@@ -310,9 +318,17 @@ class FetchApidaeData extends Command
             }
         }
 
+        // Supprimer les hébergements absents de la sélection (uniquement en mode --all)
+        if ($deleteAbsent && !empty($apidaeIds)) {
+            $deleted = Accommodation::whereNotIn('apidae_id', array_filter($apidaeIds))->delete();
+        }
+
         $this->info("✅ Opération terminée avec succès !");
         $this->info("   - Hébergements créés : {$created}");
         $this->info("   - Hébergements mis à jour : {$updated}");
+        if ($deleteAbsent) {
+            $this->info("   - Hébergements supprimés : {$deleted}");
+        }
         $this->info("   - Total traité : " . ($created + $updated));
 
         return 0;
