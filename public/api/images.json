@@ -1,0 +1,36 @@
+{
+    "success": true,
+    "total": 1,
+    "generated_at": "2025-11-27T11:24:55+01:00",
+    "data": [
+        {
+            "id": 3,
+            "name": "guide-pratique-2025.PNG",
+            "title": "Guide Pratique",
+            "filename": "guide-pratique-2025_1764238494_GS6mDfuXch.png",
+            "url": "https://panel.verdontourisme.com/storage/images/guide-pratique-2025_1764238494_GS6mDfuXch.png",
+            "thumbnail_url": "https://panel.verdontourisme.com/storage/images/thumbnails/thumb_guide-pratique-2025_1764238494_GS6mDfuXch.png",
+            "alt_text": null,
+            "description": null,
+            "mime_type": "image/png",
+            "size": 285882,
+            "size_formatted": "279.18 KB",
+            "dimensions": {
+                "width": 318,
+                "height": 450
+            },
+            "product": {
+                "quantity_available": 500,
+                "max_order_quantity": 5,
+                "print_available": true,
+                "edition_year": 2025
+            },
+            "uploader": {
+                "id": 4,
+                "name": "David"
+            },
+            "created_at": "2025-11-27T11:14:54+01:00",
+            "updated_at": "2025-11-27T11:24:55+01:00"
+        }
+    ]
+}

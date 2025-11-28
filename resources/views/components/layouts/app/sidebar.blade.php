@@ -26,6 +26,25 @@
                 @endcan
             </flux:navlist.group>
 
+            @canany(['manage-users', 'manage-images', 'manage-orders'])
+                <flux:navlist.group :heading="__('Administration')" class="grid">
+                    @can('manage-users')
+                        <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.users')"
+                            wire:navigate>{{ __('Utilisateurs') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('manage-images')
+                        <flux:navlist.item icon="photo" :href="route('admin.images')" :current="request() -> routeIs('admin.images')"
+                            wire:navigate>{{ __('Brochures') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('manage-orders')
+                        <flux:navlist.item icon="shopping-bag" :href="route('admin.orders')" :current="request() -> routeIs('admin.orders')"
+                            wire:navigate>{{ __('Commandes') }}</flux:navlist.item>
+                    @endcan
+                </flux:navlist.group>
+            @endcanany
+
             @can('view-qualification')
                 <flux:navlist.group :heading="__('Qualification')" class="grid">
                     <flux:navlist.item icon="chart-bar" :href="route('qualification.statistics')" :current="request() -> routeIs('qualification.statistics')"

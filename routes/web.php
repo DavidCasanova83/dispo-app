@@ -9,6 +9,16 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Route publique pour commander des images (pas d'authentification requise)
+// Protection: 10 consultations par minute, 5 soumissions par heure
+Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
+    ->middleware('throttle:order-form')
+    ->name('order.images');
+
+// Route publique pour voir la liste des brochures disponibles
+Route::get('/brochures', \App\Livewire\PublicBrochuresList::class)
+     ->name('brochures');
+
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])
     ->name('dashboard');
@@ -54,6 +64,16 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::middleware(['permission:manage-users'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');
         Route::get('/contact-submissions', \App\Livewire\Admin\ContactFormSubmissions::class)->name('contact-submissions');
+    });
+
+    // Route pour la gestion des images - requires manage-images permission
+    Route::middleware(['permission:manage-images'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
+    });
+
+    // Route pour la gestion des commandes - requires manage-orders permission
+    Route::middleware(['permission:manage-orders'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/commandes', \App\Livewire\Admin\OrderManager::class)->name('orders');
     });
 
     // Routes pour le module Qualification
@@ -107,5 +127,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
 // Route publique pour les réponses de disponibilité des hébergements
 Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])
     ->name('accommodation.response');
+
+// API publique pour les images
+Route::prefix('api')->name('api.')->group(function () {
+    Route::get('/images', [App\Http\Controllers\Api\ImageApiController::class, 'index'])->name('images.index');
+    Route::get('/images/{id}', [App\Http\Controllers\Api\ImageApiController::class, 'show'])->name('images.show');
+});
 
 require __DIR__ . '/auth.php';

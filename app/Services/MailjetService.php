@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ImageOrder;
 use Mailjet\Client;
 use Mailjet\Resources;
 use Illuminate\Support\Facades\Log;
@@ -291,6 +292,209 @@ class MailjetService
             'newUserName' => $newUser->name,
             'newUserEmail' => $newUser->email,
             'adminPanelUrl' => $adminPanelUrl,
+        ])->render();
+    }
+
+    /**
+     * Envoyer un email de confirmation de commande au client.
+     *
+     * @param ImageOrder $order
+     * @return array
+     */
+    public function sendOrderConfirmation(ImageOrder $order): array
+    {
+        $order->load('items.image');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $order->email,
+                            'Name' => $order->full_name,
+                        ],
+                    ],
+                    'Subject' => "Confirmation de votre commande {$order->order_number}",
+                    'TextPart' => "Bonjour,\n\nMerci pour votre commande {$order->order_number}.\n\nNous traiterons votre commande dans les meilleurs delais.",
+                    'HTMLPart' => $this->generateOrderConfirmationHtml($order),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("Order confirmation email sent successfully to {$order->email}", [
+                    'order_number' => $order->order_number,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send order confirmation email to {$order->email}", [
+                'order_number' => $order->order_number,
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending order confirmation email to {$order->email}", [
+                'order_number' => $order->order_number,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Envoyer une notification de nouvelle commande a l'admin.
+     *
+     * @param ImageOrder $order
+     * @param string $adminEmail
+     * @return array
+     */
+    public function sendNewOrderNotification(ImageOrder $order, string $adminEmail): array
+    {
+        $order->load('items.image');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $adminEmail,
+                            'Name' => 'Administrateur',
+                        ],
+                    ],
+                    'Subject' => "Nouvelle commande {$order->order_number}",
+                    'TextPart' => "Une nouvelle commande vient d'etre passee.\n\nNumero: {$order->order_number}\nClient: {$order->full_name}\nEmail: {$order->email}",
+                    'HTMLPart' => $this->generateNewOrderNotificationHtml($order),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("New order notification email sent successfully to {$adminEmail}", [
+                    'order_number' => $order->order_number,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send new order notification email to {$adminEmail}", [
+                'order_number' => $order->order_number,
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending new order notification email to {$adminEmail}", [
+                'order_number' => $order->order_number,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Generer le contenu HTML de l'email de confirmation de commande.
+     *
+     * @param ImageOrder $order
+     * @return string
+     */
+    protected function generateOrderConfirmationHtml(ImageOrder $order): string
+    {
+        $items = $order->items->map(function ($item) {
+            return [
+                'title' => $item->image->title ?? $item->image->name ?? 'Image',
+                'quantity' => $item->quantity,
+            ];
+        })->toArray();
+
+        return view('emails.order-confirmation', [
+            'orderNumber' => $order->order_number,
+            'civility' => $order->civility,
+            'fullName' => $order->full_name,
+            'company' => $order->company,
+            'addressLine1' => $order->address_line1,
+            'addressLine2' => $order->address_line2,
+            'postalCode' => $order->postal_code,
+            'city' => $order->city,
+            'country' => $order->country,
+            'items' => $items,
+        ])->render();
+    }
+
+    /**
+     * Generer le contenu HTML de l'email de notification nouvelle commande.
+     *
+     * @param ImageOrder $order
+     * @return string
+     */
+    protected function generateNewOrderNotificationHtml(ImageOrder $order): string
+    {
+        $items = $order->items->map(function ($item) {
+            return [
+                'title' => $item->image->title ?? $item->image->name ?? 'Image',
+                'quantity' => $item->quantity,
+            ];
+        })->toArray();
+
+        return view('emails.new-order-notification', [
+            'orderNumber' => $order->order_number,
+            'customerType' => $order->customer_type,
+            'language' => $order->language,
+            'civility' => $order->civility,
+            'fullName' => $order->full_name,
+            'company' => $order->company,
+            'email' => $order->email,
+            'phone' => $order->full_phone,
+            'addressLine1' => $order->address_line1,
+            'addressLine2' => $order->address_line2,
+            'postalCode' => $order->postal_code,
+            'city' => $order->city,
+            'country' => $order->country,
+            'customerNotes' => $order->customer_notes,
+            'items' => $items,
+            'adminUrl' => url('/admin/commandes'),
         ])->render();
     }
 }

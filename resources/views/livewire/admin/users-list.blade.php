@@ -7,6 +7,17 @@
                 Approuvez les utilisateurs et gérez leurs rôles et permissions
             </p>
         </div>
+        @if(auth()->user()->hasRole('Super-admin'))
+            <button
+                wire:click="openCreateRoleModal"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Créer un rôle
+            </button>
+        @endif
     </div>
 
     {{-- Flash Messages --}}
@@ -280,6 +291,69 @@
 
                 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full">
                     <livewire:admin.user-roles :userId="$selectedUser->id" :key="'user-roles-'.$selectedUser->id" />
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Permissions Modal (Super-admin only) --}}
+    @if($showPermissionsModal && $selectedRoleId && auth()->user()->hasRole('Super-admin'))
+        <div class="fixed inset-0 z-[60] overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center px-4">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closePermissionsModal"></div>
+
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+                    <livewire:admin.role-permissions :roleId="$selectedRoleId" :key="'role-permissions-'.$selectedRoleId" />
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Create Role Modal (Super-admin only) --}}
+    @if($showCreateRoleModal && auth()->user()->hasRole('Super-admin'))
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center px-4">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeCreateRoleModal"></div>
+
+                <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                        Créer un nouveau rôle
+                    </h3>
+
+                    <div class="mb-6">
+                        <label for="newRoleName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom du rôle
+                        </label>
+                        <input
+                            type="text"
+                            id="newRoleName"
+                            wire:model="newRoleName"
+                            placeholder="Ex: Gestionnaire, Editeur..."
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        >
+                        @error('newRoleName')
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Après la création, vous pourrez assigner des permissions à ce rôle en cliquant sur l'icône d'engrenage.
+                    </p>
+
+                    <div class="flex gap-3 justify-end">
+                        <button
+                            wire:click="closeCreateRoleModal"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            wire:click="createRole"
+                            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                        >
+                            Créer le rôle
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -20,6 +20,7 @@ class RolePermissionSeeder extends Seeder
         // Create permissions
         $permissions = [
             'manage-users',           // Exclusive to Super-admin
+            'manage-images',          // Upload and manage images
             'view-qualification',     // View qualification section
             'edit-qualification',     // Edit qualification data
             'view-disponibilites',    // View accommodation availability
@@ -40,6 +41,7 @@ class RolePermissionSeeder extends Seeder
         // 2. Admin: Full access except user management (inherits Qualification + Disponibilites)
         $admin = Role::create(['name' => 'Admin', 'guard_name' => 'web']);
         $admin->givePermissionTo([
+            'manage-images',
             'view-qualification',
             'edit-qualification',
             'view-disponibilites',
@@ -67,6 +69,6 @@ class RolePermissionSeeder extends Seeder
 
         $this->command->info('Roles and permissions created successfully!');
         $this->command->info('Created 5 roles: Super-admin, Admin, Qualification, Disponibilites, Utilisateurs');
-        $this->command->info('Created 6 permissions: manage-users, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms');
+        $this->command->info('Created 7 permissions: manage-users, manage-images, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms');
     }
 }

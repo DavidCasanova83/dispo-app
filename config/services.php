@@ -40,6 +40,8 @@ return [
         'secret' => env('MAILJET_APISECRET'),
     ],
 
+    'orders' => [
+        'notification_email' => env('ORDER_NOTIFICATION_EMAIL'),
     'wordpress' => [
         'api_token' => env('WORDPRESS_CF7_API_TOKEN'),
     ],
