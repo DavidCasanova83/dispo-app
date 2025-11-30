@@ -228,7 +228,7 @@ class FetchApidaeData extends Command
         $testData = [
             [
                 'identifiant' => 'APIDAE_001',
-                'nom' => ['libelleFr' => 'Hôtel du Lac'],
+                'nom' => ['libelleFr' => 'TEST - Hôtel du Lac'],
                 'localisation' => [
                     'adresse' => [
                         'commune' => ['nom' => 'Annecy']
@@ -244,7 +244,7 @@ class FetchApidaeData extends Command
             ],
             [
                 'identifiant' => 'APIDAE_002',
-                'nom' => ['libelleFr' => 'Gîte Les Alpages'],
+                'nom' => ['libelleFr' => 'TEST - Gîte Les Alpages'],
                 'localisation' => [
                     'adresse' => [
                         'commune' => ['nom' => 'Chamonix']
@@ -259,7 +259,7 @@ class FetchApidaeData extends Command
             ],
             [
                 'identifiant' => 'APIDAE_003',
-                'nom' => ['libelleFr' => 'Chambre d\'hôte La Ferme'],
+                'nom' => ['libelleFr' => 'TEST - Chambre d\'hôte La Ferme'],
                 'localisation' => [
                     'adresse' => [
                         'commune' => ['nom' => 'Megève']
@@ -272,7 +272,7 @@ class FetchApidaeData extends Command
             ],
             [
                 'identifiant' => 'APIDAE_004',
-                'nom' => ['libelleFr' => 'Camping Les Pins'],
+                'nom' => ['libelleFr' => 'TEST - Camping Les Pins'],
                 'localisation' => [
                     'adresse' => [
                         'commune' => ['nom' => 'Thonon-les-Bains']
@@ -289,7 +289,7 @@ class FetchApidaeData extends Command
             ],
             [
                 'identifiant' => 'APIDAE_005',
-                'nom' => ['libelleFr' => 'Résidence Les Alpages'],
+                'nom' => ['libelleFr' => 'TEST - Résidence Les Alpages'],
                 'localisation' => [
                     'adresse' => [
                         'commune' => ['nom' => 'Morzine']
