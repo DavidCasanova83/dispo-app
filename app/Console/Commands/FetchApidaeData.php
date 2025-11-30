@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Models\Accommodation;
 use Carbon\Carbon;
 
@@ -28,18 +29,27 @@ class FetchApidaeData extends Command
      */
     public function handle()
     {
+        // Log de démarrage
+        Log::info('Démarrage de la récupération Apidae', [
+            'mode_test' => $this->option('test'),
+            'mode_all' => $this->option('all'),
+            'limit' => $this->option('limit'),
+            'mode_simple' => $this->option('simple'),
+            'timestamp' => now()->toDateTimeString(),
+        ]);
+
         if ($this->option('test')) {
             return $this->handleTestData();
         }
 
         $this->info('Récupération des hébergements depuis Apidae…');
 
-        // Vérifier que les variables d'environnement sont définies
-        if (!env('APIDAE_API_KEY') || !env('APIDAE_PROJECT_ID') || !env('APIDAE_SELECTION_ID')) {
-            $this->error('Variables d\'environnement manquantes. Vérifiez APIDAE_API_KEY, APIDAE_PROJECT_ID et APIDAE_SELECTION_ID dans votre fichier .env');
-            $this->info('Utilisez --test pour tester avec des données de test');
-            return 1;
-        }
+        // Log du statut des variables d'environnement
+        Log::info('Statut des variables d\'environnement Apidae', [
+            'APIDAE_API_KEY' => env('APIDAE_API_KEY') ? 'défini' : 'MANQUANT',
+            'APIDAE_PROJECT_ID' => env('APIDAE_PROJECT_ID') ? 'défini' : 'MANQUANT',
+            'APIDAE_SELECTION_ID' => env('APIDAE_SELECTION_ID') ? 'défini' : 'MANQUANT',
+        ]);
 
         try {
             $all = $this->option('all');
@@ -58,6 +68,13 @@ class FetchApidaeData extends Command
             $this->line("  - Selection ID: " . env('APIDAE_SELECTION_ID'));
             $this->line("  - Mode simple: " . ($simple ? 'Oui' : 'Non'));
             $this->line("");
+
+            Log::info('Configuration Apidae', [
+                'project_id' => env('APIDAE_PROJECT_ID'),
+                'selection_id' => env('APIDAE_SELECTION_ID'),
+                'mode_simple' => $simple,
+                'target_count' => $all ? 'tous' : $limit,
+            ]);
 
             $url = 'https://api.apidae-tourisme.com/api/v002/recherche/list-objets-touristiques';
             $pageSize = 20; // Limite de l'API Apidae par requête
@@ -85,6 +102,12 @@ class FetchApidaeData extends Command
                 ]);
 
             if (!$firstResponse->successful()) {
+                Log::error('Erreur API Apidae - première requête', [
+                    'status_http' => $firstResponse->status(),
+                    'response_body' => $firstResponse->body(),
+                    'url' => $url,
+                    'request_data' => $firstRequestData,
+                ]);
                 $this->error('Erreur lors de l\'appel à l\'API : ' . $firstResponse->status());
                 $this->error('Réponse : ' . $firstResponse->body());
                 $this->info('Utilisez --test pour tester avec des données de test');
@@ -94,6 +117,10 @@ class FetchApidaeData extends Command
             $firstData = $firstResponse->json();
 
             if (!isset($firstData['numFound']) || !isset($firstData['objetsTouristiques'])) {
+                Log::error('Format de réponse Apidae inattendu', [
+                    'response_body' => $firstResponse->body(),
+                    'keys_recues' => array_keys($firstData ?? []),
+                ]);
                 $this->error('Format de réponse inattendu de l\'API Apidae');
                 $this->line('Réponse reçue : ' . $firstResponse->body());
                 return 1;
@@ -101,6 +128,12 @@ class FetchApidaeData extends Command
 
             $totalAvailable = $firstData['numFound'];
             $allResults = array_merge($allResults, $firstData['objetsTouristiques']);
+
+            Log::info('Première requête API Apidae réussie', [
+                'total_disponible' => $totalAvailable,
+                'hebergements_recus' => count($firstData['objetsTouristiques']),
+                'status_http' => $firstResponse->status(),
+            ]);
 
             $this->info("✓ {$totalAvailable} hébergements disponibles au total");
 
@@ -140,6 +173,12 @@ class FetchApidaeData extends Command
                     ]);
 
                 if (!$response->successful()) {
+                    Log::error('Erreur API Apidae - pagination', [
+                        'page' => $page + 1,
+                        'status_http' => $response->status(),
+                        'response_body' => $response->body(),
+                        'hebergements_deja_recuperes' => count($allResults),
+                    ]);
                     $this->error('Erreur lors de l\'appel à l\'API (page ' . ($page + 1) . ') : ' . $response->status());
                     $this->warn('Arrêt de la récupération. Traitement des ' . count($allResults) . ' hébergements déjà récupérés...');
                     break;
@@ -159,10 +198,21 @@ class FetchApidaeData extends Command
             $this->info('✓ ' . count($allResults) . ' hébergements récupérés au total');
             $this->line("");
 
+            Log::info('Récupération Apidae terminée', [
+                'total_hebergements' => count($allResults),
+                'pages_traitees' => $pagesNeeded,
+            ]);
+
             // Supprimer les absents uniquement en mode --all (synchronisation complète)
             return $this->processResults($allResults, $all);
 
         } catch (\Exception $e) {
+            Log::error('Exception lors de la récupération Apidae', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             $this->error('Exception lors de l\'exécution : ' . $e->getMessage());
             return 1;
         }
@@ -266,6 +316,11 @@ class FetchApidaeData extends Command
      */
     private function processResults($results, bool $deleteAbsent = false)
     {
+        Log::info('Début du traitement des résultats Apidae', [
+            'nombre_resultats' => count($results),
+            'mode_suppression' => $deleteAbsent,
+        ]);
+
         $created = 0;
         $updated = 0;
         $deleted = 0;
@@ -295,6 +350,13 @@ class FetchApidaeData extends Command
             }
 
             $apidaeId = $item['id'] ?? $item['identifiant'] ?? null;
+
+            if (!$apidaeId) {
+                Log::warning('Hébergement sans identifiant Apidae', [
+                    'donnees_brutes' => json_encode($item),
+                ]);
+            }
+
             $apidaeIds[] = $apidaeId;
 
             $accommodation = Accommodation::updateOrCreate(
@@ -321,6 +383,13 @@ class FetchApidaeData extends Command
         // Supprimer les hébergements absents de la sélection (uniquement en mode --all)
         if ($deleteAbsent && !empty($apidaeIds)) {
             $deleted = Accommodation::whereNotIn('apidae_id', array_filter($apidaeIds))->delete();
+
+            if ($deleted > 0) {
+                Log::warning('Suppression des hébergements absents', [
+                    'ids_conserves' => count(array_filter($apidaeIds)),
+                    'hebergements_supprimes' => $deleted,
+                ]);
+            }
         }
 
         $this->info("✅ Opération terminée avec succès !");
@@ -330,6 +399,13 @@ class FetchApidaeData extends Command
             $this->info("   - Hébergements supprimés : {$deleted}");
         }
         $this->info("   - Total traité : " . ($created + $updated));
+
+        Log::info('Récupération automatique des hébergements terminée', [
+            'hebergements_crees' => $created,
+            'hebergements_mis_a_jour' => $updated,
+            'hebergements_supprimes' => $deleted,
+            'total_traite' => $created + $updated,
+        ]);
 
         return 0;
     }
