@@ -46,9 +46,9 @@ class FetchApidaeData extends Command
 
         // Log du statut des variables d'environnement
         Log::info('Statut des variables d\'environnement Apidae', [
-            'APIDAE_API_KEY' => env('APIDAE_API_KEY') ? 'défini' : 'MANQUANT',
-            'APIDAE_PROJECT_ID' => env('APIDAE_PROJECT_ID') ? 'défini' : 'MANQUANT',
-            'APIDAE_SELECTION_ID' => env('APIDAE_SELECTION_ID') ? 'défini' : 'MANQUANT',
+            'APIDAE_API_KEY' => config('apidae.api_key') ? 'défini' : 'MANQUANT',
+            'APIDAE_PROJECT_ID' => config('apidae.project_id') ? 'défini' : 'MANQUANT',
+            'APIDAE_SELECTION_ID' => config('apidae.selection_id') ? 'défini' : 'MANQUANT',
         ]);
 
         try {
@@ -64,14 +64,14 @@ class FetchApidaeData extends Command
             }
 
             $this->info("Configuration utilisée :");
-            $this->line("  - Project ID: " . env('APIDAE_PROJECT_ID'));
-            $this->line("  - Selection ID: " . env('APIDAE_SELECTION_ID'));
+            $this->line("  - Project ID: " . config('apidae.project_id'));
+            $this->line("  - Selection ID: " . config('apidae.selection_id'));
             $this->line("  - Mode simple: " . ($simple ? 'Oui' : 'Non'));
             $this->line("");
 
             Log::info('Configuration Apidae', [
-                'project_id' => env('APIDAE_PROJECT_ID'),
-                'selection_id' => env('APIDAE_SELECTION_ID'),
+                'project_id' => config('apidae.project_id'),
+                'selection_id' => config('apidae.selection_id'),
                 'mode_simple' => $simple,
                 'target_count' => $all ? 'tous' : $limit,
             ]);
@@ -85,14 +85,14 @@ class FetchApidaeData extends Command
             $this->info('Récupération du nombre total d\'hébergements...');
 
             $firstRequestData = [
-                'selectionIds' => [env('APIDAE_SELECTION_ID')],
+                'selectionIds' => [config('apidae.selection_id')],
                 'searchFields' => 'NOM_DESCRIPTION_CRITERES',
                 'first' => 0,
                 'count' => $pageSize,
                 'order' => 'IDENTIFIANT',
                 'asc' => true,
-                'apiKey' => env('APIDAE_API_KEY'),
-                'projetId' => env('APIDAE_PROJECT_ID')
+                'apiKey' => config('apidae.api_key'),
+                'projetId' => config('apidae.project_id')
             ];
 
             $firstResponse = Http::timeout(60)
@@ -156,14 +156,14 @@ class FetchApidaeData extends Command
                 $this->line("→ Page " . ($page + 1) . "/{$pagesNeeded} (hébergements " . ($first + 1) . "-" . min($first + $pageSize, $targetCount) . "/{$targetCount})");
 
                 $requestData = [
-                    'selectionIds' => [env('APIDAE_SELECTION_ID')],
+                    'selectionIds' => [config('apidae.selection_id')],
                     'searchFields' => 'NOM_DESCRIPTION_CRITERES',
                     'first' => $first,
                     'count' => $pageSize,
                     'order' => 'IDENTIFIANT',
                     'asc' => true,
-                    'apiKey' => env('APIDAE_API_KEY'),
-                    'projetId' => env('APIDAE_PROJECT_ID')
+                    'apiKey' => config('apidae.api_key'),
+                    'projetId' => config('apidae.project_id')
                 ];
 
                 $response = Http::timeout(60)
