@@ -2,7 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Author;
+use App\Models\Category;
 use App\Models\Image;
+use App\Models\Sector;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +36,9 @@ class ImageManager extends Component
     public $printAvailables = [];      // Disponibilité impression pour chaque image
     public $editionYears = [];         // Années d'édition pour chaque image
     public $displayOrders = [];        // Ordre d'affichage pour chaque image
+    public $categoryIds = [];          // Catégories pour chaque image
+    public $authorIds = [];            // Auteurs pour chaque image
+    public $sectorIds = [];            // Secteurs pour chaque image
 
     // Propriétés pour l'édition
     public $showEditModal = false;
@@ -49,6 +55,14 @@ class ImageManager extends Component
     public $editPrintAvailable = false;
     public $editEditionYear = null;
     public $editDisplayOrder = null;
+    public $editCategoryId = null;
+    public $editAuthorId = null;
+    public $editSectorId = null;
+
+    // Propriétés pour la gestion des entités (CRUD)
+    public $newCategoryName = '';
+    public $newAuthorName = '';
+    public $newSectorName = '';
 
     // Whitelist des MIME types autorisés
     private const ALLOWED_MIME_TYPES = [
@@ -191,6 +205,9 @@ class ImageManager extends Component
                     'print_available' => isset($this->printAvailables[$index]) ? (bool) $this->printAvailables[$index] : false,
                     'edition_year' => $this->editionYears[$index] ?? null,
                     'display_order' => $this->displayOrders[$index] ?? null,
+                    'category_id' => $this->categoryIds[$index] ?? null,
+                    'author_id' => $this->authorIds[$index] ?? null,
+                    'sector_id' => $this->sectorIds[$index] ?? null,
                 ]);
 
                 $uploadedCount++;
@@ -211,7 +228,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds']);
     }
 
     /**
@@ -272,6 +289,9 @@ class ImageManager extends Component
         $this->editPrintAvailable = (bool) $this->editingImage->print_available;
         $this->editEditionYear = $this->editingImage->edition_year;
         $this->editDisplayOrder = $this->editingImage->display_order;
+        $this->editCategoryId = $this->editingImage->category_id;
+        $this->editAuthorId = $this->editingImage->author_id;
+        $this->editSectorId = $this->editingImage->sector_id;
 
         $this->showEditModal = true;
     }
@@ -286,7 +306,8 @@ class ImageManager extends Component
         $this->reset([
             'editTitle', 'editAltText', 'editDescription',
             'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
-            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder'
+            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder',
+            'editCategoryId', 'editAuthorId', 'editSectorId'
         ]);
     }
 
@@ -315,6 +336,9 @@ class ImageManager extends Component
             'editMaxOrderQuantity' => 'nullable|integer|min:0',
             'editEditionYear' => 'nullable|integer|min:1900|max:2100',
             'editDisplayOrder' => 'nullable|integer|min:0',
+            'editCategoryId' => 'nullable|exists:categories,id',
+            'editAuthorId' => 'nullable|exists:authors,id',
+            'editSectorId' => 'nullable|exists:sectors,id',
         ]);
 
         // Mettre à jour
@@ -331,6 +355,9 @@ class ImageManager extends Component
             'print_available' => $this->editPrintAvailable,
             'edition_year' => $this->editEditionYear,
             'display_order' => $this->editDisplayOrder,
+            'category_id' => $this->editCategoryId ?: null,
+            'author_id' => $this->editAuthorId ?: null,
+            'sector_id' => $this->editSectorId ?: null,
         ]);
 
         // Régénérer le fichier JSON
@@ -340,9 +367,76 @@ class ImageManager extends Component
         $this->closeEditModal();
     }
 
+    /**
+     * Ajouter une nouvelle catégorie
+     */
+    public function addCategory()
+    {
+        $this->validate(['newCategoryName' => 'required|string|max:255|unique:categories,name']);
+        Category::create(['name' => $this->newCategoryName]);
+        $this->newCategoryName = '';
+        session()->flash('success', 'Catégorie ajoutée avec succès.');
+    }
+
+    /**
+     * Supprimer une catégorie
+     */
+    public function deleteCategory($id)
+    {
+        $category = Category::findOrFail($id);
+        // Mettre à null les images associées
+        Image::where('category_id', $id)->update(['category_id' => null]);
+        $category->delete();
+        session()->flash('success', 'Catégorie supprimée.');
+    }
+
+    /**
+     * Ajouter un nouvel auteur
+     */
+    public function addAuthor()
+    {
+        $this->validate(['newAuthorName' => 'required|string|max:255|unique:authors,name']);
+        Author::create(['name' => $this->newAuthorName]);
+        $this->newAuthorName = '';
+        session()->flash('success', 'Auteur ajouté avec succès.');
+    }
+
+    /**
+     * Supprimer un auteur
+     */
+    public function deleteAuthor($id)
+    {
+        $author = Author::findOrFail($id);
+        Image::where('author_id', $id)->update(['author_id' => null]);
+        $author->delete();
+        session()->flash('success', 'Auteur supprimé.');
+    }
+
+    /**
+     * Ajouter un nouveau secteur
+     */
+    public function addSector()
+    {
+        $this->validate(['newSectorName' => 'required|string|max:255|unique:sectors,name']);
+        Sector::create(['name' => $this->newSectorName]);
+        $this->newSectorName = '';
+        session()->flash('success', 'Secteur ajouté avec succès.');
+    }
+
+    /**
+     * Supprimer un secteur
+     */
+    public function deleteSector($id)
+    {
+        $sector = Sector::findOrFail($id);
+        Image::where('sector_id', $id)->update(['sector_id' => null]);
+        $sector->delete();
+        session()->flash('success', 'Secteur supprimé.');
+    }
+
     public function render()
     {
-        $query = Image::with('uploader')
+        $query = Image::with(['uploader', 'category', 'author', 'sector'])
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');
 
@@ -363,6 +457,9 @@ class ImageManager extends Component
         return view('livewire.admin.image-manager', [
             'imagesList' => $imagesList,
             'stats' => $stats,
+            'categories' => Category::orderBy('name')->get(),
+            'authors' => Author::orderBy('name')->get(),
+            'sectors' => Sector::orderBy('name')->get(),
         ])->layout('components.layouts.app');
     }
 }

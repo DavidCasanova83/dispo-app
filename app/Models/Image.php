@@ -35,6 +35,9 @@ class Image extends Model
         'print_available',
         'edition_year',
         'display_order',
+        'category_id',
+        'author_id',
+        'sector_id',
     ];
 
     protected $casts = [
@@ -54,6 +57,30 @@ class Image extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Relation avec la catégorie
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Relation avec l'auteur
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
+    }
+
+    /**
+     * Relation avec le secteur
+     */
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
     }
 
     /**

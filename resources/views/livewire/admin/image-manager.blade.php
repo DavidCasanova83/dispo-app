@@ -240,6 +240,48 @@
                                                 </label>
                                             </div>
                                         </div>
+                                        {{-- Catégorie, Auteur, Secteur --}}
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Catégorie
+                                                </label>
+                                                <select wire:model="categoryIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                    <option value="">-- Aucune --</option>
+                                                    @foreach ($categories as $category)
+                                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Auteur
+                                                </label>
+                                                <select wire:model="authorIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                    <option value="">-- Aucun --</option>
+                                                    @foreach ($authors as $author)
+                                                        <option value="{{ $author->id }}">{{ $author->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Secteur
+                                                </label>
+                                                <select wire:model="sectorIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                    <option value="">-- Aucun --</option>
+                                                    @foreach ($sectors as $sector)
+                                                        <option value="{{ $sector->id }}">{{ $sector->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach
@@ -268,6 +310,108 @@
                     </div>
                 </div>
             </form>
+        </div>
+
+        {{-- Gestion des Catégories, Auteurs, Secteurs --}}
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Gérer les listes</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {{-- Catégories --}}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Catégories</h3>
+                    <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        @forelse ($categories as $category)
+                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ $category->name }}</span>
+                                <button wire:click="deleteCategory({{ $category->id }})"
+                                    wire:confirm="Supprimer cette catégorie ?"
+                                    class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucune catégorie</p>
+                        @endforelse
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="newCategoryName" placeholder="Nouvelle catégorie"
+                            class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                        <button wire:click="addCategory"
+                            class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    @error('newCategoryName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                {{-- Auteurs --}}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Auteurs</h3>
+                    <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        @forelse ($authors as $author)
+                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ $author->name }}</span>
+                                <button wire:click="deleteAuthor({{ $author->id }})"
+                                    wire:confirm="Supprimer cet auteur ?"
+                                    class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucun auteur</p>
+                        @endforelse
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="newAuthorName" placeholder="Nouvel auteur"
+                            class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                        <button wire:click="addAuthor"
+                            class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    @error('newAuthorName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                {{-- Secteurs --}}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Secteurs</h3>
+                    <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        @forelse ($sectors as $sector)
+                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ $sector->name }}</span>
+                                <button wire:click="deleteSector({{ $sector->id }})"
+                                    wire:confirm="Supprimer ce secteur ?"
+                                    class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucun secteur</p>
+                        @endforelse
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="newSectorName" placeholder="Nouveau secteur"
+                            class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                        <button wire:click="addSector"
+                            class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    @error('newSectorName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -309,6 +453,15 @@
                                         @endif
                                         @if ($image->display_order !== null)
                                             <span class="text-purple-600 dark:text-purple-400 font-medium">Ordre: {{ $image->display_order }}</span>
+                                        @endif
+                                        @if ($image->category)
+                                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{{ $image->category->name }}</span>
+                                        @endif
+                                        @if ($image->author)
+                                            <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs">{{ $image->author->name }}</span>
+                                        @endif
+                                        @if ($image->sector)
+                                            <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs">{{ $image->sector->name }}</span>
                                         @endif
                                     </div>
                                     {{-- Liens --}}
@@ -569,6 +722,49 @@
                                                 class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-[#3E9B90] focus:ring-2 focus:ring-[#3E9B90]">
                                             Disponible à la commande
                                         </label>
+                                    </div>
+                                </div>
+
+                                {{-- Catégorie, Auteur, Secteur --}}
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Catégorie
+                                        </label>
+                                        <select wire:model="editCategoryId"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                            <option value="">-- Aucune --</option>
+                                            @foreach ($categories as $category)
+                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('editCategoryId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Auteur
+                                        </label>
+                                        <select wire:model="editAuthorId"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                            <option value="">-- Aucun --</option>
+                                            @foreach ($authors as $author)
+                                                <option value="{{ $author->id }}">{{ $author->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('editAuthorId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Secteur
+                                        </label>
+                                        <select wire:model="editSectorId"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                            <option value="">-- Aucun --</option>
+                                            @foreach ($sectors as $sector)
+                                                <option value="{{ $sector->id }}">{{ $sector->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('editSectorId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
                             </div>

@@ -1,8 +1,37 @@
 {
     "success": true,
-    "total": 24,
-    "generated_at": "2025-12-02T14:41:04+01:00",
+    "total": 25,
+    "generated_at": "2025-12-02T17:34:54+01:00",
     "data": [
+        {
+            "id": 26,
+            "name": "1.jpg",
+            "title": "Entrevaux",
+            "filename": "1_1764693294_uERGEeRDCv.jpg",
+            "url": "http://localhost:8000/storage/images/1_1764693294_uERGEeRDCv.jpg",
+            "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_1_1764693294_uERGEeRDCv.jpg",
+            "alt_text": "Entrevaux",
+            "description": "Entrevaux images pour articles",
+            "mime_type": "image/jpeg",
+            "size": 194287,
+            "size_formatted": "189.73 KB",
+            "dimensions": {
+                "width": 800,
+                "height": 1000
+            },
+            "product": {
+                "quantity_available": 100,
+                "max_order_quantity": 5,
+                "print_available": true,
+                "edition_year": 2025
+            },
+            "uploader": {
+                "id": 1,
+                "name": "Test User"
+            },
+            "created_at": "2025-12-02T17:34:54+01:00",
+            "updated_at": "2025-12-02T17:34:54+01:00"
+        },
         {
             "id": 25,
             "name": "news-guide.PNG",
