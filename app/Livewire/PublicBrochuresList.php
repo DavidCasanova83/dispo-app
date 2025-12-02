@@ -27,6 +27,15 @@ class PublicBrochuresList extends Component
     #[Rule('required|string|min:10|max:1000')]
     public string $reportComment = '';
 
+    public function mount(): void
+    {
+        // Définir "Verdon Tourisme" comme auteur par défaut
+        $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
+        if ($defaultAuthor) {
+            $this->authorId = $defaultAuthor->id;
+        }
+    }
+
     public function openReportModal(int $brochureId): void
     {
         $brochure = Image::find($brochureId);
@@ -88,9 +97,8 @@ class PublicBrochuresList extends Component
 
     public function render()
     {
-        // Récupérer toutes les brochures disponibles avec filtres
-        $brochures = Image::where('print_available', true)
-            ->where('quantity_available', '>', 0)
+        // Récupérer toutes les brochures avec filtres
+        $brochures = Image::query()
             ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
             ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
             ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
@@ -98,10 +106,8 @@ class PublicBrochuresList extends Component
             ->orderBy('title')
             ->get();
 
-        // Récupérer les IDs des brochures disponibles pour les filtres
-        $availableBrochureIds = Image::where('print_available', true)
-            ->where('quantity_available', '>', 0)
-            ->pluck('id');
+        // Récupérer les IDs de toutes les brochures pour les filtres
+        $availableBrochureIds = Image::pluck('id');
 
         return view('livewire.public-brochures-list', [
             'brochures' => $brochures,
