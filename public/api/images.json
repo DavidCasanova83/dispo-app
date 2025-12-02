@@ -1,7 +1,7 @@
 {
     "success": true,
     "total": 25,
-    "generated_at": "2025-12-02T17:34:54+01:00",
+    "generated_at": "2025-12-02T18:34:37+01:00",
     "data": [
         {
             "id": 26,
@@ -12,6 +12,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_1_1764693294_uERGEeRDCv.jpg",
             "alt_text": "Entrevaux",
             "description": "Entrevaux images pour articles",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 194287,
             "size_formatted": "189.73 KB",
@@ -19,11 +23,24 @@
                 "width": 800,
                 "height": 1000
             },
+            "display_order": 2,
             "product": {
                 "quantity_available": 100,
                 "max_order_quantity": 5,
                 "print_available": true,
                 "edition_year": 2025
+            },
+            "category": {
+                "id": 1,
+                "name": "Randonn\u00e9e"
+            },
+            "author": {
+                "id": 1,
+                "name": "Verdon Tourisme"
+            },
+            "sector": {
+                "id": 1,
+                "name": "Annot"
             },
             "uploader": {
                 "id": 1,
@@ -41,6 +58,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_news-guide_1764682863_Pr7zztegeS.png",
             "alt_text": "Randonn\u00e9es Annot",
             "description": "Randonn\u00e9es Annot",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 166434,
             "size_formatted": "162.53 KB",
@@ -48,12 +69,16 @@
                 "width": 299,
                 "height": 479
             },
+            "display_order": 1,
             "product": {
                 "quantity_available": 145,
                 "max_order_quantity": 5,
                 "print_available": true,
                 "edition_year": 2025
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -70,6 +95,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_image-4_1764169952_KgVPQs6PMo.png",
             "alt_text": "Description test",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 469812,
             "size_formatted": "458.80 KB",
@@ -77,12 +106,16 @@
                 "width": 892,
                 "height": 1185
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 200,
                 "max_order_quantity": 20,
                 "print_available": true,
                 "edition_year": 2025
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -99,6 +132,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_ex-labore-optio_1763574940_tpxjhzoqwl.png",
             "alt_text": "At beatae modi ut.",
             "description": "Error id minima doloribus nesciunt aut. Blanditiis praesentium possimus ut aut.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 3357303,
             "size_formatted": "3.20 MB",
@@ -106,12 +143,16 @@
                 "width": 1600,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 90,
                 "max_order_quantity": 42,
                 "print_available": false,
                 "edition_year": 2025
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -128,6 +169,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_molestiae-reprehenderit-ut_1763574940_jgmkgcsrfr.gif",
             "alt_text": "Aut nobis non et.",
             "description": "Mollitia molestiae explicabo unde magni suscipit. Voluptas est facere nihil est soluta qui.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/gif",
             "size": 3258937,
             "size_formatted": "3.11 MB",
@@ -135,12 +180,16 @@
                 "width": 1920,
                 "height": 1080
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 54,
                 "max_order_quantity": 26,
                 "print_available": false,
                 "edition_year": 2025
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -157,6 +206,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_et-quas-et-accusamus_1763574940_bsvdxwoboe.jpg",
             "alt_text": null,
             "description": "In ut dolores quibusdam quia quis. Deleniti magnam libero ad nesciunt eius eum vitae.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 3517687,
             "size_formatted": "3.35 MB",
@@ -164,12 +217,16 @@
                 "width": 1200,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 71,
                 "max_order_quantity": 8,
                 "print_available": false,
                 "edition_year": 2022
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -186,6 +243,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_et-fugiat-hic-nihil-possimus_1763574940_njqzaqgtwb.webp",
             "alt_text": "Qui et modi et minus.",
             "description": "Molestiae unde consequatur illo alias. Facere enim iste rerum doloremque.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/webp",
             "size": 3369584,
             "size_formatted": "3.21 MB",
@@ -193,12 +254,16 @@
                 "width": 1920,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 58,
                 "max_order_quantity": 24,
                 "print_available": true,
                 "edition_year": 2024
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -215,6 +280,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_amet-voluptatem-voluptatibus-minima-est_1763574940_wzqpvcrpii.jpg",
             "alt_text": null,
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 3137505,
             "size_formatted": "2.99 MB",
@@ -222,12 +291,16 @@
                 "width": 1200,
                 "height": 900
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 85,
                 "max_order_quantity": 41,
                 "print_available": false,
                 "edition_year": 2020
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -244,6 +317,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_expedita-consequatur-ut_1763574940_vzwdvekvpf.webp",
             "alt_text": "Ut velit necessitatibus enim enim vel.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/webp",
             "size": 2627522,
             "size_formatted": "2.51 MB",
@@ -251,12 +328,16 @@
                 "width": 1024,
                 "height": 900
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 88,
                 "max_order_quantity": 18,
                 "print_available": false,
                 "edition_year": 2023
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -273,6 +354,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_voluptas-quis-enim-eum-ea_1763574940_dufvuazldh.gif",
             "alt_text": "Magni laborum suscipit saepe inventore.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/gif",
             "size": 1647833,
             "size_formatted": "1.57 MB",
@@ -280,12 +365,16 @@
                 "width": 1920,
                 "height": 600
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 60,
                 "max_order_quantity": 37,
                 "print_available": false,
                 "edition_year": 2021
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -302,6 +391,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_voluptatem-eum-voluptatem_1763574940_hififvvjxt.jpg",
             "alt_text": null,
             "description": "Quia consequuntur laborum omnis eum ab voluptatem provident. Sint asperiores necessitatibus aut aliquid alias omnis. Sed voluptates occaecati ipsam repellendus dicta similique beatae.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 2085168,
             "size_formatted": "1.99 MB",
@@ -309,12 +402,16 @@
                 "width": 1200,
                 "height": 900
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 92,
                 "max_order_quantity": 16,
                 "print_available": true,
                 "edition_year": 2024
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -331,6 +428,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_velit-dicta-id_1763574940_jzprgnhnmr.png",
             "alt_text": "Est earum tenetur saepe.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 3102895,
             "size_formatted": "2.96 MB",
@@ -338,12 +439,16 @@
                 "width": 800,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 69,
                 "max_order_quantity": 5,
                 "print_available": true,
                 "edition_year": 2023
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -360,6 +465,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_ducimus-ea-labore_1763574940_lkuzgvckzb.png",
             "alt_text": "Ut reprehenderit voluptatem perferendis accusantium eos.",
             "description": "Eum rerum quo mollitia asperiores ut ratione et. Magnam perspiciatis et labore voluptas neque molestiae porro.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 3578364,
             "size_formatted": "3.41 MB",
@@ -367,12 +476,16 @@
                 "width": 800,
                 "height": 900
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 74,
                 "max_order_quantity": 47,
                 "print_available": true,
                 "edition_year": 2022
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -389,6 +502,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_hic-reprehenderit_1763574940_rklpvpoltn.jpg",
             "alt_text": "Repellendus autem est id omnis et.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 990278,
             "size_formatted": "967.07 KB",
@@ -396,12 +513,16 @@
                 "width": 800,
                 "height": 900
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 68,
                 "max_order_quantity": 14,
                 "print_available": true,
                 "edition_year": 2023
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -418,6 +539,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_eos-sit-sed_1763574940_ifcmjpwoii.webp",
             "alt_text": "Odit eum corporis illo ut tenetur repellat.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/webp",
             "size": 888691,
             "size_formatted": "867.86 KB",
@@ -425,12 +550,16 @@
                 "width": 800,
                 "height": 768
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 52,
                 "max_order_quantity": 42,
                 "print_available": true,
                 "edition_year": 2020
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -447,6 +576,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_expedita-voluptatum-eveniet-officia_1763574940_eapummwkbg.jpg",
             "alt_text": "Repudiandae quasi a ipsum ad modi ipsam.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 662667,
             "size_formatted": "647.14 KB",
@@ -454,12 +587,16 @@
                 "width": 1024,
                 "height": 768
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 12,
                 "max_order_quantity": 7,
                 "print_available": false,
                 "edition_year": 2023
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -476,6 +613,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_id-sunt-id-nemo_1763574940_ypfnjabkfl.png",
             "alt_text": null,
             "description": "Ex nesciunt facere adipisci ea quo debitis suscipit. Enim porro quia fugit corrupti ad. Beatae sed repellendus rerum voluptas et.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 4887509,
             "size_formatted": "4.66 MB",
@@ -483,12 +624,16 @@
                 "width": 1920,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 55,
                 "max_order_quantity": 28,
                 "print_available": true,
                 "edition_year": 2020
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -505,6 +650,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_veritatis-ipsa-officia-totam_1763574940_fyauhvbled.png",
             "alt_text": "Aperiam officiis nobis consequatur amet fugit.",
             "description": "Ducimus et ab natus quo qui aut mollitia. Consequatur voluptatem deserunt vel doloribus expedita.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 431820,
             "size_formatted": "421.70 KB",
@@ -512,12 +661,16 @@
                 "width": 1920,
                 "height": 768
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 14,
                 "max_order_quantity": 38,
                 "print_available": true,
                 "edition_year": 2020
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -534,6 +687,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_voluptatem-enim-ut-quis-quia_1763574940_hypjiosjta.jpg",
             "alt_text": null,
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 4137667,
             "size_formatted": "3.95 MB",
@@ -541,12 +698,16 @@
                 "width": 800,
                 "height": 768
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 90,
                 "max_order_quantity": 22,
                 "print_available": true,
                 "edition_year": 2024
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -563,6 +724,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_aut-deserunt-sed-nulla-aut_1763574940_jklbnvfhts.webp",
             "alt_text": "Dolorum ab ex laboriosam expedita.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/webp",
             "size": 3759469,
             "size_formatted": "3.59 MB",
@@ -570,12 +735,16 @@
                 "width": 1024,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 61,
                 "max_order_quantity": 5,
                 "print_available": false,
                 "edition_year": 2022
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -592,6 +761,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_deleniti-corporis-velit-autem_1763574940_lfdmygupex.jpg",
             "alt_text": "A nemo ut voluptates reprehenderit blanditiis labore.",
             "description": "Qui necessitatibus nesciunt ut sapiente quasi rem facere. A et qui odio porro quam. Aliquam nemo exercitationem enim consectetur eum neque eligendi.",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/jpeg",
             "size": 865340,
             "size_formatted": "845.06 KB",
@@ -599,12 +772,16 @@
                 "width": 1200,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 78,
                 "max_order_quantity": 38,
                 "print_available": true,
                 "edition_year": 2024
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -621,6 +798,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_occaecati-reiciendis-eligendi-recusandae_1763574940_lrbnmhrluq.png",
             "alt_text": "Asperiores voluptates vel magnam dolorem qui ratione.",
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 4349758,
             "size_formatted": "4.15 MB",
@@ -628,12 +809,16 @@
                 "width": 1200,
                 "height": 1200
             },
+            "display_order": null,
             "product": {
                 "quantity_available": 5,
                 "max_order_quantity": 33,
                 "print_available": false,
                 "edition_year": 2024
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -650,6 +835,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_fin-logo_1763571505_K2soLMygNK.png",
             "alt_text": "sdasd",
             "description": "asdasdasd",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 168010,
             "size_formatted": "164.07 KB",
@@ -657,12 +846,16 @@
                 "width": 445,
                 "height": 449
             },
+            "display_order": null,
             "product": {
                 "quantity_available": null,
                 "max_order_quantity": null,
                 "print_available": false,
                 "edition_year": null
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -679,6 +872,10 @@
             "thumbnail_url": "http://localhost:8000/storage/images/thumbnails/thumb_group-1_1763571057_IFvhN1tVYT.png",
             "alt_text": "Photos-1",
             "description": "Photos web site !",
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 1264290,
             "size_formatted": "1.21 MB",
@@ -686,12 +883,16 @@
                 "width": 1920,
                 "height": 888
             },
+            "display_order": null,
             "product": {
                 "quantity_available": null,
                 "max_order_quantity": null,
                 "print_available": false,
                 "edition_year": null
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"
@@ -708,6 +909,10 @@
             "thumbnail_url": null,
             "alt_text": null,
             "description": null,
+            "link_url": null,
+            "link_text": null,
+            "calameo_link_url": null,
+            "calameo_link_text": null,
             "mime_type": "image/png",
             "size": 145184,
             "size_formatted": "141.78 KB",
@@ -715,12 +920,16 @@
                 "width": null,
                 "height": null
             },
+            "display_order": null,
             "product": {
                 "quantity_available": null,
                 "max_order_quantity": null,
                 "print_available": false,
                 "edition_year": null
             },
+            "category": null,
+            "author": null,
+            "sector": null,
             "uploader": {
                 "id": 1,
                 "name": "Test User"

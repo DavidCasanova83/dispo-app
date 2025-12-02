@@ -3,10 +3,12 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Author;
+use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -63,6 +65,11 @@ class ImageManager extends Component
     public $newCategoryName = '';
     public $newAuthorName = '';
     public $newSectorName = '';
+
+    // Propriétés pour les signalements
+    public bool $showReportModal = false;
+    public ?BrochureReport $selectedReport = null;
+    public string $resolutionNote = '';
 
     // Whitelist des MIME types autorisés
     private const ALLOWED_MIME_TYPES = [
@@ -434,6 +441,46 @@ class ImageManager extends Component
         session()->flash('success', 'Secteur supprimé.');
     }
 
+    /**
+     * Ouvrir le modal de détail d'un signalement
+     */
+    public function openReportModal(int $reportId): void
+    {
+        $this->selectedReport = BrochureReport::with(['image', 'user'])->find($reportId);
+        if ($this->selectedReport) {
+            // Marquer comme lu
+            if (!$this->selectedReport->is_read) {
+                $this->selectedReport->markAsRead();
+            }
+            $this->resolutionNote = '';
+            $this->showReportModal = true;
+        }
+    }
+
+    /**
+     * Fermer le modal de signalement
+     */
+    public function closeReportModal(): void
+    {
+        $this->showReportModal = false;
+        $this->selectedReport = null;
+        $this->resolutionNote = '';
+    }
+
+    /**
+     * Résoudre un signalement
+     */
+    public function resolveReport(): void
+    {
+        if (!$this->selectedReport) {
+            return;
+        }
+
+        $this->selectedReport->resolve(Auth::user(), $this->resolutionNote ?: null);
+        session()->flash('success', 'Le signalement a été marqué comme résolu.');
+        $this->closeReportModal();
+    }
+
     public function render()
     {
         $query = Image::with(['uploader', 'category', 'author', 'sector'])
@@ -454,12 +501,22 @@ class ImageManager extends Component
             'today' => Image::whereDate('created_at', today())->count(),
         ];
 
+        // Récupérer les signalements non résolus pour les admins
+        $pendingReports = BrochureReport::with(['image', 'user'])
+            ->unresolved()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $unreadReportsCount = BrochureReport::unread()->unresolved()->count();
+
         return view('livewire.admin.image-manager', [
             'imagesList' => $imagesList,
             'stats' => $stats,
             'categories' => Category::orderBy('name')->get(),
             'authors' => Author::orderBy('name')->get(),
             'sectors' => Sector::orderBy('name')->get(),
+            'pendingReports' => $pendingReports,
+            'unreadReportsCount' => $unreadReportsCount,
         ])->layout('components.layouts.app');
     }
 }
