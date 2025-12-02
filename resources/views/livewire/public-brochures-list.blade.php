@@ -32,7 +32,7 @@
                                 <div class="flex-shrink-0">
                                     <img src="{{ $brochure->thumbnail_path ? asset('storage/' . $brochure->thumbnail_path) : asset('storage/' . $brochure->path) }}"
                                         alt="{{ $brochure->alt_text ?? $brochure->title ?? $brochure->name }}"
-                                        class="w-16 h-20 sm:w-20 sm:h-24 object-cover rounded-lg shadow-md">
+                                        class="w-16 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md">
                                 </div>
 
                                 {{-- Titre et description --}}
