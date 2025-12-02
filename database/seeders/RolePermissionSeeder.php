@@ -17,31 +17,33 @@ class RolePermissionSeeder extends Seeder
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create permissions
+        // Create permissions (idempotent)
         $permissions = [
-            'manage-users',           // Exclusive to Super-admin
-            'manage-images',          // Upload and manage images
-            'view-qualification',     // View qualification section
-            'edit-qualification',     // Edit qualification data
-            'view-disponibilites',    // View accommodation availability
-            'edit-disponibilites',    // Edit accommodation data
-            'fill-forms',             // Fill and validate forms
+            'manage-users',
+            'manage-images',
+            'manage-orders',
+            'view-qualification',
+            'edit-qualification',
+            'view-disponibilites',
+            'edit-disponibilites',
+            'fill-forms',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission, 'guard_name' => 'web']);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // Create roles and assign permissions
+        // Create roles and sync permissions (idempotent)
 
         // 1. Super-admin: Full access to everything including user management
-        $superAdmin = Role::create(['name' => 'Super-admin', 'guard_name' => 'web']);
-        $superAdmin->givePermissionTo(Permission::all());
+        $superAdmin = Role::firstOrCreate(['name' => 'Super-admin', 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(Permission::all());
 
-        // 2. Admin: Full access except user management (inherits Qualification + Disponibilites)
-        $admin = Role::create(['name' => 'Admin', 'guard_name' => 'web']);
-        $admin->givePermissionTo([
+        // 2. Admin: Full access except user management
+        $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
+        $admin->syncPermissions([
             'manage-images',
+            'manage-orders',
             'view-qualification',
             'edit-qualification',
             'view-disponibilites',
@@ -50,25 +52,17 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // 3. Qualification: Access to qualification section
-        $qualification = Role::create(['name' => 'Qualification', 'guard_name' => 'web']);
-        $qualification->givePermissionTo([
-            'view-qualification',
-            'edit-qualification',
-        ]);
+        $qualification = Role::firstOrCreate(['name' => 'Qualification', 'guard_name' => 'web']);
+        $qualification->syncPermissions(['view-qualification', 'edit-qualification']);
 
         // 4. Disponibilites: Access to accommodation availability
-        $disponibilites = Role::create(['name' => 'Disponibilites', 'guard_name' => 'web']);
-        $disponibilites->givePermissionTo([
-            'view-disponibilites',
-            'edit-disponibilites',
-        ]);
+        $disponibilites = Role::firstOrCreate(['name' => 'Disponibilites', 'guard_name' => 'web']);
+        $disponibilites->syncPermissions(['view-disponibilites', 'edit-disponibilites']);
 
         // 5. Utilisateurs: Base level - can view and fill forms
-        $utilisateurs = Role::create(['name' => 'Utilisateurs', 'guard_name' => 'web']);
-        $utilisateurs->givePermissionTo(['fill-forms', 'view-qualification']);
+        $utilisateurs = Role::firstOrCreate(['name' => 'Utilisateurs', 'guard_name' => 'web']);
+        $utilisateurs->syncPermissions(['fill-forms', 'view-qualification']);
 
-        $this->command->info('Roles and permissions created successfully!');
-        $this->command->info('Created 5 roles: Super-admin, Admin, Qualification, Disponibilites, Utilisateurs');
-        $this->command->info('Created 7 permissions: manage-users, manage-images, view-qualification, edit-qualification, view-disponibilites, edit-disponibilites, fill-forms');
+        $this->command->info('Roles and permissions synchronized!');
     }
 }

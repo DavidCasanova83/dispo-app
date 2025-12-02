@@ -211,7 +211,7 @@
                                                     class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                             </div>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-2">
+                                        <div class="grid grid-cols-3 gap-2">
                                             <div>
                                                 <label
                                                     class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -219,6 +219,15 @@
                                                 </label>
                                                 <input type="number" wire:model="editionYears.{{ $index }}"
                                                     min="1900" max="2100" placeholder="2025"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Ordre d'affichage
+                                                </label>
+                                                <input type="number" wire:model="displayOrders.{{ $index }}"
+                                                    min="0" placeholder="Ex: 1, 2, 3..."
                                                     class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                             </div>
                                             <div class="flex items-end">
@@ -272,97 +281,95 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Brochures uploadées</h2>
 
             @if ($imagesList->count() > 0)
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="space-y-3">
                     @foreach ($imagesList as $image)
-                        <div
-                            class="group relative rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow bg-white dark:bg-transparent">
-                            {{-- Image --}}
-                            <div class="aspect-square bg-gray-100 dark:bg-gray-700">
-                                <img src="{{ $image->thumbnail_path ? asset('storage/' . $image->thumbnail_path) : asset('storage/' . $image->path) }}"
-                                    alt="{{ $image->alt_text ?? $image->name }}" class="w-full h-full object-cover">
-                            </div>
-
-                            {{-- Overlay on hover --}}
-                            <div
-                                class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                <div class="flex gap-2">
-                                    {{-- View button --}}
-                                    <a href="{{ asset('storage/' . $image->path) }}" target="_blank"
-                                        class="p-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white rounded-lg transition-colors"
-                                        title="Voir l'image">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-                                            </path>
-                                        </svg>
-                                    </a>
-
-                                    {{-- Edit button --}}
-                                    <button wire:click="openEditModal({{ $image->id }})"
-                                        class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
-                                        title="Modifier">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                            </path>
-                                        </svg>
-                                    </button>
-
-                                    {{-- Delete button --}}
-                                    <button wire:click="openDeleteModal({{ $image->id }})"
-                                        class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                                        title="Supprimer">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                            </path>
-                                        </svg>
-                                    </button>
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                            {{-- Miniature et infos --}}
+                            <div class="flex items-start gap-4 flex-1 min-w-0">
+                                <a href="{{ asset('storage/' . $image->path) }}" target="_blank" class="flex-shrink-0">
+                                    <img src="{{ $image->thumbnail_path ? asset('storage/' . $image->thumbnail_path) : asset('storage/' . $image->path) }}"
+                                        alt="{{ $image->alt_text ?? $image->name }}"
+                                        class="w-14 h-[79px] object-cover rounded-lg border border-gray-200 dark:border-gray-600 hover:opacity-80 transition-opacity">
+                                </a>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">
+                                        {{ $image->title ?? $image->name }}
+                                    </h3>
+                                    @if ($image->description)
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                            {{ $image->description }}
+                                        </p>
+                                    @endif
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                                        <span>{{ $image->formattedSize() }}</span>
+                                        <span>{{ $image->created_at->format('d/m/Y') }}</span>
+                                        <span>Par {{ $image->uploader->name }}</span>
+                                        @if ($image->quantity_available !== null)
+                                            <span class="text-[#3E9B90] font-medium">Stock: {{ $image->quantity_available }}</span>
+                                        @endif
+                                        @if ($image->display_order !== null)
+                                            <span class="text-purple-600 dark:text-purple-400 font-medium">Ordre: {{ $image->display_order }}</span>
+                                        @endif
+                                    </div>
+                                    {{-- Liens --}}
+                                    <div class="flex flex-wrap gap-3 mt-2">
+                                        @if ($image->link_url)
+                                            <a href="{{ $image->link_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-1 text-xs text-[#3E9B90] hover:text-[#2d7a72] font-medium">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                </svg>
+                                                {{ $image->link_text ?? 'Voir le lien' }}
+                                            </a>
+                                        @endif
+                                        @if ($image->calameo_link_url)
+                                            <a href="{{ $image->calameo_link_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                                </svg>
+                                                {{ $image->calameo_link_text ?? 'Voir sur Calameo' }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
 
-                            {{-- Info --}}
-                            <div class="p-3 bg-white dark:bg-gray-800">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate"
-                                    title="{{ $image->name }}">
-                                    {{ $image->name }}
-                                </p>
-                                <div class="flex justify-between items-center mt-1">
-                                    <span
-                                        class="text-xs text-gray-500 dark:text-gray-400">{{ $image->formattedSize() }}</span>
-                                    <span
-                                        class="text-xs text-gray-500 dark:text-gray-400">{{ $image->created_at->format('d/m/Y') }}</span>
-                                </div>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                    Par {{ $image->uploader->name }}
-                                </p>
-                                @if ($image->link_url)
-                                    <a href="{{ $image->link_url }}" target="_blank" rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-1 text-xs text-[#3E9B90] hover:text-[#2d7a72] mt-2 font-medium">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
-                                            </path>
-                                        </svg>
-                                        {{ $image->link_text ?? 'Voir le lien' }}
-                                    </a>
-                                @endif
-                                @if ($image->calameo_link_url)
-                                    <a href="{{ $image->calameo_link_url }}" target="_blank" rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 mt-1 font-medium">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                                            </path>
-                                        </svg>
-                                        {{ $image->calameo_link_text ?? 'Voir sur Calameo' }}
-                                    </a>
-                                @endif
+                            {{-- Actions --}}
+                            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                                {{-- View button --}}
+                                <a href="{{ asset('storage/' . $image->path) }}" target="_blank"
+                                    class="p-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white rounded-lg transition-colors"
+                                    title="Voir l'image">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                </a>
+
+                                {{-- Edit button --}}
+                                <button wire:click="openEditModal({{ $image->id }})"
+                                    class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                                    title="Modifier">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+
+                                {{-- Delete button --}}
+                                <button wire:click="openDeleteModal({{ $image->id }})"
+                                    class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                    title="Supprimer">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     @endforeach
@@ -538,8 +545,8 @@
                                     </div>
                                 </div>
 
-                                {{-- Année et Print --}}
-                                <div class="grid grid-cols-2 gap-4">
+                                {{-- Année, Ordre et Print --}}
+                                <div class="grid grid-cols-3 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             Année d'édition
@@ -547,6 +554,14 @@
                                         <input type="number" wire:model="editEditionYear" min="1900" max="2100"
                                             class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                         @error('editEditionYear') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Ordre d'affichage
+                                        </label>
+                                        <input type="number" wire:model="editDisplayOrder" min="0" placeholder="Ex: 1, 2, 3..."
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        @error('editDisplayOrder') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="flex items-end pb-2">
                                         <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">

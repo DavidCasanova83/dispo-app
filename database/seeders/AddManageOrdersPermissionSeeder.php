@@ -13,17 +13,15 @@ class AddManageOrdersPermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer la permission manage-orders
-        $permission = Permission::firstOrCreate(['name' => 'manage-orders']);
+        // Create the manage-orders permission (idempotent)
+        $permission = Permission::firstOrCreate(['name' => 'manage-orders', 'guard_name' => 'web']);
 
-        // Assigner la permission au rôle Super-admin
+        // Assign to Super-admin role if not already assigned
         $superAdminRole = Role::where('name', 'Super-admin')->first();
 
-        if ($superAdminRole) {
+        if ($superAdminRole && !$superAdminRole->hasPermissionTo('manage-orders')) {
             $superAdminRole->givePermissionTo($permission);
-            $this->command->info('Permission "manage-orders" créée et assignée au rôle Super-admin!');
-        } else {
-            $this->command->warn('Le rôle Super-admin n\'existe pas.');
+            $this->command->info('Permission "manage-orders" assignée au rôle Super-admin!');
         }
     }
 }

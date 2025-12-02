@@ -32,6 +32,7 @@ class ImageManager extends Component
     public $maxOrderQuantities = [];   // Quantités max de commande pour chaque image
     public $printAvailables = [];      // Disponibilité impression pour chaque image
     public $editionYears = [];         // Années d'édition pour chaque image
+    public $displayOrders = [];        // Ordre d'affichage pour chaque image
 
     // Propriétés pour l'édition
     public $showEditModal = false;
@@ -47,6 +48,7 @@ class ImageManager extends Component
     public $editMaxOrderQuantity = null;
     public $editPrintAvailable = false;
     public $editEditionYear = null;
+    public $editDisplayOrder = null;
 
     // Whitelist des MIME types autorisés
     private const ALLOWED_MIME_TYPES = [
@@ -188,6 +190,7 @@ class ImageManager extends Component
                     'max_order_quantity' => $this->maxOrderQuantities[$index] ?? null,
                     'print_available' => isset($this->printAvailables[$index]) ? (bool) $this->printAvailables[$index] : false,
                     'edition_year' => $this->editionYears[$index] ?? null,
+                    'display_order' => $this->displayOrders[$index] ?? null,
                 ]);
 
                 $uploadedCount++;
@@ -208,7 +211,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders']);
     }
 
     /**
@@ -268,6 +271,7 @@ class ImageManager extends Component
         $this->editMaxOrderQuantity = $this->editingImage->max_order_quantity;
         $this->editPrintAvailable = (bool) $this->editingImage->print_available;
         $this->editEditionYear = $this->editingImage->edition_year;
+        $this->editDisplayOrder = $this->editingImage->display_order;
 
         $this->showEditModal = true;
     }
@@ -282,7 +286,7 @@ class ImageManager extends Component
         $this->reset([
             'editTitle', 'editAltText', 'editDescription',
             'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
-            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear'
+            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder'
         ]);
     }
 
@@ -310,6 +314,7 @@ class ImageManager extends Component
             'editQuantityAvailable' => 'nullable|integer|min:0',
             'editMaxOrderQuantity' => 'nullable|integer|min:0',
             'editEditionYear' => 'nullable|integer|min:1900|max:2100',
+            'editDisplayOrder' => 'nullable|integer|min:0',
         ]);
 
         // Mettre à jour
@@ -325,6 +330,7 @@ class ImageManager extends Component
             'max_order_quantity' => $this->editMaxOrderQuantity,
             'print_available' => $this->editPrintAvailable,
             'edition_year' => $this->editEditionYear,
+            'display_order' => $this->editDisplayOrder,
         ]);
 
         // Régénérer le fichier JSON
@@ -336,7 +342,9 @@ class ImageManager extends Component
 
     public function render()
     {
-        $query = Image::with('uploader')->latest();
+        $query = Image::with('uploader')
+            ->orderByRaw('display_order IS NULL, display_order ASC')
+            ->orderBy('created_at', 'desc');
 
         // Recherche
         if ($this->search) {

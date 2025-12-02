@@ -34,6 +34,7 @@ class Image extends Model
         'max_order_quantity',
         'print_available',
         'edition_year',
+        'display_order',
     ];
 
     protected $casts = [
@@ -44,6 +45,7 @@ class Image extends Model
         'max_order_quantity' => 'integer',
         'print_available' => 'boolean',
         'edition_year' => 'integer',
+        'display_order' => 'integer',
     ];
 
     /**
