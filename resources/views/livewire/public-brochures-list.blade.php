@@ -33,7 +33,23 @@
                                         </p>
                                     @endif
                                     @if ($brochure->edition_year)
-                                        <span class="inline-block mt-2 text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                                        @php
+                                            $currentYear = (int) date('Y');
+                                            $editionYear = (int) $brochure->edition_year;
+                                            $yearDiff = $currentYear - $editionYear;
+
+                                            if ($yearDiff <= 0) {
+                                                // Année en cours ou future : vert
+                                                $colorClasses = 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
+                                            } elseif ($yearDiff === 1) {
+                                                // Année n-1 : jaune/ambre
+                                                $colorClasses = 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30';
+                                            } else {
+                                                // Année n-2 ou plus ancien : rouge
+                                                $colorClasses = 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
+                                            }
+                                        @endphp
+                                        <span class="inline-block mt-2 text-xs font-medium {{ $colorClasses }} px-2 py-1 rounded">
                                             Edition {{ $brochure->edition_year }}
                                         </span>
                                     @endif
