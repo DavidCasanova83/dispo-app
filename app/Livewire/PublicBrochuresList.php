@@ -2,8 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Models\Author;
 use App\Models\BrochureReport;
+use App\Models\Category;
 use App\Models\Image;
+use App\Models\Sector;
 use App\Services\MailjetService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Rule;
@@ -11,6 +14,12 @@ use Livewire\Component;
 
 class PublicBrochuresList extends Component
 {
+    // Filtres
+    public ?int $categoryId = null;
+    public ?int $authorId = null;
+    public ?int $sectorId = null;
+
+    // Modal de signalement
     public bool $showReportModal = false;
     public ?int $selectedBrochureId = null;
     public ?string $selectedBrochureTitle = null;
@@ -70,18 +79,35 @@ class PublicBrochuresList extends Component
         session()->flash('success', 'Votre signalement a été envoyé. Merci pour votre contribution !');
     }
 
+    public function resetFilters(): void
+    {
+        $this->categoryId = null;
+        $this->authorId = null;
+        $this->sectorId = null;
+    }
+
     public function render()
     {
-        // Récupérer toutes les brochures disponibles
-        // Tri: d'abord par display_order (nulls en dernier), puis par titre
+        // Récupérer toutes les brochures disponibles avec filtres
         $brochures = Image::where('print_available', true)
             ->where('quantity_available', '>', 0)
+            ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
+            ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
+            ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('title')
             ->get();
 
+        // Récupérer les IDs des brochures disponibles pour les filtres
+        $availableBrochureIds = Image::where('print_available', true)
+            ->where('quantity_available', '>', 0)
+            ->pluck('id');
+
         return view('livewire.public-brochures-list', [
             'brochures' => $brochures,
+            'categories' => Category::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
         ])->layout('components.layouts.guest');
     }
 }

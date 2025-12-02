@@ -21,6 +21,136 @@
             </div>
         @endif
 
+        {{-- Filtres --}}
+        @if ($categories->count() > 0 || $authors->count() > 0 || $sectors->count() > 0)
+            <div class="mb-6">
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    {{-- Filtre Catégorie --}}
+                    @if ($categories->count() > 0)
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <button @click="open = !open" type="button"
+                                class="inline-flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-medium rounded-full border-2 transition-all duration-200
+                                {{ $categoryId
+                                    ? 'bg-[#3E9B90] border-[#3E9B90] text-white shadow-md'
+                                    : 'bg-white dark:bg-[#001716] border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-[#3E9B90] dark:hover:border-[#3E9B90]'
+                                }}">
+                                <svg class="w-4 h-4 {{ $categoryId ? 'text-white' : 'text-[#3E9B90]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <span>{{ $categoryId ? $categories->firstWhere('id', $categoryId)?->name : 'Catégorie' }}</span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                <div class="py-1 max-h-60 overflow-y-auto">
+                                    <button wire:click="$set('categoryId', null)" @click="open = false"
+                                        class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$categoryId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                        <span class="w-2 h-2 rounded-full {{ !$categoryId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                        Toutes les catégories
+                                    </button>
+                                    @foreach ($categories as $category)
+                                        <button wire:click="$set('categoryId', {{ $category->id }})" @click="open = false"
+                                            class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $categoryId == $category->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                            <span class="w-2 h-2 rounded-full {{ $categoryId == $category->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                            {{ $category->name }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Filtre Auteur --}}
+                    @if ($authors->count() > 0)
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <button @click="open = !open" type="button"
+                                class="inline-flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-medium rounded-full border-2 transition-all duration-200
+                                {{ $authorId
+                                    ? 'bg-[#3E9B90] border-[#3E9B90] text-white shadow-md'
+                                    : 'bg-white dark:bg-[#001716] border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-[#3E9B90] dark:hover:border-[#3E9B90]'
+                                }}">
+                                <svg class="w-4 h-4 {{ $authorId ? 'text-white' : 'text-[#3E9B90]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span>{{ $authorId ? $authors->firstWhere('id', $authorId)?->name : 'Auteur' }}</span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                <div class="py-1 max-h-60 overflow-y-auto">
+                                    <button wire:click="$set('authorId', null)" @click="open = false"
+                                        class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$authorId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                        <span class="w-2 h-2 rounded-full {{ !$authorId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                        Tous les auteurs
+                                    </button>
+                                    @foreach ($authors as $author)
+                                        <button wire:click="$set('authorId', {{ $author->id }})" @click="open = false"
+                                            class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $authorId == $author->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                            <span class="w-2 h-2 rounded-full {{ $authorId == $author->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                            {{ $author->name }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Filtre Secteur --}}
+                    @if ($sectors->count() > 0)
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <button @click="open = !open" type="button"
+                                class="inline-flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-medium rounded-full border-2 transition-all duration-200
+                                {{ $sectorId
+                                    ? 'bg-[#3E9B90] border-[#3E9B90] text-white shadow-md'
+                                    : 'bg-white dark:bg-[#001716] border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-[#3E9B90] dark:hover:border-[#3E9B90]'
+                                }}">
+                                <svg class="w-4 h-4 {{ $sectorId ? 'text-white' : 'text-[#3E9B90]' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span>{{ $sectorId ? $sectors->firstWhere('id', $sectorId)?->name : 'Secteur' }}</span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                <div class="py-1 max-h-60 overflow-y-auto">
+                                    <button wire:click="$set('sectorId', null)" @click="open = false"
+                                        class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$sectorId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                        <span class="w-2 h-2 rounded-full {{ !$sectorId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                        Tous les secteurs
+                                    </button>
+                                    @foreach ($sectors as $sector)
+                                        <button wire:click="$set('sectorId', {{ $sector->id }})" @click="open = false"
+                                            class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $sectorId == $sector->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                            <span class="w-2 h-2 rounded-full {{ $sectorId == $sector->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                            {{ $sector->name }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Bouton Réinitialiser --}}
+                    @if ($categoryId || $authorId || $sectorId)
+                        <button wire:click="resetFilters" type="button"
+                            class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Effacer
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         {{-- Liste des brochures --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg overflow-hidden">
             @if ($brochures->count() > 0)
