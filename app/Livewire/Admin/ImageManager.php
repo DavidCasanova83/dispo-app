@@ -41,6 +41,7 @@ class ImageManager extends Component
     public $categoryIds = [];          // Catégories pour chaque image
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
+    public $pdfFiles = [];              // PDFs pour chaque image
 
     // Propriétés pour l'édition
     public $showEditModal = false;
@@ -60,6 +61,8 @@ class ImageManager extends Component
     public $editCategoryId = null;
     public $editAuthorId = null;
     public $editSectorId = null;
+    public $editPdfFile = null;         // Nouveau PDF lors de l'édition
+    public $removePdf = false;          // Flag pour supprimer le PDF existant
 
     // Propriétés pour la gestion des entités (CRUD)
     public $newCategoryName = '';
@@ -79,6 +82,11 @@ class ImageManager extends Component
         'image/webp',
     ];
 
+    // Whitelist des MIME types PDF autorisés
+    private const ALLOWED_PDF_MIME_TYPES = [
+        'application/pdf',
+    ];
+
     protected $queryString = [
         'search' => ['except' => ''],
     ];
@@ -86,11 +94,14 @@ class ImageManager extends Component
     // Validation des uploads
     protected $rules = [
         'images.*' => 'image|max:10240', // 10MB max par image
+        'pdfFiles.*' => 'nullable|mimes:pdf|max:51200', // 50MB max par PDF
     ];
 
     protected $messages = [
         'images.*.image' => 'Le fichier doit être une image.',
         'images.*.max' => 'L\'image ne doit pas dépasser 10 MB.',
+        'pdfFiles.*.mimes' => 'Le fichier doit être un PDF.',
+        'pdfFiles.*.max' => 'Le PDF ne doit pas dépasser 50 MB.',
     ];
 
     public function updatingSearch()
@@ -188,6 +199,35 @@ class ImageManager extends Component
                 // Obtenir la taille finale du fichier après compression
                 $finalSize = filesize($fullPath);
 
+                // Gérer l'upload PDF si fourni
+                $pdfPath = null;
+                if (isset($this->pdfFiles[$index]) && $this->pdfFiles[$index]) {
+                    $pdfFile = $this->pdfFiles[$index];
+
+                    // Valider le MIME type PDF
+                    if (!in_array($pdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                        $errors[] = "{$pdfFile->getClientOriginalName()}: Type de fichier PDF non autorisé.";
+                    } else {
+                        // Valider l'extension
+                        $pdfExtension = strtolower($pdfFile->getClientOriginalExtension());
+                        if ($pdfExtension !== 'pdf') {
+                            $errors[] = "{$pdfFile->getClientOriginalName()}: Extension PDF invalide.";
+                        } else {
+                            // Sanitiser le nom du PDF
+                            $pdfOriginalName = Str::limit(Str::slug(pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME)), 100);
+                            if (empty($pdfOriginalName)) {
+                                $pdfOriginalName = 'document';
+                            }
+
+                            // Générer un nom unique
+                            $pdfFilename = $pdfOriginalName . '_' . time() . '_' . Str::random(10) . '.pdf';
+
+                            // Stocker le PDF
+                            $pdfPath = $pdfFile->storeAs('pdfs', $pdfFilename, 'public');
+                        }
+                    }
+                }
+
                 // Créer l'entrée en base
                 Image::create([
                     'name' => $image->getClientOriginalName(),
@@ -195,6 +235,7 @@ class ImageManager extends Component
                     'filename' => $filename,
                     'path' => $path,
                     'thumbnail_path' => $thumbnailPath,
+                    'pdf_path' => $pdfPath,
                     'url' => $path, // Stocker le chemin, pas l'URL complète
                     'alt_text' => $this->altTexts[$index] ?? null,
                     'description' => $this->descriptions[$index] ?? null,
@@ -235,7 +276,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'pdfFiles']);
     }
 
     /**
@@ -299,6 +340,8 @@ class ImageManager extends Component
         $this->editCategoryId = $this->editingImage->category_id;
         $this->editAuthorId = $this->editingImage->author_id;
         $this->editSectorId = $this->editingImage->sector_id;
+        $this->editPdfFile = null;
+        $this->removePdf = false;
 
         $this->showEditModal = true;
     }
@@ -314,7 +357,8 @@ class ImageManager extends Component
             'editTitle', 'editAltText', 'editDescription',
             'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
             'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder',
-            'editCategoryId', 'editAuthorId', 'editSectorId'
+            'editCategoryId', 'editAuthorId', 'editSectorId',
+            'editPdfFile', 'removePdf'
         ]);
     }
 
@@ -346,7 +390,41 @@ class ImageManager extends Component
             'editCategoryId' => 'nullable|exists:categories,id',
             'editAuthorId' => 'nullable|exists:authors,id',
             'editSectorId' => 'nullable|exists:sectors,id',
+            'editPdfFile' => 'nullable|mimes:pdf|max:51200',
         ]);
+
+        // Gérer la mise à jour du PDF
+        $pdfPath = $this->editingImage->pdf_path; // Garder l'existant par défaut
+
+        // Supprimer le PDF si demandé
+        if ($this->removePdf && $pdfPath) {
+            if (Storage::disk('public')->exists($pdfPath)) {
+                Storage::disk('public')->delete($pdfPath);
+            }
+            $pdfPath = null;
+        }
+
+        // Uploader un nouveau PDF si fourni
+        if ($this->editPdfFile && !$this->removePdf) {
+            // Valider le MIME type
+            if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                session()->flash('error', 'Type de fichier PDF non autorisé.');
+                return;
+            }
+
+            // Supprimer l'ancien PDF si existe
+            if ($this->editingImage->pdf_path && Storage::disk('public')->exists($this->editingImage->pdf_path)) {
+                Storage::disk('public')->delete($this->editingImage->pdf_path);
+            }
+
+            // Sanitiser et stocker le nouveau PDF
+            $pdfOriginalName = Str::limit(Str::slug(pathinfo($this->editPdfFile->getClientOriginalName(), PATHINFO_FILENAME)), 100);
+            if (empty($pdfOriginalName)) {
+                $pdfOriginalName = 'document';
+            }
+            $pdfFilename = $pdfOriginalName . '_' . time() . '_' . Str::random(10) . '.pdf';
+            $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
+        }
 
         // Mettre à jour
         $this->editingImage->update([
@@ -365,6 +443,7 @@ class ImageManager extends Component
             'category_id' => $this->editCategoryId ?: null,
             'author_id' => $this->editAuthorId ?: null,
             'sector_id' => $this->editSectorId ?: null,
+            'pdf_path' => $pdfPath,
         ]);
 
         // Régénérer le fichier JSON

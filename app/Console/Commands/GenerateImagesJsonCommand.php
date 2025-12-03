@@ -33,6 +33,9 @@ class GenerateImagesJsonCommand extends Command
                     'thumbnail_url' => $image->thumbnail_path
                         ? asset('storage/' . $image->thumbnail_path)
                         : null,
+                    'pdf_url' => $image->pdf_path
+                        ? asset('storage/' . $image->pdf_path)
+                        : null,
                     'alt_text' => $image->alt_text,
                     'description' => $image->description,
                     'link_url' => $image->link_url,
