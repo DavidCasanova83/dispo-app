@@ -396,8 +396,10 @@ class PublicImageOrderForm extends Component
     public function render()
     {
         // Récupérer toutes les images disponibles
+        // Tri: d'abord par display_order (nulls en dernier), puis par titre
         $availableImages = Image::where('quantity_available', '>', 0)
             ->where('print_available', true)
+            ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('title')
             ->get();
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BrochureReport;
 use App\Models\ImageOrder;
 use Mailjet\Client;
 use Mailjet\Resources;
@@ -495,6 +496,102 @@ class MailjetService
             'customerNotes' => $order->customer_notes,
             'items' => $items,
             'adminUrl' => url('/admin/commandes'),
+        ])->render();
+    }
+
+    /**
+     * Envoyer une notification de signalement de brochure.
+     *
+     * @param BrochureReport $report
+     * @return array
+     */
+    public function sendBrochureReportNotification(BrochureReport $report): array
+    {
+        $report->load(['image', 'user']);
+
+        $brochureTitle = $report->image->title ?? $report->image->name ?? 'Brochure sans titre';
+        $adminUrl = url('/admin/images');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => 'webmaster@verdontourisme.com',
+                            'Name' => 'Webmaster',
+                        ],
+                    ],
+                    'Subject' => "Signalement de problème sur une brochure : {$brochureTitle}",
+                    'TextPart' => "Un problème a été signalé sur la brochure : {$brochureTitle}\n\nSignalé par : {$report->user->name} ({$report->user->email})\n\nCommentaire : {$report->comment}\n\nAccédez au panel d'administration : {$adminUrl}",
+                    'HTMLPart' => $this->generateBrochureReportNotificationHtml($report, $brochureTitle, $adminUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("Brochure report notification email sent successfully", [
+                    'report_id' => $report->id,
+                    'brochure' => $brochureTitle,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send brochure report notification email", [
+                'report_id' => $report->id,
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending brochure report notification email", [
+                'report_id' => $report->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Generer le contenu HTML de l'email de signalement de brochure.
+     *
+     * @param BrochureReport $report
+     * @param string $brochureTitle
+     * @param string $adminUrl
+     * @return string
+     */
+    protected function generateBrochureReportNotificationHtml(
+        BrochureReport $report,
+        string $brochureTitle,
+        string $adminUrl
+    ): string {
+        return view('emails.brochure-report-notification', [
+            'brochureTitle' => $brochureTitle,
+            'userName' => $report->user->name,
+            'userEmail' => $report->user->email,
+            'reportDate' => $report->created_at->format('d/m/Y à H:i'),
+            'comment' => $report->comment,
+            'adminUrl' => $adminUrl,
         ])->render();
     }
 }

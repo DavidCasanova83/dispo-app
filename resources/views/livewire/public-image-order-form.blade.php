@@ -393,69 +393,76 @@
                         Aucune brochure disponible pour le moment.
                     </p>
                 @else
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div class="space-y-3">
                         @foreach($availableImages as $image)
-                            <div class="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-transparent shadow-sm">
-                                <img
-                                    src="{{ asset('storage/' . $image->thumbnail_path) }}"
-                                    alt="{{ $image->title }}"
-                                    class="w-full h-32 object-cover"
-                                >
-                                <div class="p-3">
-                                    <h3 class="font-semibold text-sm text-gray-900 dark:text-white truncate">
-                                        {{ $image->title ?? $image->name }}
-                                    </h3>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Disponible: {{ $image->quantity_available }}
-                                    </p>
+                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                {{-- Miniature et infos --}}
+                                <div class="flex items-center gap-4 flex-1 min-w-0">
+                                    <img
+                                        src="{{ asset('storage/' . $image->thumbnail_path) }}"
+                                        alt="{{ $image->title }}"
+                                        class="w-14 h-[79px] object-cover rounded-lg flex-shrink-0 border border-gray-200 dark:border-gray-600"
+                                    >
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="font-semibold text-gray-900 dark:text-white">
+                                            {{ $image->title }}
+                                        </h3>
+                                        @if($image->description)
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                                {{ $image->description }}
+                                            </p>
+                                        @endif
+                                        <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                            Disponible: {{ $image->quantity_available }}
+                                        </p>
+                                    </div>
+                                </div>
 
+                                {{-- Contrôles --}}
+                                <div class="flex items-center gap-3 flex-shrink-0 ml-4">
                                     @if(isset($cart[$image->id]))
                                         {{-- Image déjà dans le panier --}}
-                                        <div class="mt-2 flex items-center gap-2">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="{{ $image->quantity_available }}"
-                                                value="{{ $cart[$image->id] }}"
-                                                wire:change="updateCartQuantity({{ $image->id }}, $event.target.value)"
-                                                class="w-16 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                            >
-                                            <button
-                                                type="button"
-                                                wire:click="removeFromCart({{ $image->id }})"
-                                                class="text-xs text-red-600 dark:text-red-400 hover:underline"
-                                            >
-                                                Retirer
-                                            </button>
-                                        </div>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="{{ $image->quantity_available }}"
+                                            value="{{ $cart[$image->id] }}"
+                                            wire:change="updateCartQuantity({{ $image->id }}, $event.target.value)"
+                                            class="w-20 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                        >
+                                        <button
+                                            type="button"
+                                            wire:click="removeFromCart({{ $image->id }})"
+                                            class="px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+                                        >
+                                            Retirer
+                                        </button>
                                     @else
                                         {{-- Ajout au panier --}}
                                         @if($customer_type === 'professionnel')
                                             {{-- Pour les pros: champ quantité + bouton ajouter --}}
-                                            <div class="mt-2 space-y-2">
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="{{ $image->quantity_available }}"
-                                                    value="1"
-                                                    wire:model.defer="quantities.{{ $image->id }}"
-                                                    class="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
-                                                    placeholder="Quantité"
-                                                >
-                                                <button
-                                                    type="button"
-                                                    wire:click="addToCart({{ $image->id }}, $wire.quantities[{{ $image->id }}] ?? 1)"
-                                                    class="w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
-                                                >
-                                                    Ajouter
-                                                </button>
-                                            </div>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="{{ $image->quantity_available }}"
+                                                value="1"
+                                                wire:model.defer="quantities.{{ $image->id }}"
+                                                class="w-20 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                                placeholder="Qté"
+                                            >
+                                            <button
+                                                type="button"
+                                                wire:click="addToCart({{ $image->id }}, $wire.quantities[{{ $image->id }}] ?? 1)"
+                                                class="px-4 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 hover:bg-[#357d74]"
+                                            >
+                                                Ajouter
+                                            </button>
                                         @else
                                             {{-- Pour les particuliers: bouton ajouter direct (quantité 1) --}}
                                             <button
                                                 type="button"
                                                 wire:click="addToCart({{ $image->id }}, 1)"
-                                                class="mt-2 w-full px-3 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                                class="px-4 py-2 bg-[#3E9B90] text-white text-sm font-medium rounded-lg transition-all duration-200 hover:bg-[#357d74] disabled:opacity-50 disabled:cursor-not-allowed"
                                                 @if(count($cart) > 0) disabled @endif
                                             >
                                                 Ajouter

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,6 +35,10 @@ class Image extends Model
         'max_order_quantity',
         'print_available',
         'edition_year',
+        'display_order',
+        'category_id',
+        'author_id',
+        'sector_id',
     ];
 
     protected $casts = [
@@ -44,6 +49,7 @@ class Image extends Model
         'max_order_quantity' => 'integer',
         'print_available' => 'boolean',
         'edition_year' => 'integer',
+        'display_order' => 'integer',
     ];
 
     /**
@@ -52,6 +58,38 @@ class Image extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Relation avec la catégorie
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Relation avec l'auteur
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
+    }
+
+    /**
+     * Relation avec le secteur
+     */
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
+    }
+
+    /**
+     * Relation avec les signalements
+     */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(BrochureReport::class);
     }
 
     /**

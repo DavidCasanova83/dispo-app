@@ -13,27 +13,11 @@ class ImageApiController extends Controller
      */
     public function index(): JsonResponse
     {
-        $images = Image::with('uploader:id,name')
-            ->select([
-                'id',
-                'name',
-                'title',
-                'filename',
-                'path',
-                'thumbnail_path',
-                'alt_text',
-                'description',
-                'mime_type',
-                'size',
-                'width',
-                'height',
-                'uploaded_by',
-                'quantity_available',
-                'max_order_quantity',
-                'print_available',
-                'edition_year',
-                'created_at',
-                'updated_at'
+        $images = Image::with([
+                'uploader:id,name',
+                'category:id,name',
+                'author:id,name',
+                'sector:id,name'
             ])
             ->latest()
             ->get()
@@ -49,6 +33,10 @@ class ImageApiController extends Controller
                         : null,
                     'alt_text' => $image->alt_text,
                     'description' => $image->description,
+                    'link_url' => $image->link_url,
+                    'link_text' => $image->link_text,
+                    'calameo_link_url' => $image->calameo_link_url,
+                    'calameo_link_text' => $image->calameo_link_text,
                     'mime_type' => $image->mime_type,
                     'size' => $image->size,
                     'size_formatted' => $image->formattedSize(),
@@ -56,12 +44,25 @@ class ImageApiController extends Controller
                         'width' => $image->width,
                         'height' => $image->height,
                     ],
+                    'display_order' => $image->display_order,
                     'product' => [
                         'quantity_available' => $image->quantity_available,
                         'max_order_quantity' => $image->max_order_quantity,
                         'print_available' => $image->print_available,
                         'edition_year' => $image->edition_year,
                     ],
+                    'category' => $image->category ? [
+                        'id' => $image->category->id,
+                        'name' => $image->category->name,
+                    ] : null,
+                    'author' => $image->author ? [
+                        'id' => $image->author->id,
+                        'name' => $image->author->name,
+                    ] : null,
+                    'sector' => $image->sector ? [
+                        'id' => $image->sector->id,
+                        'name' => $image->sector->name,
+                    ] : null,
                     'uploader' => [
                         'id' => $image->uploader->id ?? null,
                         'name' => $image->uploader->name ?? null,
@@ -83,7 +84,12 @@ class ImageApiController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $image = Image::with('uploader:id,name')->findOrFail($id);
+        $image = Image::with([
+            'uploader:id,name',
+            'category:id,name',
+            'author:id,name',
+            'sector:id,name'
+        ])->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -98,6 +104,10 @@ class ImageApiController extends Controller
                     : null,
                 'alt_text' => $image->alt_text,
                 'description' => $image->description,
+                'link_url' => $image->link_url,
+                'link_text' => $image->link_text,
+                'calameo_link_url' => $image->calameo_link_url,
+                'calameo_link_text' => $image->calameo_link_text,
                 'mime_type' => $image->mime_type,
                 'size' => $image->size,
                 'size_formatted' => $image->formattedSize(),
@@ -105,12 +115,25 @@ class ImageApiController extends Controller
                     'width' => $image->width,
                     'height' => $image->height,
                 ],
+                'display_order' => $image->display_order,
                 'product' => [
                     'quantity_available' => $image->quantity_available,
                     'max_order_quantity' => $image->max_order_quantity,
                     'print_available' => $image->print_available,
                     'edition_year' => $image->edition_year,
                 ],
+                'category' => $image->category ? [
+                    'id' => $image->category->id,
+                    'name' => $image->category->name,
+                ] : null,
+                'author' => $image->author ? [
+                    'id' => $image->author->id,
+                    'name' => $image->author->name,
+                ] : null,
+                'sector' => $image->sector ? [
+                    'id' => $image->sector->id,
+                    'name' => $image->sector->name,
+                ] : null,
                 'uploader' => [
                     'id' => $image->uploader->id ?? null,
                     'name' => $image->uploader->name ?? null,
