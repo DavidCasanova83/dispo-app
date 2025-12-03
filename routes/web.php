@@ -71,6 +71,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
     });
 
+    // Route pour la gestion des agendas - requires manage-agendas permission
+    Route::middleware(['permission:manage-agendas'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/agendas', \App\Livewire\Admin\AgendaManager::class)->name('agendas');
+    });
+
     // Route pour la gestion des commandes - requires manage-orders permission
     Route::middleware(['permission:manage-orders'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/commandes', \App\Livewire\Admin\OrderManager::class)->name('orders');
