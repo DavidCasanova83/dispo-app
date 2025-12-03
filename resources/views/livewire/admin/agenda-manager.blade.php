@@ -100,6 +100,59 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Paramètres catégorie/auteur --}}
+            <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Paramètres de l'agenda</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Ces paramètres seront utilisés pour l'affichage sur la page brochures
+                </p>
+
+                <form wire:submit.prevent="updateAgendaSettings">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {{-- Catégorie --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Catégorie
+                            </label>
+                            <select wire:model="agendaCategoryId"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">-- Aucune catégorie --</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Auteur --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Auteur
+                            </label>
+                            <select wire:model="agendaAuthorId"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">-- Aucun auteur --</option>
+                                @foreach ($authors as $author)
+                                    <option value="{{ $author->id }}">{{ $author->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit"
+                            class="px-6 py-2 bg-[#3E9B90] text-white font-medium rounded-lg transition-all duration-200 hover:bg-[#2d7a72] disabled:opacity-50 disabled:cursor-not-allowed"
+                            {{ !$currentAgenda ? 'disabled' : '' }}>
+                            Enregistrer les paramètres
+                        </button>
+                        @if (!$currentAgenda)
+                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                                Uploadez d'abord un agenda pour configurer ces paramètres.
+                            </p>
+                        @endif
+                    </div>
+                </form>
+            </div>
         </div>
 
         {{-- Section 2: Agenda en cours --}}

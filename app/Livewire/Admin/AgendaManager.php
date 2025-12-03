@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Agenda;
+use App\Models\Author;
+use App\Models\Category;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -17,6 +19,10 @@ class AgendaManager extends Component
 
     // Cover image upload
     public $coverImage = null;
+
+    // Agenda settings (category/author)
+    public $agendaCategoryId = null;
+    public $agendaAuthorId = null;
 
     // Agenda upload properties
     public $pdfFile = null;
@@ -59,6 +65,44 @@ class AgendaManager extends Component
         'endDate.required' => 'La date de fin est obligatoire.',
         'endDate.after_or_equal' => 'La date de fin doit être après ou égale à la date de début.',
     ];
+
+    /**
+     * Initialisation du composant
+     */
+    public function mount()
+    {
+        // Charger les paramètres de l'agenda courant
+        $currentAgenda = Agenda::current()->first();
+        if ($currentAgenda) {
+            $this->agendaCategoryId = $currentAgenda->category_id;
+            $this->agendaAuthorId = $currentAgenda->author_id;
+        }
+    }
+
+    /**
+     * Mettre à jour les paramètres de l'agenda (catégorie/auteur)
+     */
+    public function updateAgendaSettings()
+    {
+        $this->authorize('create', Agenda::class);
+
+        $this->validate([
+            'agendaCategoryId' => 'nullable|exists:categories,id',
+            'agendaAuthorId' => 'nullable|exists:authors,id',
+        ]);
+
+        // Mettre à jour l'agenda courant
+        $currentAgenda = Agenda::current()->first();
+        if ($currentAgenda) {
+            $currentAgenda->update([
+                'category_id' => $this->agendaCategoryId ?: null,
+                'author_id' => $this->agendaAuthorId ?: null,
+            ]);
+            session()->flash('success', 'Paramètres de l\'agenda mis à jour avec succès.');
+        } else {
+            session()->flash('error', 'Aucun agenda en cours. Uploadez d\'abord un agenda.');
+        }
+    }
 
     /**
      * Upload de l'image de couverture globale
@@ -334,7 +378,7 @@ class AgendaManager extends Component
 
     public function render()
     {
-        $currentAgenda = Agenda::current()->with('uploader')->first();
+        $currentAgenda = Agenda::current()->with(['uploader', 'category', 'author'])->first();
         $archivedAgendas = Agenda::archived()
             ->with('uploader')
             ->orderBy('end_date', 'desc')
@@ -346,6 +390,8 @@ class AgendaManager extends Component
             'coverImageUrl' => Agenda::getCoverImageUrl(),
             'coverThumbnailUrl' => Agenda::getCoverThumbnailUrl(),
             'hasCoverImage' => Agenda::hasCoverImage(),
+            'categories' => Category::orderBy('name')->get(),
+            'authors' => Author::orderBy('name')->get(),
         ])->layout('components.layouts.app');
     }
 }

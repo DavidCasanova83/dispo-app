@@ -190,6 +190,56 @@
             </div>
         @endif
 
+        {{-- Agenda en cours (highlight) --}}
+        @if ($showAgenda && $currentAgenda)
+            <div
+                class="mb-6 p-4 bg-gradient-to-r from-[#3E9B90]/10 to-[#3E9B90]/5 dark:from-[#3E9B90]/20 dark:to-[#3E9B90]/10 rounded-xl border-2 border-[#3E9B90] shadow-lg">
+                {{-- Badge "Agenda" --}}
+                <div class="flex items-center gap-2 mb-3">
+                    <span
+                        class="px-3 py-1 bg-[#3E9B90] text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                        Agenda en cours
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    {{-- Thumbnail --}}
+                    @if (\App\Models\Agenda::hasCoverImage())
+                        <div class="flex-shrink-0">
+                            <img src="{{ \App\Models\Agenda::getCoverThumbnailUrl() }}" alt="Couverture de l'agenda"
+                                class="w-16 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md ring-2 ring-[#3E9B90]/30">
+                        </div>
+                    @endif
+
+                    {{-- Infos --}}
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                            {{ $currentAgenda->title ?? 'Agenda en cours' }} - {{ $currentAgenda->period }}
+                        </h3>
+                        @if ($currentAgenda->description)
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                {{ $currentAgenda->description }}
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex-shrink-0">
+                        <a href="{{ asset('storage/agendas/agenda-en-cours.pdf') }}" target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors shadow-md"
+                            title="Voir le PDF de l'agenda">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Liste des brochures --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg overflow-hidden">
             @if ($brochures->count() > 0)
@@ -249,7 +299,8 @@
                                             rel="noopener noreferrer"
                                             class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                                             title="Voir le PDF">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                                 </path>

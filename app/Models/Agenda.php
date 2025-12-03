@@ -17,6 +17,8 @@ class Agenda extends Model
         'pdf_path',
         'pdf_filename',
         'description',
+        'category_id',
+        'author_id',
         'start_date',
         'end_date',
         'is_current',
@@ -43,6 +45,22 @@ class Agenda extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Relation avec la catégorie
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Relation avec l'auteur
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
     }
 
     /**
@@ -108,10 +126,38 @@ class Agenda extends Model
     }
 
     /**
-     * Obtenir la période formatée
+     * Noms des mois en français
+     */
+    private const FRENCH_MONTHS = [
+        1 => 'janvier', 2 => 'février', 3 => 'mars', 4 => 'avril',
+        5 => 'mai', 6 => 'juin', 7 => 'juillet', 8 => 'août',
+        9 => 'septembre', 10 => 'octobre', 11 => 'novembre', 12 => 'décembre',
+    ];
+
+    /**
+     * Obtenir la période formatée en français
+     * Exemple: "Du 21 novembre au 24 décembre 2025"
      */
     public function getPeriodAttribute(): string
     {
-        return $this->start_date->format('d/m/Y') . ' - ' . $this->end_date->format('d/m/Y');
+        $startDay = $this->start_date->format('j');
+        $startMonth = self::FRENCH_MONTHS[(int) $this->start_date->format('n')];
+        $endDay = $this->end_date->format('j');
+        $endMonth = self::FRENCH_MONTHS[(int) $this->end_date->format('n')];
+        $endYear = $this->end_date->format('Y');
+
+        // Si même mois et année, format simplifié
+        if ($this->start_date->format('m Y') === $this->end_date->format('m Y')) {
+            return "Du {$startDay} au {$endDay} {$endMonth} {$endYear}";
+        }
+
+        // Si même année mais mois différent
+        if ($this->start_date->format('Y') === $this->end_date->format('Y')) {
+            return "Du {$startDay} {$startMonth} au {$endDay} {$endMonth} {$endYear}";
+        }
+
+        // Années différentes
+        $startYear = $this->start_date->format('Y');
+        return "Du {$startDay} {$startMonth} {$startYear} au {$endDay} {$endMonth} {$endYear}";
     }
 }
