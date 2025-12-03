@@ -83,8 +83,8 @@ class GenerateImagesJsonCommand extends Command
 
         $jsonContent = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-        // Créer le fichier dans public/api/
-        $directory = public_path('api');
+        // Créer le fichier dans storage/app/public/api/ (accessible via /storage/api/)
+        $directory = storage_path('app/public/api');
         if (!File::exists($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
@@ -93,7 +93,7 @@ class GenerateImagesJsonCommand extends Command
         File::put($filePath, $jsonContent);
 
         $this->info("JSON file generated successfully at: {$filePath}");
-        $this->line("Public URL: " . asset('api/images.json'));
+        $this->line("Public URL: " . asset('storage/api/images.json'));
         $this->line("Total images: {$images->count()}");
 
         return Command::SUCCESS;
