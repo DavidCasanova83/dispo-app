@@ -30,6 +30,7 @@ class Image extends Model
         'width',
         'height',
         'thumbnail_path',
+        'pdf_path',
         'uploaded_by',
         'quantity_available',
         'max_order_quantity',
@@ -106,6 +107,11 @@ class Image extends Model
             // Supprimer le thumbnail si il existe
             if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
                 Storage::disk('public')->delete($image->thumbnail_path);
+            }
+
+            // Supprimer le PDF si il existe
+            if ($image->pdf_path && Storage::disk('public')->exists($image->pdf_path)) {
+                Storage::disk('public')->delete($image->pdf_path);
             }
         });
     }
