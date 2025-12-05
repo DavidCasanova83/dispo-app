@@ -134,11 +134,11 @@
             </p>
 
             <div class="buttons-container">
-                <a href="{{ $availableUrl }}" class="button button-available" style="color: #ffffff !important; text-decoration: none;">
+                <a href="{{ $availableUrl }}" class="button button-available" style="color: #000000ff !important; text-decoration: none;">
                     ✓ Disponibilités
                 </a>
 
-                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="color: #ffffff !important; text-decoration: none;">
+                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="color: #000000ff !important; text-decoration: none;">
                     ✗ Pas de disponibilités
                 </a>
             </div>
