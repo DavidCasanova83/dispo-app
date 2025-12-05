@@ -29,7 +29,7 @@ class ContactFormController extends Controller
             'visiteur.prenom' => 'required|string|max:255',
             'visiteur.email' => 'required|email|max:255',
             'visiteur.telephone' => 'nullable|string|max:50',
-            'visiteur.message' => 'required|string|max:10000',
+            'visiteur.message' => 'nullable|string|max:10000',
             // Etablissement
             'etablissement.id_apidae' => 'nullable|string|max:50',
             'etablissement.nom' => 'nullable|string|max:255',
@@ -62,7 +62,7 @@ class ContactFormController extends Controller
                 'visiteur_prenom' => $data['visiteur']['prenom'],
                 'visiteur_email' => $data['visiteur']['email'],
                 'visiteur_telephone' => $data['visiteur']['telephone'] ?? null,
-                'visiteur_message' => $data['visiteur']['message'],
+                'visiteur_message' => $data['visiteur']['message'] ?? null,
                 // Etablissement
                 'etablissement_apidae_id' => $data['etablissement']['id_apidae'] ?? null,
                 'etablissement_nom' => $data['etablissement']['nom'] ?? null,

@@ -293,45 +293,37 @@
 
                                 {{-- Liens (icônes) --}}
                                 <div class="flex-shrink-0 flex items-center gap-3">
-                                    {{-- PDF uploadé --}}
-                                    @if ($brochure->pdf_path)
-                                        <a href="{{ asset('storage/' . $brochure->pdf_path) }}" target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                                            title="Voir le PDF">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                    {{-- Bouton Consulter (priorité Calameo > link_url) --}}
+                                    @php
+                                        $consultUrl = $brochure->calameo_link_url ?? $brochure->link_url;
+                                    @endphp
+                                    @if ($consultUrl)
+                                        <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
+                                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                            title="Consulter en ligne">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                                </path>
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                             </svg>
                                         </a>
                                     @endif
 
-                                    {{-- Lien PDF externe --}}
-                                    @if ($brochure->link_url)
-                                        <a href="{{ $brochure->link_url }}" target="_blank"
-                                            rel="noopener noreferrer"
+                                    {{-- Bouton Télécharger (priorité pdf_path > link_url) --}}
+                                    @php
+                                        $downloadUrl = $brochure->pdf_path
+                                            ? asset('storage/' . $brochure->pdf_path)
+                                            : $brochure->link_url;
+                                    @endphp
+                                    @if ($downloadUrl)
+                                        <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
                                             class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                                            title="{{ $brochure->link_text ?? 'Télécharger le PDF' }}">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8.5 13.5a1 1 0 0 1 1-1h.5v3h-.5a1 1 0 0 1-1-1v-1zm3 0c0-.55.45-1 1-1h.5c.55 0 1 .45 1 1v1c0 .55-.45 1-1 1H12v1h1.5v1H12c-.55 0-1-.45-1-1v-3zm4 0c0-.55.45-1 1-1h1.5v1H17v.5h.5c.55 0 1 .45 1 1v.5c0 .55-.45 1-1 1H16v-1h1v-.5h-.5c-.55 0-1-.45-1-1v-.5z" />
-                                            </svg>
-                                        </a>
-                                    @endif
-
-                                    {{-- Lien Calameo --}}
-                                    @if ($brochure->calameo_link_url)
-                                        <a href="{{ $brochure->calameo_link_url }}" target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors"
-                                            title="{{ $brochure->calameo_link_text ?? 'Voir sur Calameo' }}">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            title="Télécharger le PDF"
+                                            {{ $brochure->pdf_path ? 'download' : '' }}>
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                                                </path>
+                                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                             </svg>
                                         </a>
                                     @endif
@@ -341,11 +333,9 @@
                                         <button wire:click="openReportModal({{ $brochure->id }})"
                                             class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                                             title="Signaler un problème">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                                                </path>
+                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                             </svg>
                                         </button>
                                     @endauth
