@@ -162,8 +162,16 @@ class ImageManager extends Component
                     $originalName = 'image';
                 }
 
-                // Générer un nom unique sécurisé
-                $filename = $originalName . '_' . time() . '_' . Str::random(10) . '.' . $extension;
+                // Générer un nom basé sur le slug uniquement (URL stable)
+                $baseFilename = $originalName . '.' . $extension;
+
+                // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
+                $filename = $baseFilename;
+                $counter = 1;
+                while (Storage::disk('public')->exists('images/' . $filename)) {
+                    $filename = $originalName . '-' . $counter . '.' . $extension;
+                    $counter++;
+                }
 
                 // Stocker l'image temporairement
                 $path = $image->storeAs('images', $filename, 'public');
@@ -213,14 +221,16 @@ class ImageManager extends Component
                         if ($pdfExtension !== 'pdf') {
                             $errors[] = "{$pdfFile->getClientOriginalName()}: Extension PDF invalide.";
                         } else {
-                            // Sanitiser le nom du PDF
-                            $pdfOriginalName = Str::limit(Str::slug(pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME)), 100);
-                            if (empty($pdfOriginalName)) {
-                                $pdfOriginalName = 'document';
-                            }
+                            // Utiliser le même slug que l'image pour le PDF (URL stable)
+                            $basePdfFilename = $originalName . '.pdf';
 
-                            // Générer un nom unique
-                            $pdfFilename = $pdfOriginalName . '_' . time() . '_' . Str::random(10) . '.pdf';
+                            // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
+                            $pdfFilename = $basePdfFilename;
+                            $pdfCounter = 1;
+                            while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
+                                $pdfFilename = $originalName . '-' . $pdfCounter . '.pdf';
+                                $pdfCounter++;
+                            }
 
                             // Stocker le PDF
                             $pdfPath = $pdfFile->storeAs('pdfs', $pdfFilename, 'public');
@@ -412,18 +422,28 @@ class ImageManager extends Component
                 return;
             }
 
-            // Supprimer l'ancien PDF si existe
-            if ($this->editingImage->pdf_path && Storage::disk('public')->exists($this->editingImage->pdf_path)) {
-                Storage::disk('public')->delete($this->editingImage->pdf_path);
-            }
+            // Si un PDF existe déjà, écraser avec le même nom (URL stable)
+            if ($this->editingImage->pdf_path) {
+                $pdfFilename = basename($this->editingImage->pdf_path);
+                Storage::disk('public')->putFileAs('pdfs', $this->editPdfFile, $pdfFilename);
+                $pdfPath = $this->editingImage->pdf_path; // Garder le même chemin
+            } else {
+                // Nouveau PDF : utiliser le slug du nom de l'image
+                $imageSlug = Str::limit(Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
+                if (empty($imageSlug)) {
+                    $imageSlug = 'document';
+                }
 
-            // Sanitiser et stocker le nouveau PDF
-            $pdfOriginalName = Str::limit(Str::slug(pathinfo($this->editPdfFile->getClientOriginalName(), PATHINFO_FILENAME)), 100);
-            if (empty($pdfOriginalName)) {
-                $pdfOriginalName = 'document';
+                // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
+                $basePdfFilename = $imageSlug . '.pdf';
+                $pdfFilename = $basePdfFilename;
+                $pdfCounter = 1;
+                while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
+                    $pdfFilename = $imageSlug . '-' . $pdfCounter . '.pdf';
+                    $pdfCounter++;
+                }
+                $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
             }
-            $pdfFilename = $pdfOriginalName . '_' . time() . '_' . Str::random(10) . '.pdf';
-            $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
         }
 
         // Mettre à jour

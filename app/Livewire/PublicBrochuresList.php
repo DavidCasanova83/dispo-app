@@ -20,6 +20,9 @@ class PublicBrochuresList extends Component
     public ?int $authorId = null;
     public ?int $sectorId = null;
 
+    // Recherche
+    public string $search = '';
+
     // Modal de signalement
     public bool $showReportModal = false;
     public ?int $selectedBrochureId = null;
@@ -134,14 +137,40 @@ class PublicBrochuresList extends Component
             ->with(['category', 'author'])
             ->first();
 
-        // Récupérer toutes les brochures avec filtres
-        $brochures = Image::query()
-            ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
-            ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
-            ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
-            ->orderByRaw('display_order IS NULL, display_order ASC')
-            ->orderBy('title')
-            ->get();
+        // Récupérer les brochures
+        if ($this->search) {
+            // Mode recherche : ignorer les filtres, rechercher dans tous les champs avec priorité
+            $searchTerm = '%' . $this->search . '%';
+
+            $brochures = Image::query()
+                ->where(function ($q) use ($searchTerm) {
+                    $q->where('title', 'like', $searchTerm)
+                      ->orWhere('name', 'like', $searchTerm)
+                      ->orWhere('description', 'like', $searchTerm)
+                      ->orWhere('alt_text', 'like', $searchTerm)
+                      ->orWhere('link_text', 'like', $searchTerm)
+                      ->orWhere('calameo_link_text', 'like', $searchTerm)
+                      ->orWhere('edition_year', 'like', $searchTerm);
+                })
+                ->orderByRaw("
+                    CASE
+                        WHEN title LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN description LIKE ? THEN 3
+                        ELSE 4
+                    END
+                ", [$searchTerm, $searchTerm, $searchTerm])
+                ->get();
+        } else {
+            // Mode filtres : logique actuelle
+            $brochures = Image::query()
+                ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
+                ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
+                ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
+                ->orderByRaw('display_order IS NULL, display_order ASC')
+                ->orderBy('title')
+                ->get();
+        }
 
         // Récupérer les IDs de toutes les brochures pour les filtres
         $availableBrochureIds = Image::pluck('id');
