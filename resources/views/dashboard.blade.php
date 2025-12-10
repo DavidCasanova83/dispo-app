@@ -26,6 +26,24 @@
                 </div>
             @endcan
 
+            {{-- Agendas Module - For users with manage-agendas permission --}}
+            @can('manage-agendas')
+                <div
+                    class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-cyan-600 to-blue-800 hover:from-cyan-700 hover:to-blue-900 transition-all duration-300">
+                    <a href="{{ route('admin.agendas') }}"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+                        <!-- Cadre intérieur animé -->
+                        <div
+                            class="absolute inset-3 border-2 border-white/30 rounded-lg transition-all duration-500 ease-out group-hover:inset-4 group-hover:border-white/60 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                        </div>
+
+                        <div class="text-4xl mb-2 relative z-10">📅</div>
+                        <h3 class="text-lg font-semibold mb-2 relative z-10">Agendas</h3>
+                        <p class="text-sm opacity-90 relative z-10">Gérer les agendas</p>
+                    </a>
+                </div>
+            @endcan
+
             {{-- Qualification Module - For users with view-qualification permission --}}
             @can('view-qualification')
                 <div
