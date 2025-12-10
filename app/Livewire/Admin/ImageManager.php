@@ -221,14 +221,15 @@ class ImageManager extends Component
                         if ($pdfExtension !== 'pdf') {
                             $errors[] = "{$pdfFile->getClientOriginalName()}: Extension PDF invalide.";
                         } else {
-                            // Utiliser le même slug que l'image pour le PDF (URL stable)
-                            $basePdfFilename = $originalName . '.pdf';
+                            // Utiliser le titre pour le nom du PDF (fallback sur le nom de fichier)
+                            $pdfSlug = Str::slug($this->titles[$index] ?? '') ?: $originalName;
+                            $basePdfFilename = $pdfSlug . '.pdf';
 
                             // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
                             $pdfFilename = $basePdfFilename;
                             $pdfCounter = 1;
                             while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
-                                $pdfFilename = $originalName . '-' . $pdfCounter . '.pdf';
+                                $pdfFilename = $pdfSlug . '-' . $pdfCounter . '.pdf';
                                 $pdfCounter++;
                             }
 
@@ -428,8 +429,8 @@ class ImageManager extends Component
                 Storage::disk('public')->putFileAs('pdfs', $this->editPdfFile, $pdfFilename);
                 $pdfPath = $this->editingImage->pdf_path; // Garder le même chemin
             } else {
-                // Nouveau PDF : utiliser le slug du nom de l'image
-                $imageSlug = Str::limit(Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
+                // Nouveau PDF : utiliser le titre (fallback sur le nom de l'image)
+                $imageSlug = Str::limit(Str::slug($this->editingImage->title) ?: Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
                 if (empty($imageSlug)) {
                     $imageSlug = 'document';
                 }
