@@ -94,6 +94,14 @@ class Image extends Model
     }
 
     /**
+     * Relation avec les clics
+     */
+    public function clicks(): HasMany
+    {
+        return $this->hasMany(BrochureClick::class);
+    }
+
+    /**
      * Supprimer le fichier physique quand le model est supprimé
      */
     protected static function booted(): void

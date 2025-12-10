@@ -69,6 +69,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Route pour la gestion des images - requires manage-images permission
     Route::middleware(['permission:manage-images'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
+        Route::get('/images/statistics', \App\Livewire\Admin\BrochureStatistics::class)->name('images.statistics');
     });
 
     // Route pour la gestion des agendas - requires manage-agendas permission

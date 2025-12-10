@@ -335,6 +335,7 @@
 
                                     {{-- Bouton Consulter --}}
                                     <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
+                                        wire:click="trackClick({{ $brochure->id }}, 'consulter')"
                                         class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
                                         title="Consulter en ligne">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,6 +348,7 @@
 
                                     {{-- Bouton Télécharger --}}
                                     <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
+                                        wire:click="trackClick({{ $brochure->id }}, 'telecharger')"
                                         class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
                                         title="Télécharger"
                                         {{ $brochure->pdf_path ? 'download' : '' }}>
@@ -359,7 +361,7 @@
                                     {{-- Bouton Copier le lien --}}
                                     <button
                                         x-data="{ copied: false }"
-                                        @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                        @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000); $wire.trackClick({{ $brochure->id }}, 'copier_lien')"
                                         class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
                                         :class="copied ? 'bg-green-500 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
                                         :title="copied ? 'Lien copié !' : 'Copier le lien'">

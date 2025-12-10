@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Agenda;
 use App\Models\Author;
+use App\Models\BrochureClick;
 use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
@@ -90,6 +91,30 @@ class PublicBrochuresList extends Component
 
         $this->closeReportModal();
         session()->flash('success', 'Votre signalement a été envoyé. Merci pour votre contribution !');
+    }
+
+    /**
+     * Enregistre un clic sur un bouton de brochure
+     */
+    public function trackClick(int $brochureId, string $buttonType): void
+    {
+        // Valider le type de bouton
+        if (!in_array($buttonType, BrochureClick::BUTTON_TYPES)) {
+            return;
+        }
+
+        // Valider que la brochure existe
+        if (!Image::where('id', $brochureId)->exists()) {
+            return;
+        }
+
+        BrochureClick::create([
+            'image_id' => $brochureId,
+            'user_id' => Auth::id(),
+            'button_type' => $buttonType,
+            'ip_address' => request()->ip(),
+            'user_agent' => substr(request()->userAgent() ?? '', 0, 500),
+        ]);
     }
 
     public function resetFilters(): void
