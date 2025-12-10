@@ -579,10 +579,15 @@
 
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                                {{-- View button --}}
-                                <a href="{{ asset('storage/' . $image->path) }}" target="_blank"
+                                {{-- View button (priorité: PDF > calameo > link > image) --}}
+                                @php
+                                    $consultUrl = $image->pdf_path
+                                        ? asset('storage/' . $image->pdf_path)
+                                        : ($image->calameo_link_url ?? $image->link_url ?? asset('storage/' . $image->path));
+                                @endphp
+                                <a href="{{ $consultUrl }}" target="_blank"
                                     class="p-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white rounded-lg transition-colors"
-                                    title="Voir l'image">
+                                    title="Consulter">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
