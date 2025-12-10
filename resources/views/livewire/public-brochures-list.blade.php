@@ -327,10 +327,10 @@
                                             ? asset('storage/' . $brochure->pdf_path)
                                             : ($brochure->link_url ?? asset('storage/' . $brochure->path));
 
-                                        // URL pour consulter (priorité: calameo > link > image)
-                                        $consultUrl = $brochure->calameo_link_url
-                                            ?? $brochure->link_url
-                                            ?? asset('storage/' . $brochure->path);
+                                        // URL pour consulter (priorité: PDF > calameo > link > image)
+                                        $consultUrl = $brochure->pdf_path
+                                            ? asset('storage/' . $brochure->pdf_path)
+                                            : ($brochure->calameo_link_url ?? $brochure->link_url ?? asset('storage/' . $brochure->path));
                                     @endphp
 
                                     {{-- Bouton Consulter --}}
