@@ -134,11 +134,11 @@
             </p>
 
             <div class="buttons-container">
-                <a href="{{ $availableUrl }}" class="button button-available" style="color: #ffffff !important; text-decoration: none;">
+                <a href="{{ $availableUrl }}" class="button button-available" style="text-decoration: none;">
                     ✓ Disponibilités
                 </a>
 
-                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="color: #ffffff !important; text-decoration: none;">
+                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="text-decoration: none;">
                     ✗ Pas de disponibilités
                 </a>
             </div>
@@ -150,7 +150,8 @@
                 autant de fois que nécessaire.
             </p>
 
-            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">La réponse apportée permet de mettre à jour les informations présentes sur cette page :</p>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">La réponse apportée permet de mettre à jour
+                les informations présentes sur cette page :</p>
             <p><a href="https://www.verdontourisme.com/disponibilites/">Hébergements disponibles ce soir</a></p>
         </div>
 
