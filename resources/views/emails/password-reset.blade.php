@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mise à jour de vos disponibilités</title>
+    <title>Réinitialisation de votre mot de passe</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,6 +43,7 @@
         .content h2 {
             font-size: 20px;
             margin-bottom: 20px;
+            color: #3A9C92;
         }
 
         .content p {
@@ -50,14 +51,21 @@
             font-size: 16px;
         }
 
-        .accommodation-name {
-            font-weight: bold;
-            color: #3A9C92;
-            font-size: 18px;
+        .info-box {
+            background-color: #fef3cd;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #92400e;
         }
 
         .buttons-container {
-            color: #f4f8f8;
             margin: 40px 0;
             text-align: center;
         }
@@ -65,26 +73,17 @@
         .button {
             display: inline-block;
             padding: 15px 40px;
-            margin: 10px;
             font-size: 16px;
             font-weight: bold;
             text-decoration: none;
             border-radius: 6px;
             transition: opacity 0.3s;
+            background-color: #3A9C92;
+            color: #ffffff;
         }
 
         .button:hover {
             opacity: 0.9;
-        }
-
-        .button-available {
-            background-color: #10b981;
-            color: #ffffff;
-        }
-
-        .button-not-available {
-            background-color: #ef4444;
-            color: #ffffff;
         }
 
         .footer {
@@ -102,6 +101,22 @@
             margin: 30px 0;
         }
 
+        .lock-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .url-fallback {
+            word-break: break-all;
+            font-size: 12px;
+            color: #6b7280;
+            background-color: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
         @media only screen and (max-width: 600px) {
             .button {
                 display: block;
@@ -115,52 +130,43 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Mise à jour de vos disponibilités</h1>
+            <h1>Réinitialisation du mot de passe</h1>
         </div>
 
         <div class="content">
-            <h2>Bonjour,</h2>
+            <div class="lock-icon">🔐</div>
+
+            <h2>Bonjour {{ $userName }},</h2>
 
             <p>
-                Nous souhaitons mettre à jour les informations de disponibilité pour votre établissement :
-            </p>
-
-            <p class="accommodation-name">{{ $accommodationName }}</p>
-
-            <div class="divider"></div>
-
-            <p>
-                Merci de nous indiquer votre situation actuelle en cliquant sur l'un des boutons ci-dessous :
+                Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
             </p>
 
             <div class="buttons-container">
-                <a href="{{ $availableUrl }}" class="button button-available" style="text-decoration: none;">
-                    ✓ Disponibilités
-                </a>
-
-                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="text-decoration: none;">
-                    ✗ Pas de disponibilités
+                <a href="{{ $resetUrl }}" class="button">
+                    Réinitialiser mon mot de passe
                 </a>
             </div>
 
-            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-                Cliquez sur le bouton correspondant à votre situation actuelle. Votre réponse nous permettra de mettre à
-                jour instantanément vos informations.<br>
-                <strong>Ces boutons sont actifs toutes la journée.</strong> Vous pouvez les utiliser
-                autant de fois que nécessaire.
-            </p>
+            <div class="info-box">
+                <p><strong>⏰ Important :</strong> Ce lien expire dans <strong>60 minutes</strong>.</p>
+                <p>Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email en toute sécurité.</p>
+            </div>
 
-            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">La réponse apportée permet de mettre à jour
-                les informations présentes sur cette page :</p>
-            <p><a href="https://www.verdontourisme.com/disponibilites/">Hébergements disponibles ce soir</a></p>
+            <div class="divider"></div>
+
+            <p style="font-size: 14px; color: #6b7280;">
+                Si le bouton ne fonctionne pas, copiez et collez le lien suivant dans votre navigateur :
+            </p>
+            <div class="url-fallback">
+                {{ $resetUrl }}
+            </div>
         </div>
 
         <div class="footer">
             <p>
-                Merci de votre collaboration.<br>
-                Cet email a été envoyé automatiquement.<br>
-                <strong>Vous pouvez y répondre si vous avez des questions.</strong><br>
-                Nous vous répondrons dès que possible.<br>
+                Cet email a été envoyé automatiquement suite à une demande de réinitialisation de mot de passe.<br>
+                Si vous n'êtes pas à l'origine de cette demande, aucune action n'est requise.
             </p>
         </div>
     </div>
