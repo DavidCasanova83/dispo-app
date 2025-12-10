@@ -32,19 +32,56 @@ return new class extends Migration
                 ->whereNotNull('archived_at')
                 ->update(['status' => 'archived']);
 
-            // Pour SQLite, supprimer l'index avec SQL brut
-            DB::statement('DROP INDEX IF EXISTS agendas_is_current_index');
+            // Supprimer l'index is_current si existant (compatible MySQL/MariaDB et SQLite)
+            $this->dropIndexIfExists('agendas', 'agendas_is_current_index');
 
-            // Note: La suppression de la colonne is_current est problématique sur SQLite
-            // Elle sera ignorée dans le code et reste dans la DB pour compatibilité
+            // Supprimer la colonne is_current
+            Schema::table('agendas', function (Blueprint $table) {
+                $table->dropColumn('is_current');
+            });
         }
 
         // Ajouter un index sur status si pas déjà existant
-        $indexes = collect(DB::select("PRAGMA index_list('agendas')"))->pluck('name')->toArray();
-        if (!in_array('agendas_status_index', $indexes)) {
+        if (!$this->indexExists('agendas', 'agendas_status_index')) {
             Schema::table('agendas', function (Blueprint $table) {
                 $table->index('status');
             });
+        }
+    }
+
+    /**
+     * Vérifie si un index existe (compatible MySQL/MariaDB et SQLite)
+     */
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = collect(DB::select("PRAGMA index_list('{$table}')"))->pluck('name')->toArray();
+            return in_array($indexName, $indexes);
+        }
+
+        // MySQL/MariaDB
+        $indexes = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = ?", [$indexName]);
+        return count($indexes) > 0;
+    }
+
+    /**
+     * Supprime un index s'il existe (compatible MySQL/MariaDB et SQLite)
+     */
+    private function dropIndexIfExists(string $table, string $indexName): void
+    {
+        if (!$this->indexExists($table, $indexName)) {
+            return;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            DB::statement("DROP INDEX IF EXISTS {$indexName}");
+        } else {
+            // MySQL/MariaDB
+            DB::statement("ALTER TABLE {$table} DROP INDEX {$indexName}");
         }
     }
 
