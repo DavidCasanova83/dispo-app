@@ -594,4 +594,85 @@ class MailjetService
             'adminUrl' => $adminUrl,
         ])->render();
     }
+
+    /**
+     * Envoyer un email de réinitialisation de mot de passe.
+     *
+     * @param string $toEmail
+     * @param string $toName
+     * @param string $resetUrl
+     * @return array
+     */
+    public function sendPasswordResetEmail(string $toEmail, string $toName, string $resetUrl): array
+    {
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $toEmail,
+                            'Name' => $toName,
+                        ],
+                    ],
+                    'Subject' => "Réinitialisation de votre mot de passe",
+                    'TextPart' => "Bonjour {$toName},\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nCliquez sur ce lien pour créer un nouveau mot de passe : {$resetUrl}\n\nCe lien expire dans 60 minutes.\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.",
+                    'HTMLPart' => $this->generatePasswordResetEmailHtml($toName, $resetUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("Password reset email sent successfully to {$toEmail}", [
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send password reset email to {$toEmail}", [
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending password reset email to {$toEmail}", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Générer le contenu HTML de l'email de réinitialisation de mot de passe.
+     *
+     * @param string $userName
+     * @param string $resetUrl
+     * @return string
+     */
+    protected function generatePasswordResetEmailHtml(string $userName, string $resetUrl): string
+    {
+        return view('emails.password-reset', [
+            'userName' => $userName,
+            'resetUrl' => $resetUrl,
+        ])->render();
+    }
 }
