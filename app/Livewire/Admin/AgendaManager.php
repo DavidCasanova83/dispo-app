@@ -180,6 +180,7 @@ class AgendaManager extends Component
 
     /**
      * Upload d'un nouvel agenda (PDF uniquement)
+     * L'agenda sera créé avec le statut "pending" et sera activé automatiquement à sa date de début
      */
     public function uploadAgenda()
     {
@@ -198,6 +199,12 @@ class AgendaManager extends Component
 
         $this->authorize('create', Agenda::class);
 
+        // Vérifier qu'il n'y a pas déjà un agenda en attente
+        if (Agenda::pending()->exists()) {
+            session()->flash('error', 'Un agenda est déjà en attente. Vous devez le supprimer ou attendre son activation avant d\'en ajouter un nouveau.');
+            return;
+        }
+
         $this->validate([
             'pdfFile' => 'required|mimes:pdf|max:51200', // 50MB max
             'title' => 'nullable|string|max:255',
@@ -213,69 +220,42 @@ class AgendaManager extends Component
                 return;
             }
 
-            // Archiver l'agenda courant s'il existe
-            $this->archiveCurrentAgenda();
-
-            // Sauvegarder le PDF comme agenda-en-cours.pdf
+            // Sauvegarder le PDF dans le dossier pending
             $pdfFilename = $this->pdfFile->getClientOriginalName();
 
-            // S'assurer que le dossier existe
+            // S'assurer que les dossiers existent
             $agendaDir = Storage::disk('public')->path('agendas');
             if (!file_exists($agendaDir)) {
                 mkdir($agendaDir, 0755, true);
             }
+            $pendingDir = Storage::disk('public')->path('agendas/pending');
+            if (!file_exists($pendingDir)) {
+                mkdir($pendingDir, 0755, true);
+            }
 
-            $pdfPath = $this->pdfFile->storeAs('agendas', 'agenda-en-cours.pdf', 'public');
-
-            // Créer l'entrée en base
-            Agenda::create([
+            // Créer l'entrée en base d'abord pour obtenir l'ID
+            $agenda = Agenda::create([
                 'title' => $this->title ?: null,
-                'pdf_path' => $pdfPath,
+                'pdf_path' => '', // Temporaire, sera mis à jour après
                 'pdf_filename' => $pdfFilename,
                 'description' => $this->description ?: null,
                 'start_date' => $this->startDate,
                 'end_date' => $this->endDate,
-                'is_current' => true,
+                'status' => Agenda::STATUS_PENDING,
                 'uploaded_by' => auth()->id(),
             ]);
 
-            session()->flash('success', 'Agenda uploadé avec succès.');
+            // Stocker le PDF avec l'ID de l'agenda
+            $pdfPath = $this->pdfFile->storeAs('agendas/pending', $agenda->id . '.pdf', 'public');
+
+            // Mettre à jour le chemin du PDF
+            $agenda->update(['pdf_path' => $pdfPath]);
+
+            session()->flash('success', 'Agenda ajouté en attente. Il sera activé automatiquement le ' . \Carbon\Carbon::parse($this->startDate)->format('d/m/Y') . '.');
             $this->reset(['pdfFile', 'title', 'description', 'startDate', 'endDate']);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Erreur lors de l\'upload: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Archiver l'agenda courant
-     */
-    private function archiveCurrentAgenda(): void
-    {
-        $currentAgenda = Agenda::current()->first();
-
-        if ($currentAgenda) {
-            // Renommer le PDF avec les dates
-            $archiveFilename = $currentAgenda->start_date->format('Y-m-d') . '_' . $currentAgenda->end_date->format('Y-m-d') . '.pdf';
-            $archivePath = 'agendas/archives/' . $archiveFilename;
-
-            // S'assurer que le dossier archives existe
-            $archiveDir = Storage::disk('public')->path('agendas/archives');
-            if (!file_exists($archiveDir)) {
-                mkdir($archiveDir, 0755, true);
-            }
-
-            // Copier le PDF actuel vers les archives
-            if (Storage::disk('public')->exists('agendas/agenda-en-cours.pdf')) {
-                Storage::disk('public')->copy('agendas/agenda-en-cours.pdf', $archivePath);
-            }
-
-            // Mettre à jour l'agenda en base
-            $currentAgenda->update([
-                'is_current' => false,
-                'archived_at' => now(),
-                'pdf_path' => $archivePath,
-            ]);
         }
     }
 
@@ -321,7 +301,7 @@ class AgendaManager extends Component
         ]);
 
         // Si c'est un agenda archivé et que les dates changent, renommer le PDF
-        if (!$this->editingAgenda->is_current) {
+        if ($this->editingAgenda->isArchived()) {
             $oldArchivePath = $this->editingAgenda->pdf_path;
             $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
             $newArchivePath = 'agendas/archives/' . $newArchiveFilename;
@@ -379,6 +359,7 @@ class AgendaManager extends Component
     public function render()
     {
         $currentAgenda = Agenda::current()->with(['uploader', 'category', 'author'])->first();
+        $pendingAgenda = Agenda::pending()->with('uploader')->first();
         $archivedAgendas = Agenda::archived()
             ->with('uploader')
             ->orderBy('end_date', 'desc')
@@ -386,6 +367,7 @@ class AgendaManager extends Component
 
         return view('livewire.admin.agenda-manager', [
             'currentAgenda' => $currentAgenda,
+            'pendingAgenda' => $pendingAgenda,
             'archivedAgendas' => $archivedAgendas,
             'coverImageUrl' => Agenda::getCoverImageUrl(),
             'coverThumbnailUrl' => Agenda::getCoverThumbnailUrl(),
