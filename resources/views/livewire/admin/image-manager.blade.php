@@ -358,14 +358,14 @@
                                                 @endforeach
                                             </select>
                                         </div>
-                                        {{-- PDF Upload --}}
+                                        {{-- PDF/Image Upload --}}
                                         <div>
                                             <label
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                PDF téléchargeable (optionnel, max 50MB)
+                                                PDF ou image téléchargeable (optionnel, max 50MB)
                                             </label>
                                             <input type="file" wire:model="pdfFiles.{{ $index }}"
-                                                accept=".pdf,application/pdf"
+                                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                                                 class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
                                             @error('pdfFiles.' . $index)
                                                 <span
@@ -373,11 +373,11 @@
                                             @enderror
                                             <div wire:loading wire:target="pdfFiles.{{ $index }}"
                                                 class="text-xs text-gray-500 mt-1">
-                                                Chargement du PDF...
+                                                Chargement du fichier...
                                             </div>
                                             @if (isset($pdfFiles[$index]) && $pdfFiles[$index])
                                                 <p class="text-xs text-green-600 dark:text-green-400 mt-1">
-                                                    PDF sélectionné: {{ $pdfFiles[$index]->getClientOriginalName() }}
+                                                    Fichier sélectionné: {{ $pdfFiles[$index]->getClientOriginalName() }}
                                                 </p>
                                             @endif
                                         </div>
@@ -589,13 +589,25 @@
                                             </a>
                                         @endif
                                         @if ($image->pdf_path)
+                                            @php
+                                                $downloadExtension = strtolower(pathinfo($image->pdf_path, PATHINFO_EXTENSION));
+                                                $isDownloadPdf = $downloadExtension === 'pdf';
+                                            @endphp
                                             <a href="{{ asset('storage/' . $image->pdf_path) }}" target="_blank" rel="noopener noreferrer"
-                                                class="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 font-medium">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                                Télécharger PDF
+                                                class="inline-flex items-center gap-1 text-xs {{ $isDownloadPdf ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700' }} font-medium">
+                                                @if ($isDownloadPdf)
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    Télécharger PDF
+                                                @else
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    Télécharger image
+                                                @endif
                                             </a>
                                         @endif
                                     </div>
@@ -900,23 +912,31 @@
                                     @error('editResponsableId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                 </div>
 
-                                {{-- Gestion du PDF --}}
+                                {{-- Gestion du fichier téléchargeable (PDF/Image) --}}
                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        PDF téléchargeable
+                                        PDF ou image téléchargeable
                                     </label>
 
                                     @if ($editingImage->pdf_path)
+                                        @php
+                                            $fileExtension = strtolower(pathinfo($editingImage->pdf_path, PATHINFO_EXTENSION));
+                                            $isPdf = $fileExtension === 'pdf';
+                                        @endphp
                                         <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg mb-3">
-                                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                            </svg>
+                                            @if ($isPdf)
+                                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                </svg>
+                                            @else
+                                                <img src="{{ asset('storage/' . $editingImage->pdf_path) }}" alt="Preview" class="w-8 h-8 object-cover rounded">
+                                            @endif
                                             <div class="flex-1">
-                                                <p class="text-sm font-medium text-gray-900 dark:text-white">PDF actuel</p>
+                                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $isPdf ? 'PDF actuel' : 'Image actuelle' }}</p>
                                                 <a href="{{ asset('storage/' . $editingImage->pdf_path) }}" target="_blank"
                                                     class="text-xs text-[#3E9B90] hover:underline">
-                                                    Voir le PDF
+                                                    Voir le fichier
                                                 </a>
                                             </div>
                                             <label class="flex items-center gap-2 text-sm text-red-600 cursor-pointer">
@@ -929,16 +949,16 @@
 
                                     <div>
                                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {{ $editingImage->pdf_path ? 'Remplacer le PDF' : 'Ajouter un PDF' }} (max 50MB)
+                                            {{ $editingImage->pdf_path ? 'Remplacer le fichier' : 'Ajouter un PDF ou une image' }} (max 50MB)
                                         </label>
-                                        <input type="file" wire:model="editPdfFile" accept=".pdf,application/pdf"
+                                        <input type="file" wire:model="editPdfFile" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                                             class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2"
                                             {{ $removePdf ? 'disabled' : '' }}>
                                         @error('editPdfFile')
                                             <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
                                         @enderror
                                         <div wire:loading wire:target="editPdfFile" class="text-xs text-gray-500 mt-1">
-                                            Chargement du PDF...
+                                            Chargement du fichier...
                                         </div>
                                     </div>
                                 </div>

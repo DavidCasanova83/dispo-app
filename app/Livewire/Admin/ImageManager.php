@@ -85,9 +85,11 @@ class ImageManager extends Component
         'image/webp',
     ];
 
-    // Whitelist des MIME types PDF autorisés
-    private const ALLOWED_PDF_MIME_TYPES = [
+    // Whitelist des MIME types pour fichiers téléchargeables (PDF + images)
+    private const ALLOWED_DOWNLOAD_MIME_TYPES = [
         'application/pdf',
+        'image/jpeg',
+        'image/png',
     ];
 
     protected $queryString = [
@@ -97,14 +99,14 @@ class ImageManager extends Component
     // Validation des uploads
     protected $rules = [
         'images.*' => 'image|max:10240', // 10MB max par image
-        'pdfFiles.*' => 'nullable|mimes:pdf|max:51200', // 50MB max par PDF
+        'pdfFiles.*' => 'nullable|mimes:pdf,jpg,jpeg,png|max:51200', // 50MB max par PDF/image
     ];
 
     protected $messages = [
         'images.*.image' => 'Le fichier doit être une image.',
         'images.*.max' => 'L\'image ne doit pas dépasser 10 MB.',
-        'pdfFiles.*.mimes' => 'Le fichier doit être un PDF.',
-        'pdfFiles.*.max' => 'Le PDF ne doit pas dépasser 50 MB.',
+        'pdfFiles.*.mimes' => 'Le fichier doit être un PDF ou une image (JPG, PNG).',
+        'pdfFiles.*.max' => 'Le fichier ne doit pas dépasser 50 MB.',
     ];
 
     public function updatingSearch()
@@ -210,33 +212,34 @@ class ImageManager extends Component
                 // Obtenir la taille finale du fichier après compression
                 $finalSize = filesize($fullPath);
 
-                // Gérer l'upload PDF si fourni
+                // Gérer l'upload du fichier téléchargeable (PDF ou image) si fourni
                 $pdfPath = null;
                 if (isset($this->pdfFiles[$index]) && $this->pdfFiles[$index]) {
                     $pdfFile = $this->pdfFiles[$index];
 
-                    // Valider le MIME type PDF
-                    if (!in_array($pdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
-                        $errors[] = "{$pdfFile->getClientOriginalName()}: Type de fichier PDF non autorisé.";
+                    // Valider le MIME type (PDF ou image)
+                    if (!in_array($pdfFile->getMimeType(), self::ALLOWED_DOWNLOAD_MIME_TYPES)) {
+                        $errors[] = "{$pdfFile->getClientOriginalName()}: Type de fichier non autorisé.";
                     } else {
                         // Valider l'extension
-                        $pdfExtension = strtolower($pdfFile->getClientOriginalExtension());
-                        if ($pdfExtension !== 'pdf') {
-                            $errors[] = "{$pdfFile->getClientOriginalName()}: Extension PDF invalide.";
+                        $downloadExtension = strtolower($pdfFile->getClientOriginalExtension());
+                        $allowedDownloadExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                        if (!in_array($downloadExtension, $allowedDownloadExtensions)) {
+                            $errors[] = "{$pdfFile->getClientOriginalName()}: Extension non autorisée.";
                         } else {
-                            // Utiliser le titre pour le nom du PDF (fallback sur le nom de fichier)
+                            // Utiliser le titre pour le nom du fichier (fallback sur le nom de fichier)
                             $pdfSlug = Str::slug($this->titles[$index] ?? '') ?: $originalName;
-                            $basePdfFilename = $pdfSlug . '.pdf';
+                            $basePdfFilename = $pdfSlug . '.' . $downloadExtension;
 
                             // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
                             $pdfFilename = $basePdfFilename;
                             $pdfCounter = 1;
                             while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
-                                $pdfFilename = $pdfSlug . '-' . $pdfCounter . '.pdf';
+                                $pdfFilename = $pdfSlug . '-' . $pdfCounter . '.' . $downloadExtension;
                                 $pdfCounter++;
                             }
 
-                            // Stocker le PDF
+                            // Stocker le fichier
                             $pdfPath = $pdfFile->storeAs('pdfs', $pdfFilename, 'public');
                         }
                     }
@@ -407,7 +410,7 @@ class ImageManager extends Component
             'editAuthorId' => 'nullable|exists:authors,id',
             'editSectorId' => 'nullable|exists:sectors,id',
             'editResponsableId' => 'nullable|exists:users,id',
-            'editPdfFile' => 'nullable|mimes:pdf|max:51200',
+            'editPdfFile' => 'nullable|mimes:pdf,jpg,jpeg,png|max:51200',
         ]);
 
         // Gérer la mise à jour du PDF
@@ -421,32 +424,41 @@ class ImageManager extends Component
             $pdfPath = null;
         }
 
-        // Uploader un nouveau PDF si fourni
+        // Uploader un nouveau fichier (PDF ou image) si fourni
         if ($this->editPdfFile && !$this->removePdf) {
             // Valider le MIME type
-            if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
-                session()->flash('error', 'Type de fichier PDF non autorisé.');
+            if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_DOWNLOAD_MIME_TYPES)) {
+                session()->flash('error', 'Type de fichier non autorisé.');
                 return;
             }
 
-            // Si un PDF existe déjà, écraser avec le même nom (URL stable)
-            if ($this->editingImage->pdf_path) {
+            $downloadExtension = strtolower($this->editPdfFile->getClientOriginalExtension());
+
+            // Si un fichier existe déjà avec la même extension, écraser avec le même nom (URL stable)
+            $existingExtension = $this->editingImage->pdf_path ? strtolower(pathinfo($this->editingImage->pdf_path, PATHINFO_EXTENSION)) : null;
+
+            if ($this->editingImage->pdf_path && $existingExtension === $downloadExtension) {
                 $pdfFilename = basename($this->editingImage->pdf_path);
                 Storage::disk('public')->putFileAs('pdfs', $this->editPdfFile, $pdfFilename);
                 $pdfPath = $this->editingImage->pdf_path; // Garder le même chemin
             } else {
-                // Nouveau PDF : utiliser le titre (fallback sur le nom de l'image)
+                // Supprimer l'ancien fichier si il existe (changement de type)
+                if ($this->editingImage->pdf_path && Storage::disk('public')->exists($this->editingImage->pdf_path)) {
+                    Storage::disk('public')->delete($this->editingImage->pdf_path);
+                }
+
+                // Nouveau fichier : utiliser le titre (fallback sur le nom de l'image)
                 $imageSlug = Str::limit(Str::slug($this->editingImage->title) ?: Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
                 if (empty($imageSlug)) {
                     $imageSlug = 'document';
                 }
 
                 // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
-                $basePdfFilename = $imageSlug . '.pdf';
+                $basePdfFilename = $imageSlug . '.' . $downloadExtension;
                 $pdfFilename = $basePdfFilename;
                 $pdfCounter = 1;
                 while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
-                    $pdfFilename = $imageSlug . '-' . $pdfCounter . '.pdf';
+                    $pdfFilename = $imageSlug . '-' . $pdfCounter . '.' . $downloadExtension;
                     $pdfCounter++;
                 }
                 $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
