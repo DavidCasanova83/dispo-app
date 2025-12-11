@@ -10,6 +10,7 @@ use App\Models\Sector;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -23,7 +24,8 @@ class ImageManager extends Component
 {
     use WithFileUploads, WithPagination;
 
-    public $images = [];               // Images à uploader
+    public $contentFiles = [];          // Fichiers de contenu principal (PDF ou images) - OBLIGATOIRE
+    public $presentationImages = [];    // Images de présentation (optionnelles)
     public $search = '';               // Recherche par nom
     public $showDeleteModal = false;
     public $selectedImage = null;
@@ -43,7 +45,6 @@ class ImageManager extends Component
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
     public $responsableIds = [];        // Responsables pour chaque image
-    public $pdfFiles = [];              // PDFs pour chaque image
 
     // Propriétés pour l'édition
     public $showEditModal = false;
@@ -98,15 +99,16 @@ class ImageManager extends Component
 
     // Validation des uploads
     protected $rules = [
-        'images.*' => 'image|max:10240', // 10MB max par image
-        'pdfFiles.*' => 'nullable|mimes:pdf,jpg,jpeg,png|max:51200', // 50MB max par PDF/image
+        'contentFiles.*' => 'required|mimes:pdf,jpg,jpeg,png|max:51200', // 50MB max - PDF ou image (obligatoire)
+        'presentationImages.*' => 'nullable|image|max:10240', // 10MB max - image de présentation (optionnel)
     ];
 
     protected $messages = [
-        'images.*.image' => 'Le fichier doit être une image.',
-        'images.*.max' => 'L\'image ne doit pas dépasser 10 MB.',
-        'pdfFiles.*.mimes' => 'Le fichier doit être un PDF ou une image (JPG, PNG).',
-        'pdfFiles.*.max' => 'Le fichier ne doit pas dépasser 50 MB.',
+        'contentFiles.*.required' => 'Le fichier de contenu est obligatoire.',
+        'contentFiles.*.mimes' => 'Le fichier doit être un PDF ou une image (JPG, PNG).',
+        'contentFiles.*.max' => 'Le fichier ne doit pas dépasser 50 MB.',
+        'presentationImages.*.image' => 'L\'image de présentation doit être une image.',
+        'presentationImages.*.max' => 'L\'image de présentation ne doit pas dépasser 10 MB.',
     ];
 
     public function updatingSearch()
@@ -115,7 +117,7 @@ class ImageManager extends Component
     }
 
     /**
-     * Upload des images
+     * Upload des brochures (PDF ou images comme contenu principal)
      */
     public function uploadImages()
     {
@@ -137,131 +139,168 @@ class ImageManager extends Component
 
         $this->validate();
 
-        if (empty($this->images)) {
-            session()->flash('error', 'Veuillez sélectionner au moins une brochure.');
+        if (empty($this->contentFiles)) {
+            session()->flash('error', 'Veuillez sélectionner au moins un fichier de contenu (PDF ou image).');
             return;
         }
 
         $uploadedCount = 0;
         $errors = [];
 
-        foreach ($this->images as $index => $image) {
+        foreach ($this->contentFiles as $index => $contentFile) {
             try {
                 // Validation MIME type avec whitelist
-                if (!in_array($image->getMimeType(), self::ALLOWED_MIME_TYPES)) {
-                    $errors[] = "{$image->getClientOriginalName()}: Type de fichier non autorisé.";
+                if (!in_array($contentFile->getMimeType(), self::ALLOWED_DOWNLOAD_MIME_TYPES)) {
+                    $errors[] = "{$contentFile->getClientOriginalName()}: Type de fichier non autorisé.";
                     continue;
                 }
 
                 // Validation de l'extension réelle
-                $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-                $extension = strtolower($image->getClientOriginalExtension());
+                $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                $extension = strtolower($contentFile->getClientOriginalExtension());
                 if (!in_array($extension, $allowedExtensions)) {
-                    $errors[] = "{$image->getClientOriginalName()}: Extension non autorisée.";
+                    $errors[] = "{$contentFile->getClientOriginalName()}: Extension non autorisée.";
                     continue;
                 }
 
+                $isPdf = ($extension === 'pdf');
+
                 // Sanitiser le nom original
-                $originalName = Str::limit(Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)), 100);
+                $originalName = Str::limit(Str::slug($this->titles[$index] ?? '') ?: Str::slug(pathinfo($contentFile->getClientOriginalName(), PATHINFO_FILENAME)), 100);
                 if (empty($originalName)) {
-                    $originalName = 'image';
+                    $originalName = 'brochure';
                 }
 
-                // Générer un nom basé sur le slug uniquement (URL stable)
-                $baseFilename = $originalName . '.' . $extension;
-
-                // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
-                $filename = $baseFilename;
-                $counter = 1;
-                while (Storage::disk('public')->exists('images/' . $filename)) {
-                    $filename = $originalName . '-' . $counter . '.' . $extension;
-                    $counter++;
+                // === STOCKER LE FICHIER DE CONTENU (PDF ou image) ===
+                $baseContentFilename = $originalName . '.' . $extension;
+                $contentFilename = $baseContentFilename;
+                $contentCounter = 1;
+                while (Storage::disk('public')->exists('pdfs/' . $contentFilename)) {
+                    $contentFilename = $originalName . '-' . $contentCounter . '.' . $extension;
+                    $contentCounter++;
                 }
+                $pdfPath = $contentFile->storeAs('pdfs', $contentFilename, 'public');
+                $contentFullPath = Storage::disk('public')->path($pdfPath);
+                $contentSize = filesize($contentFullPath);
 
-                // Stocker l'image temporairement
-                $path = $image->storeAs('images', $filename, 'public');
-                $fullPath = Storage::disk('public')->path($path);
+                // === GÉRER L'IMAGE DE PRÉSENTATION ===
+                $path = null;
+                $thumbnailPath = null;
+                $width = null;
+                $height = null;
+                $mimeType = $contentFile->getMimeType();
+                $displayFilename = $contentFilename;
 
-                // Créer l'instance Intervention Image
-                $manager = new InterventionImageManager(new Driver());
-                $img = $manager->read($fullPath);
+                // Vérifier si une image de présentation a été fournie
+                $hasPresentationImage = isset($this->presentationImages[$index]) && $this->presentationImages[$index];
 
-                // Extraire les dimensions originales
-                $width = $img->width();
-                $height = $img->height();
+                if ($hasPresentationImage) {
+                    // === IMAGE DE PRÉSENTATION FOURNIE ===
+                    $presentationFile = $this->presentationImages[$index];
 
-                // Compression automatique - qualité 85%
-                $img->save($fullPath, quality: 85);
-
-                // Générer le thumbnail (300x300)
-                $thumbnailFilename = 'thumb_' . $filename;
-                $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
-                $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
-
-                // Créer le dossier thumbnails si il n'existe pas
-                $thumbnailDir = dirname($thumbnailFullPath);
-                if (!file_exists($thumbnailDir)) {
-                    mkdir($thumbnailDir, 0755, true);
-                }
-
-                // Créer et sauvegarder le thumbnail
-                $thumbnail = $manager->read($fullPath);
-                $thumbnail->cover(300, 300);
-                $thumbnail->save($thumbnailFullPath, quality: 80);
-
-                // Obtenir la taille finale du fichier après compression
-                $finalSize = filesize($fullPath);
-
-                // Gérer l'upload du fichier téléchargeable (PDF ou image) si fourni
-                $pdfPath = null;
-                if (isset($this->pdfFiles[$index]) && $this->pdfFiles[$index]) {
-                    $pdfFile = $this->pdfFiles[$index];
-
-                    // Valider le MIME type (PDF ou image)
-                    if (!in_array($pdfFile->getMimeType(), self::ALLOWED_DOWNLOAD_MIME_TYPES)) {
-                        $errors[] = "{$pdfFile->getClientOriginalName()}: Type de fichier non autorisé.";
+                    // Valider le MIME type
+                    if (!in_array($presentationFile->getMimeType(), self::ALLOWED_MIME_TYPES)) {
+                        $errors[] = "{$presentationFile->getClientOriginalName()}: Image de présentation - type non autorisé.";
+                        // Continuer sans image de présentation
                     } else {
-                        // Valider l'extension
-                        $downloadExtension = strtolower($pdfFile->getClientOriginalExtension());
-                        $allowedDownloadExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-                        if (!in_array($downloadExtension, $allowedDownloadExtensions)) {
-                            $errors[] = "{$pdfFile->getClientOriginalName()}: Extension non autorisée.";
-                        } else {
-                            // Utiliser le titre pour le nom du fichier (fallback sur le nom de fichier)
-                            $pdfSlug = Str::slug($this->titles[$index] ?? '') ?: $originalName;
-                            $basePdfFilename = $pdfSlug . '.' . $downloadExtension;
-
-                            // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
-                            $pdfFilename = $basePdfFilename;
-                            $pdfCounter = 1;
-                            while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
-                                $pdfFilename = $pdfSlug . '-' . $pdfCounter . '.' . $downloadExtension;
-                                $pdfCounter++;
-                            }
-
-                            // Stocker le fichier
-                            $pdfPath = $pdfFile->storeAs('pdfs', $pdfFilename, 'public');
+                        $presentationExtension = strtolower($presentationFile->getClientOriginalExtension());
+                        $basePresentationFilename = $originalName . '.' . $presentationExtension;
+                        $presentationFilename = $basePresentationFilename;
+                        $presentationCounter = 1;
+                        while (Storage::disk('public')->exists('images/' . $presentationFilename)) {
+                            $presentationFilename = $originalName . '-' . $presentationCounter . '.' . $presentationExtension;
+                            $presentationCounter++;
                         }
+
+                        $path = $presentationFile->storeAs('images', $presentationFilename, 'public');
+                        $fullPath = Storage::disk('public')->path($path);
+
+                        // Traiter l'image de présentation
+                        $manager = new InterventionImageManager(new Driver());
+                        $img = $manager->read($fullPath);
+                        $width = $img->width();
+                        $height = $img->height();
+                        $img->save($fullPath, quality: 85);
+                        $mimeType = $presentationFile->getMimeType();
+                        $displayFilename = $presentationFilename;
+
+                        // Générer le thumbnail
+                        $thumbnailFilename = 'thumb_' . $presentationFilename;
+                        $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+                        $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+                        $thumbnailDir = dirname($thumbnailFullPath);
+                        if (!file_exists($thumbnailDir)) {
+                            mkdir($thumbnailDir, 0755, true);
+                        }
+                        $thumbnail = $manager->read($fullPath);
+                        $thumbnail->cover(300, 300);
+                        $thumbnail->save($thumbnailFullPath, quality: 80);
                     }
+                }
+
+                // Si pas d'image de présentation et contenu est un PDF, exiger une image
+                if (!$path && $isPdf) {
+                    $errors[] = "{$contentFile->getClientOriginalName()}: Une image de présentation est obligatoire pour les fichiers PDF.";
+                    // Supprimer le fichier PDF uploadé
+                    Storage::disk('public')->delete($pdfPath);
+                    continue;
+                }
+
+                // Si pas d'image de présentation et contenu est une image, l'utiliser comme présentation
+                if (!$path && !$isPdf) {
+                    // Copier l'image de contenu vers images/ pour la présentation
+                    $imageExtension = $extension;
+                    $basePresentationFilename = $originalName . '.' . $imageExtension;
+                    $presentationFilename = $basePresentationFilename;
+                    $presentationCounter = 1;
+                    while (Storage::disk('public')->exists('images/' . $presentationFilename)) {
+                        $presentationFilename = $originalName . '-' . $presentationCounter . '.' . $imageExtension;
+                        $presentationCounter++;
+                    }
+
+                    // Copier le fichier
+                    Storage::disk('public')->copy($pdfPath, 'images/' . $presentationFilename);
+                    $path = 'images/' . $presentationFilename;
+                    $fullPath = Storage::disk('public')->path($path);
+
+                    // Traiter l'image
+                    $manager = new InterventionImageManager(new Driver());
+                    $img = $manager->read($fullPath);
+                    $width = $img->width();
+                    $height = $img->height();
+                    $img->save($fullPath, quality: 85);
+                    $displayFilename = $presentationFilename;
+
+                    // Générer le thumbnail
+                    $thumbnailFilename = 'thumb_' . $presentationFilename;
+                    $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+                    $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+                    $thumbnailDir = dirname($thumbnailFullPath);
+                    if (!file_exists($thumbnailDir)) {
+                        mkdir($thumbnailDir, 0755, true);
+                    }
+                    $thumbnail = $manager->read($fullPath);
+                    $thumbnail->cover(300, 300);
+                    $thumbnail->save($thumbnailFullPath, quality: 80);
                 }
 
                 // Créer l'entrée en base
                 Image::create([
-                    'name' => $image->getClientOriginalName(),
+                    'name' => $contentFile->getClientOriginalName(),
                     'title' => $this->titles[$index] ?? null,
-                    'filename' => $filename,
+                    'filename' => $displayFilename,
                     'path' => $path,
                     'thumbnail_path' => $thumbnailPath,
                     'pdf_path' => $pdfPath,
-                    'url' => $path, // Stocker le chemin, pas l'URL complète
+                    'url' => $path,
                     'alt_text' => $this->altTexts[$index] ?? null,
                     'description' => $this->descriptions[$index] ?? null,
                     'link_url' => $this->linkUrls[$index] ?? null,
                     'link_text' => $this->linkTexts[$index] ?? null,
                     'calameo_link_url' => $this->calameoLinkUrls[$index] ?? null,
                     'calameo_link_text' => $this->calameoLinkTexts[$index] ?? null,
-                    'mime_type' => $image->getMimeType(),
-                    'size' => $finalSize,
+                    'mime_type' => $mimeType,
+                    'size' => $contentSize,
                     'width' => $width,
                     'height' => $height,
                     'uploaded_by' => auth()->id(),
@@ -278,7 +317,7 @@ class ImageManager extends Component
 
                 $uploadedCount++;
             } catch (\Exception $e) {
-                $errors[] = "{$image->getClientOriginalName()}: {$e->getMessage()}";
+                $errors[] = "{$contentFile->getClientOriginalName()}: {$e->getMessage()}";
             }
         }
 
@@ -294,7 +333,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds', 'pdfFiles']);
+        $this->reset(['contentFiles', 'presentationImages', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds']);
     }
 
     /**

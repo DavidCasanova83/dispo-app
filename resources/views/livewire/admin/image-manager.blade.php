@@ -161,29 +161,56 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                            Sélectionner des brochures (max 10 MB chacune)
+                            Contenu de la brochure (PDF ou image) <span class="text-red-500">*</span>
                         </label>
-                        <input type="file" wire:model="images" multiple accept="image/*"
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                            Sélectionnez un ou plusieurs fichiers PDF ou images (max 50 MB chacun)
+                        </p>
+                        <input type="file" wire:model="contentFiles" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                             class="block w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-4 py-3">
-                        @error('images.*')
+                        @error('contentFiles.*')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
+                        <div wire:loading wire:target="contentFiles" class="text-sm text-gray-500 mt-2">
+                            Chargement des fichiers...
+                        </div>
                     </div>
 
-                    {{-- Preview des images sélectionnées --}}
-                    @if ($images)
+                    {{-- Preview des fichiers sélectionnés --}}
+                    @if ($contentFiles)
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @foreach ($images as $index => $image)
+                            @foreach ($contentFiles as $index => $contentFile)
+                                @php
+                                    $isPdf = strtolower($contentFile->getClientOriginalExtension()) === 'pdf';
+                                @endphp
                                 <div
                                     class="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
                                     <div class="relative mb-3">
-                                        <img src="{{ $image->temporaryUrl() }}"
-                                            class="w-full h-32 object-cover rounded-lg">
+                                        @if ($isPdf)
+                                            {{-- Affichage PDF --}}
+                                            <div class="w-full h-32 bg-red-50 dark:bg-red-900/20 rounded-lg flex flex-col items-center justify-center">
+                                                <svg class="w-12 h-12 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <span class="text-xs text-red-600 dark:text-red-400 mt-1 font-medium">PDF</span>
+                                            </div>
+                                        @else
+                                            {{-- Affichage Image --}}
+                                            <img src="{{ $contentFile->temporaryUrl() }}"
+                                                class="w-full h-32 object-cover rounded-lg">
+                                        @endif
                                         <span
                                             class="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
                                             Brochure {{ $index + 1 }}
                                         </span>
+                                        <span class="absolute top-2 right-2 {{ $isPdf ? 'bg-red-600' : 'bg-blue-600' }} text-white text-xs px-2 py-1 rounded">
+                                            {{ strtoupper($contentFile->getClientOriginalExtension()) }}
+                                        </span>
                                     </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate" title="{{ $contentFile->getClientOriginalName() }}">
+                                        {{ $contentFile->getClientOriginalName() }}
+                                    </p>
                                     <div class="space-y-2">
                                         <div>
                                             <label
@@ -358,27 +385,42 @@
                                                 @endforeach
                                             </select>
                                         </div>
-                                        {{-- PDF/Image Upload --}}
-                                        <div>
+                                        {{-- Image de présentation --}}
+                                        <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                                             <label
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                PDF ou image téléchargeable (optionnel, max 50MB)
+                                                Image de présentation (max 10MB)
+                                                @if ($isPdf)
+                                                    <span class="text-red-500">*</span>
+                                                @endif
                                             </label>
-                                            <input type="file" wire:model="pdfFiles.{{ $index }}"
-                                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                @if ($isPdf)
+                                                    <span class="text-red-600 dark:text-red-400 font-medium">
+                                                        Obligatoire pour les fichiers PDF
+                                                    </span>
+                                                @else
+                                                    Optionnel - Si non fournie, l'image de contenu sera utilisée
+                                                @endif
+                                            </p>
+                                            <input type="file" wire:model="presentationImages.{{ $index }}"
+                                                accept="image/*"
                                                 class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
-                                            @error('pdfFiles.' . $index)
+                                            @error('presentationImages.' . $index)
                                                 <span
                                                     class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                                             @enderror
-                                            <div wire:loading wire:target="pdfFiles.{{ $index }}"
+                                            <div wire:loading wire:target="presentationImages.{{ $index }}"
                                                 class="text-xs text-gray-500 mt-1">
-                                                Chargement du fichier...
+                                                Chargement de l'image...
                                             </div>
-                                            @if (isset($pdfFiles[$index]) && $pdfFiles[$index])
-                                                <p class="text-xs text-green-600 dark:text-green-400 mt-1">
-                                                    Fichier sélectionné: {{ $pdfFiles[$index]->getClientOriginalName() }}
-                                                </p>
+                                            @if (isset($presentationImages[$index]) && $presentationImages[$index])
+                                                <div class="mt-2 flex items-center gap-2">
+                                                    <img src="{{ $presentationImages[$index]->temporaryUrl() }}" class="w-12 h-12 object-cover rounded">
+                                                    <p class="text-xs text-green-600 dark:text-green-400">
+                                                        {{ $presentationImages[$index]->getClientOriginalName() }}
+                                                    </p>
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
@@ -390,13 +432,13 @@
                     <div class="flex gap-3">
                         <button type="submit"
                             class="px-8 py-3 bg-[#3E9B90] text-white text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                            wire:loading.attr="disabled" wire:target="images, uploadImages">
+                            wire:loading.attr="disabled" wire:target="contentFiles, presentationImages, uploadImages">
                             <span wire:loading.remove wire:target="uploadImages">Uploader</span>
                             <span wire:loading wire:target="uploadImages">Upload en cours...</span>
                         </button>
 
-                        @if ($images)
-                            <button type="button" wire:click="$set('images', [])"
+                        @if ($contentFiles)
+                            <button type="button" wire:click="$set('contentFiles', [])"
                                 class="px-8 py-3 bg-gray-500 hover:bg-gray-600 text-white text-lg font-semibold rounded-lg transition-colors shadow-md">
                                 Annuler
                             </button>
@@ -404,7 +446,7 @@
                     </div>
 
                     {{-- Loading indicator --}}
-                    <div wire:loading wire:target="images" class="text-sm text-gray-500 dark:text-gray-400">
+                    <div wire:loading wire:target="contentFiles" class="text-sm text-gray-500 dark:text-gray-400">
                         Chargement des previews...
                     </div>
                 </div>
