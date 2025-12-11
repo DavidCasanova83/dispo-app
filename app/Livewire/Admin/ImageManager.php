@@ -41,6 +41,7 @@ class ImageManager extends Component
     public $printAvailables = [];      // Disponibilité impression pour chaque image
     public $editionYears = [];         // Années d'édition pour chaque image
     public $displayOrders = [];        // Ordre d'affichage pour chaque image
+    public $usedDisplayOrders = [];    // Liste des ordres déjà utilisés
     public $categoryIds = [];          // Catégories pour chaque image
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
@@ -641,6 +642,14 @@ class ImageManager extends Component
 
     public function render()
     {
+        // Charger les ordres d'affichage déjà utilisés
+        $this->usedDisplayOrders = Image::whereNotNull('display_order')
+            ->orderBy('display_order')
+            ->pluck('display_order')
+            ->unique()
+            ->values()
+            ->toArray();
+
         $query = Image::with(['uploader', 'category', 'author', 'sector', 'responsable'])
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');
