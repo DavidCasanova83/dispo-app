@@ -507,10 +507,15 @@ class MailjetService
      */
     public function sendBrochureReportNotification(BrochureReport $report): array
     {
-        $report->load(['image', 'user']);
+        $report->load(['image.responsable', 'user']);
 
         $brochureTitle = $report->image->title ?? $report->image->name ?? 'Brochure sans titre';
         $adminUrl = url('/admin/images');
+
+        // Envoyer également au responsable si la brochure en a un
+        if ($report->image->responsable && $report->image->responsable->email) {
+            $this->sendBrochureReportToResponsable($report, $brochureTitle);
+        }
 
         $body = [
             'Messages' => [
@@ -674,5 +679,80 @@ class MailjetService
             'userName' => $userName,
             'resetUrl' => $resetUrl,
         ])->render();
+    }
+
+    /**
+     * Envoyer une notification de signalement au responsable de la brochure.
+     *
+     * @param BrochureReport $report
+     * @param string $brochureTitle
+     * @return array
+     */
+    protected function sendBrochureReportToResponsable(BrochureReport $report, string $brochureTitle): array
+    {
+        $responsable = $report->image->responsable;
+        $responsableUrl = url('/mes-brochures');
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $responsable->email,
+                            'Name' => $responsable->name,
+                        ],
+                    ],
+                    'Subject' => "Signalement sur votre brochure : {$brochureTitle}",
+                    'TextPart' => "Un problème a été signalé sur votre brochure : {$brochureTitle}\n\nSignalé par : {$report->user->name} ({$report->user->email})\n\nCommentaire : {$report->comment}\n\nAccédez à vos brochures : {$responsableUrl}",
+                    'HTMLPart' => $this->generateBrochureReportNotificationHtml($report, $brochureTitle, $responsableUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("Brochure report notification email sent to responsable", [
+                    'report_id' => $report->id,
+                    'brochure' => $brochureTitle,
+                    'responsable_email' => $responsable->email,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send brochure report notification to responsable", [
+                'report_id' => $report->id,
+                'responsable_email' => $responsable->email,
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending brochure report notification to responsable", [
+                'report_id' => $report->id,
+                'responsable_email' => $responsable->email,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 }

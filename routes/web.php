@@ -24,6 +24,10 @@ Route::view('dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth', 'approved'])->group(function () {
+    // Route pour la gestion des brochures par le responsable
+    Route::get('/mes-brochures', \App\Livewire\MyBrochuresManager::class)
+        ->name('mes-brochures');
+
     // Settings - available to all authenticated approved users
     Route::redirect('settings', 'settings/profile');
 

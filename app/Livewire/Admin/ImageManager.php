@@ -7,6 +7,7 @@ use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
+use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -41,6 +42,7 @@ class ImageManager extends Component
     public $categoryIds = [];          // Catégories pour chaque image
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
+    public $responsableIds = [];        // Responsables pour chaque image
     public $pdfFiles = [];              // PDFs pour chaque image
 
     // Propriétés pour l'édition
@@ -61,6 +63,7 @@ class ImageManager extends Component
     public $editCategoryId = null;
     public $editAuthorId = null;
     public $editSectorId = null;
+    public $editResponsableId = null;
     public $editPdfFile = null;         // Nouveau PDF lors de l'édition
     public $removePdf = false;          // Flag pour supprimer le PDF existant
 
@@ -267,6 +270,7 @@ class ImageManager extends Component
                     'category_id' => $this->categoryIds[$index] ?? null,
                     'author_id' => $this->authorIds[$index] ?? null,
                     'sector_id' => $this->sectorIds[$index] ?? null,
+                    'responsable_id' => $this->responsableIds[$index] ?? null,
                 ]);
 
                 $uploadedCount++;
@@ -287,7 +291,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'pdfFiles']);
+        $this->reset(['images', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds', 'pdfFiles']);
     }
 
     /**
@@ -351,6 +355,7 @@ class ImageManager extends Component
         $this->editCategoryId = $this->editingImage->category_id;
         $this->editAuthorId = $this->editingImage->author_id;
         $this->editSectorId = $this->editingImage->sector_id;
+        $this->editResponsableId = $this->editingImage->responsable_id;
         $this->editPdfFile = null;
         $this->removePdf = false;
 
@@ -368,7 +373,7 @@ class ImageManager extends Component
             'editTitle', 'editAltText', 'editDescription',
             'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
             'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder',
-            'editCategoryId', 'editAuthorId', 'editSectorId',
+            'editCategoryId', 'editAuthorId', 'editSectorId', 'editResponsableId',
             'editPdfFile', 'removePdf'
         ]);
     }
@@ -401,6 +406,7 @@ class ImageManager extends Component
             'editCategoryId' => 'nullable|exists:categories,id',
             'editAuthorId' => 'nullable|exists:authors,id',
             'editSectorId' => 'nullable|exists:sectors,id',
+            'editResponsableId' => 'nullable|exists:users,id',
             'editPdfFile' => 'nullable|mimes:pdf|max:51200',
         ]);
 
@@ -464,6 +470,7 @@ class ImageManager extends Component
             'category_id' => $this->editCategoryId ?: null,
             'author_id' => $this->editAuthorId ?: null,
             'sector_id' => $this->editSectorId ?: null,
+            'responsable_id' => $this->editResponsableId ?: null,
             'pdf_path' => $pdfPath,
         ]);
 
@@ -583,7 +590,7 @@ class ImageManager extends Component
 
     public function render()
     {
-        $query = Image::with(['uploader', 'category', 'author', 'sector'])
+        $query = Image::with(['uploader', 'category', 'author', 'sector', 'responsable'])
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');
 
@@ -615,6 +622,7 @@ class ImageManager extends Component
             'categories' => Category::orderBy('name')->get(),
             'authors' => Author::orderBy('name')->get(),
             'sectors' => Sector::orderBy('name')->get(),
+            'responsables' => User::where('approved', true)->orderBy('name')->get(),
             'pendingReports' => $pendingReports,
             'unreadReportsCount' => $unreadReportsCount,
         ])->layout('components.layouts.app');

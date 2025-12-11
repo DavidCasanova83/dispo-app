@@ -344,6 +344,20 @@
                                                 </select>
                                             </div>
                                         </div>
+                                        {{-- Responsable --}}
+                                        <div>
+                                            <label
+                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Responsable
+                                            </label>
+                                            <select wire:model="responsableIds.{{ $index }}"
+                                                class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                <option value="">-- Aucun --</option>
+                                                @foreach ($responsables as $responsable)
+                                                    <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                         {{-- PDF Upload --}}
                                         <div>
                                             <label
@@ -547,6 +561,9 @@
                                         @endif
                                         @if ($image->sector)
                                             <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs">{{ $image->sector->name }}</span>
+                                        @endif
+                                        @if ($image->responsable)
+                                            <span class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-xs">Resp: {{ $image->responsable->name }}</span>
                                         @endif
                                     </div>
                                     {{-- Liens --}}
@@ -866,6 +883,21 @@
                                         </select>
                                         @error('editSectorId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                     </div>
+                                </div>
+
+                                {{-- Responsable --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Responsable
+                                    </label>
+                                    <select wire:model="editResponsableId"
+                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                        <option value="">-- Aucun --</option>
+                                        @foreach ($responsables as $responsable)
+                                            <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('editResponsableId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                 </div>
 
                                 {{-- Gestion du PDF --}}

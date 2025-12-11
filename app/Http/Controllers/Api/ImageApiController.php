@@ -17,7 +17,8 @@ class ImageApiController extends Controller
                 'uploader:id,name',
                 'category:id,name',
                 'author:id,name',
-                'sector:id,name'
+                'sector:id,name',
+                'responsable:id,name'
             ])
             ->latest()
             ->get()
@@ -66,6 +67,10 @@ class ImageApiController extends Controller
                         'id' => $image->sector->id,
                         'name' => $image->sector->name,
                     ] : null,
+                    'responsable' => $image->responsable ? [
+                        'id' => $image->responsable->id,
+                        'name' => $image->responsable->name,
+                    ] : null,
                     'uploader' => [
                         'id' => $image->uploader->id ?? null,
                         'name' => $image->uploader->name ?? null,
@@ -91,7 +96,8 @@ class ImageApiController extends Controller
             'uploader:id,name',
             'category:id,name',
             'author:id,name',
-            'sector:id,name'
+            'sector:id,name',
+            'responsable:id,name'
         ])->findOrFail($id);
 
         return response()->json([
@@ -136,6 +142,10 @@ class ImageApiController extends Controller
                 'sector' => $image->sector ? [
                     'id' => $image->sector->id,
                     'name' => $image->sector->name,
+                ] : null,
+                'responsable' => $image->responsable ? [
+                    'id' => $image->responsable->id,
+                    'name' => $image->responsable->name,
                 ] : null,
                 'uploader' => [
                     'id' => $image->uploader->id ?? null,
