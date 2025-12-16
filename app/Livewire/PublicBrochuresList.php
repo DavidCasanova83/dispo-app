@@ -225,6 +225,11 @@ class PublicBrochuresList extends Component
         // Récupérer les IDs de toutes les brochures pour les filtres
         $availableBrochureIds = Image::pluck('id');
 
+        // Layout dynamique : app (avec sidebar) si connecté, guest (sans sidebar) sinon
+        $layout = auth()->check()
+            ? 'components.layouts.app'
+            : 'components.layouts.guest';
+
         return view('livewire.public-brochures-list', [
             'brochures' => $brochures,
             'currentAgenda' => $currentAgenda,
@@ -232,6 +237,6 @@ class PublicBrochuresList extends Component
             'categories' => Category::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
             'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
             'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
-        ])->layout('components.layouts.guest');
+        ])->layout($layout);
     }
 }

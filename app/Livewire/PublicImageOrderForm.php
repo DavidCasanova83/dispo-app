@@ -425,6 +425,6 @@ class PublicImageOrderForm extends Component
         return view('livewire.public-image-order-form', [
             'availableImages' => $availableImages,
             'cartItems' => $cartItems,
-        ])->layout('components.layouts.guest'); // Layout pour pages publiques
+        ])->layout('components.layouts.app');
     }
 }
