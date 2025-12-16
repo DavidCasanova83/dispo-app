@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Agenda;
 use App\Models\BrochureReport;
 use App\Models\ImageOrder;
 use Mailjet\Client;
@@ -292,6 +293,107 @@ class MailjetService
             'adminName' => $adminName,
             'newUserName' => $newUser->name,
             'newUserEmail' => $newUser->email,
+            'adminPanelUrl' => $adminPanelUrl,
+        ])->render();
+    }
+
+    /**
+     * Send a new agenda notification to a super-admin.
+     *
+     * @param string $toEmail
+     * @param string $toName
+     * @param Agenda $agenda
+     * @return array
+     */
+    public function sendNewAgendaNotification(string $toEmail, string $toName, Agenda $agenda): array
+    {
+        $adminPanelUrl = url('/admin/agendas');
+
+        $uploaderName = $agenda->uploader?->name ?? 'Utilisateur inconnu';
+        $startDate = $agenda->start_date->format('d/m/Y');
+        $endDate = $agenda->end_date->format('d/m/Y');
+        $agendaTitle = $agenda->title ?? 'Sans titre';
+
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => $toEmail,
+                            'Name' => $toName,
+                        ],
+                    ],
+                    'Subject' => "Nouvel agenda programmé : {$agendaTitle}",
+                    'TextPart' => "Bonjour {$toName},\n\nUn nouvel agenda a été programmé.\n\nTitre : {$agendaTitle}\nPériode : du {$startDate} au {$endDate}\nAjouté par : {$uploaderName}\n\nAccédez au panel d'administration : {$adminPanelUrl}",
+                    'HTMLPart' => $this->generateNewAgendaNotificationHtml($toName, $agenda, $adminPanelUrl),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("New agenda notification email sent successfully to {$toEmail}", [
+                    'admin_name' => $toName,
+                    'agenda_id' => $agenda->id,
+                    'agenda_title' => $agenda->title,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send new agenda notification email to {$toEmail}", [
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending new agenda notification email to {$toEmail}", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Generate the HTML content for the new agenda notification email.
+     *
+     * @param string $adminName
+     * @param Agenda $agenda
+     * @param string $adminPanelUrl
+     * @return string
+     */
+    protected function generateNewAgendaNotificationHtml(
+        string $adminName,
+        Agenda $agenda,
+        string $adminPanelUrl
+    ): string {
+        return view('emails.new-agenda-notification', [
+            'adminName' => $adminName,
+            'agendaTitle' => $agenda->title ?? 'Sans titre',
+            'agendaDescription' => $agenda->description,
+            'startDate' => $agenda->start_date->format('d/m/Y'),
+            'endDate' => $agenda->end_date->format('d/m/Y'),
+            'period' => $agenda->period,
+            'uploaderName' => $agenda->uploader?->name ?? 'Utilisateur inconnu',
             'adminPanelUrl' => $adminPanelUrl,
         ])->render();
     }
