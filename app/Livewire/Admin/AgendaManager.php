@@ -77,6 +77,17 @@ class AgendaManager extends Component
             $this->agendaCategoryId = $currentAgenda->category_id;
             $this->agendaAuthorId = $currentAgenda->author_id;
         }
+
+        // Définir les valeurs par défaut si non définies
+        if (!$this->agendaCategoryId) {
+            $defaultCategory = Category::where('name', 'Agendas')->first();
+            $this->agendaCategoryId = $defaultCategory?->id;
+        }
+
+        if (!$this->agendaAuthorId) {
+            $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
+            $this->agendaAuthorId = $defaultAuthor?->id;
+        }
     }
 
     /**
