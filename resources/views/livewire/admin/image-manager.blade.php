@@ -65,24 +65,26 @@
                         </div>
                         <div class="space-y-2">
                             @foreach ($pendingReports->take(5) as $report)
-                                <button wire:click="openReportModal({{ $report->id }})"
-                                    class="flex items-center gap-3 w-full text-left p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                                    @if (!$report->is_read)
-                                        <span class="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
-                                    @else
-                                        <span class="w-2 h-2 bg-white/30 rounded-full flex-shrink-0"></span>
-                                    @endif
-                                    <img src="{{ $report->image->thumbnail_path ? asset('storage/' . $report->image->thumbnail_path) : asset('storage/' . $report->image->path) }}"
-                                        class="w-8 h-10 object-cover rounded flex-shrink-0" alt="">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-medium text-white truncate">
-                                            {{ $report->image->title ?? $report->image->name }}
-                                        </p>
-                                        <p class="text-xs text-white/70 truncate">
-                                            Par {{ $report->user->name }} - {{ $report->created_at->diffForHumans() }}
-                                        </p>
-                                    </div>
-                                </button>
+                                @if ($report->image)
+                                    <button wire:click="openReportModal({{ $report->id }})"
+                                        class="flex items-center gap-3 w-full text-left p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                                        @if (!$report->is_read)
+                                            <span class="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
+                                        @else
+                                            <span class="w-2 h-2 bg-white/30 rounded-full flex-shrink-0"></span>
+                                        @endif
+                                        <img src="{{ $report->image->thumbnail_path ? asset('storage/' . $report->image->thumbnail_path) : asset('storage/' . $report->image->path) }}"
+                                            class="w-8 h-10 object-cover rounded flex-shrink-0" alt="">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-white truncate">
+                                                {{ $report->image->title ?? $report->image->name }}
+                                            </p>
+                                            <p class="text-xs text-white/70 truncate">
+                                                Par {{ $report->user->name }} - {{ $report->created_at->diffForHumans() }}
+                                            </p>
+                                        </div>
+                                    </button>
+                                @endif
                             @endforeach
                             @if ($pendingReports->count() > 5)
                                 <p class="text-sm text-white/70 text-center pt-2">
@@ -399,27 +401,68 @@
                                                     <span class="text-red-500">*</span>
                                                 @endif
                                             </label>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                                @if ($isPdf)
-                                                    <span class="text-red-600 dark:text-red-400 font-medium">
-                                                        Obligatoire pour les fichiers PDF
-                                                    </span>
-                                                @else
-                                                    Optionnel - Si non fournie, l'image de contenu sera utilisée
-                                                @endif
-                                            </p>
-                                            <input type="file" wire:model="presentationImages.{{ $index }}"
-                                                accept="image/*"
-                                                class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
-                                            @error('presentationImages.' . $index)
-                                                <span
-                                                    class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
-                                            @enderror
-                                            <div wire:loading wire:target="presentationImages.{{ $index }}"
-                                                class="text-xs text-gray-500 mt-1">
-                                                Chargement de l'image...
-                                            </div>
-                                            @if (isset($presentationImages[$index]) && $presentationImages[$index])
+
+                                            {{-- Checkbox pour utiliser l'image par défaut (uniquement pour PDF) --}}
+                                            @if ($isPdf)
+                                                @php
+                                                    $defaultImageUrl = $this->getActiveDefaultImageUrl($index);
+                                                    $selectedAuthor = isset($authorIds[$index]) && $authorIds[$index] ? $authors->find($authorIds[$index]) : null;
+                                                    $hasAuthorDefault = $selectedAuthor && $selectedAuthor->hasDefaultImage();
+                                                @endphp
+                                                <div class="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                    <label class="flex items-center gap-2 cursor-pointer">
+                                                        <input type="checkbox"
+                                                            wire:model.live="useDefaultImages.{{ $index }}"
+                                                            class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-[#3E9B90] focus:ring-2 focus:ring-[#3E9B90]"
+                                                            {{ !$defaultImageUrl ? 'disabled' : '' }}>
+                                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                            Utiliser l'image par défaut
+                                                        </span>
+                                                    </label>
+                                                    @if ($defaultImageUrl)
+                                                        <div class="mt-2 flex items-center gap-3">
+                                                            <img src="{{ $defaultImageUrl }}" class="w-16 h-20 object-cover rounded shadow">
+                                                            <div class="text-xs text-gray-600 dark:text-gray-400">
+                                                                @if ($hasAuthorDefault)
+                                                                    <span class="text-blue-600 dark:text-blue-400 font-medium">Image de l'auteur : {{ $selectedAuthor->name }}</span>
+                                                                @else
+                                                                    <span class="text-gray-500">Image par défaut globale</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                                            Aucune image par défaut configurée.
+                                                            <button type="button" wire:click="toggleDefaultImageConfig" class="underline">Configurer</button>
+                                                        </p>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            {{-- Champ d'upload (caché si checkbox cochée) --}}
+                                            @if (!($isPdf && isset($useDefaultImages[$index]) && $useDefaultImages[$index]))
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                    @if ($isPdf)
+                                                        <span class="text-red-600 dark:text-red-400 font-medium">
+                                                            Obligatoire pour les fichiers PDF (sauf si image par défaut)
+                                                        </span>
+                                                    @else
+                                                        Optionnel - Si non fournie, l'image de contenu sera utilisée
+                                                    @endif
+                                                </p>
+                                                <input type="file" wire:model="presentationImages.{{ $index }}"
+                                                    accept="image/*"
+                                                    class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
+                                                @error('presentationImages.' . $index)
+                                                    <span
+                                                        class="text-xs text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
+                                                @enderror
+                                                <div wire:loading wire:target="presentationImages.{{ $index }}"
+                                                    class="text-xs text-gray-500 mt-1">
+                                                    Chargement de l'image...
+                                                </div>
+                                            @endif
+                                            @if (isset($presentationImages[$index]) && $presentationImages[$index] && !($isPdf && isset($useDefaultImages[$index]) && $useDefaultImages[$index]))
                                                 <div class="mt-2 flex items-center gap-2">
                                                     <img src="{{ $presentationImages[$index]->temporaryUrl() }}" class="w-12 h-12 object-cover rounded">
                                                     <p class="text-xs text-green-600 dark:text-green-400">
@@ -456,6 +499,72 @@
                     </div>
                 </div>
             </form>
+        </div>
+
+        {{-- Configuration des images par défaut --}}
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
+            <button wire:click="toggleDefaultImageConfig" class="w-full flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Images par défaut
+                    </span>
+                </h2>
+                <svg class="w-5 h-5 text-gray-500 transition-transform {{ $showDefaultImageConfig ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+
+            @if ($showDefaultImageConfig)
+                <div class="mt-4 space-y-4">
+                    {{-- Image par défaut globale --}}
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Image par défaut globale</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                            Cette image sera utilisée si aucune image par défaut n'est définie pour l'auteur sélectionné.
+                        </p>
+
+                        @if ($globalDefaultImagePath)
+                            <div class="flex items-center gap-4 mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <img src="{{ asset('storage/' . $globalDefaultImagePath) }}" class="w-20 h-24 object-cover rounded shadow">
+                                <div class="flex-1">
+                                    <p class="text-sm text-green-600 dark:text-green-400 font-medium">Image configurée</p>
+                                    <button wire:click="deleteGlobalDefaultImage" wire:confirm="Supprimer l'image par défaut globale ?"
+                                        class="mt-2 text-xs text-red-600 hover:text-red-700 underline">
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="flex gap-2">
+                            <input type="file" wire:model="globalDefaultImage" accept="image/*"
+                                class="flex-1 text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
+                            <button wire:click="uploadGlobalDefaultImage"
+                                wire:loading.attr="disabled"
+                                wire:target="globalDefaultImage, uploadGlobalDefaultImage"
+                                class="px-4 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+                                <span wire:loading.remove wire:target="uploadGlobalDefaultImage">Enregistrer</span>
+                                <span wire:loading wire:target="uploadGlobalDefaultImage">...</span>
+                            </button>
+                        </div>
+                        <div wire:loading wire:target="globalDefaultImage" class="text-xs text-gray-500 mt-1">
+                            Chargement...
+                        </div>
+                        @error('globalDefaultImage') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Info sur les images par auteur --}}
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>Astuce :</strong> Vous pouvez également définir une image par défaut pour chaque auteur dans la section "Auteurs" ci-dessous.
+                            L'image de l'auteur sera prioritaire sur l'image globale.
+                        </p>
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Gestion des Catégories, Auteurs, Secteurs --}}
@@ -497,33 +606,101 @@
                 {{-- Auteurs --}}
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Auteurs</h3>
-                    <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                    <div class="space-y-2 mb-3 max-h-80 overflow-y-auto">
                         @forelse ($authors as $author)
-                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
-                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ $author->name }}</span>
-                                <button wire:click="deleteAuthor({{ $author->id }})"
-                                    wire:confirm="Supprimer cet auteur ?"
-                                    class="text-red-500 hover:text-red-700 p-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
+                            <div class="bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        @if ($author->hasDefaultImage())
+                                            <img src="{{ $author->getDefaultImageUrl() }}" class="w-8 h-10 object-cover rounded" alt="">
+                                        @else
+                                            <div class="w-8 h-10 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $author->name }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        {{-- Bouton éditer image par défaut --}}
+                                        <button wire:click="toggleEditAuthorDefaultImage({{ $author->id }})"
+                                            class="{{ $editingAuthorId === $author->id ? 'text-blue-600' : 'text-blue-400 hover:text-blue-600' }} p-1"
+                                            title="{{ $author->hasDefaultImage() ? 'Modifier l\'image par défaut' : 'Ajouter une image par défaut' }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </button>
+                                        @if ($author->hasDefaultImage())
+                                            <button wire:click="deleteAuthorDefaultImage({{ $author->id }})"
+                                                wire:confirm="Supprimer l'image par défaut de cet auteur ?"
+                                                class="text-amber-500 hover:text-amber-700 p-1" title="Supprimer l'image par défaut">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                            </button>
+                                        @endif
+                                        <button wire:click="deleteAuthor({{ $author->id }})"
+                                            wire:confirm="Supprimer cet auteur ?"
+                                            class="text-red-500 hover:text-red-700 p-1" title="Supprimer l'auteur">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {{-- Formulaire d'édition de l'image par défaut --}}
+                                @if ($editingAuthorId === $author->id)
+                                    <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                        <div class="flex gap-2 items-end">
+                                            <div class="flex-1">
+                                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                                    {{ $author->hasDefaultImage() ? 'Remplacer l\'image par défaut' : 'Ajouter une image par défaut' }}
+                                                </label>
+                                                <input type="file" wire:model="editAuthorDefaultImage" accept="image/*"
+                                                    class="w-full text-xs text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none px-2 py-1">
+                                            </div>
+                                            <button wire:click="updateAuthorDefaultImage({{ $author->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="editAuthorDefaultImage, updateAuthorDefaultImage"
+                                                class="px-3 py-1.5 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-xs rounded-lg transition-colors disabled:opacity-50">
+                                                <span wire:loading.remove wire:target="updateAuthorDefaultImage">OK</span>
+                                                <span wire:loading wire:target="updateAuthorDefaultImage">...</span>
+                                            </button>
+                                        </div>
+                                        <div wire:loading wire:target="editAuthorDefaultImage" class="text-xs text-gray-500 mt-1">Chargement...</div>
+                                        @error('editAuthorDefaultImage') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                @endif
                             </div>
                         @empty
                             <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucun auteur</p>
                         @endforelse
                     </div>
-                    <div class="flex gap-2">
-                        <input type="text" wire:model="newAuthorName" placeholder="Nouvel auteur"
-                            class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                        <button wire:click="addAuthor"
-                            class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                        </button>
+                    {{-- Formulaire nouvel auteur --}}
+                    <div class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" wire:model="newAuthorName" placeholder="Nouvel auteur"
+                                class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                            <button wire:click="addAuthor"
+                                class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        @error('newAuthorName') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+
+                        {{-- Image par défaut pour le nouvel auteur --}}
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Image par défaut (optionnel)</label>
+                            <input type="file" wire:model="newAuthorDefaultImage" accept="image/*"
+                                class="w-full text-xs text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-2 py-1">
+                            <div wire:loading wire:target="newAuthorDefaultImage" class="text-xs text-gray-500 mt-1">Chargement...</div>
+                            @error('newAuthorDefaultImage') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        </div>
                     </div>
-                    @error('newAuthorName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                 </div>
 
                 {{-- Secteurs --}}

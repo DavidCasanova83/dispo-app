@@ -117,6 +117,31 @@ class PublicBrochuresList extends Component
         ]);
     }
 
+    /**
+     * Enregistre un clic sur un bouton de l'agenda
+     */
+    public function trackAgendaClick(string $buttonType): void
+    {
+        // Valider le type de bouton
+        if (!in_array($buttonType, BrochureClick::BUTTON_TYPES)) {
+            return;
+        }
+
+        // Valider que l'agenda existe
+        $agenda = Agenda::getCurrentAgenda();
+        if (!$agenda) {
+            return;
+        }
+
+        BrochureClick::create([
+            'agenda_id' => $agenda->id,
+            'user_id' => Auth::id(),
+            'button_type' => $buttonType,
+            'ip_address' => request()->ip(),
+            'user_agent' => substr(request()->userAgent() ?? '', 0, 500),
+        ]);
+    }
+
     public function resetFilters(): void
     {
         $this->categoryId = null;

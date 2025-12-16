@@ -7,6 +7,7 @@ use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -72,7 +73,15 @@ class ImageManager extends Component
     // Propriétés pour la gestion des entités (CRUD)
     public $newCategoryName = '';
     public $newAuthorName = '';
+    public $newAuthorDefaultImage = null;  // Image par défaut pour le nouvel auteur
     public $newSectorName = '';
+
+    // Propriétés pour les images par défaut
+    public $useDefaultImages = [];          // Checkbox pour utiliser image par défaut pour chaque upload
+    public $globalDefaultImage = null;      // Upload pour l'image par défaut globale
+    public $showDefaultImageConfig = false; // Toggle pour la section configuration
+    public $editingAuthorId = null;         // ID de l'auteur en cours d'édition pour image par défaut
+    public $editAuthorDefaultImage = null;  // Upload pour modifier l'image par défaut d'un auteur existant
 
     // Propriétés pour les signalements
     public bool $showReportModal = false;
@@ -239,12 +248,62 @@ class ImageManager extends Component
                     }
                 }
 
-                // Si pas d'image de présentation et contenu est un PDF, exiger une image
+                // Si pas d'image de présentation et contenu est un PDF
                 if (!$path && $isPdf) {
-                    $errors[] = "{$contentFile->getClientOriginalName()}: Une image de présentation est obligatoire pour les fichiers PDF.";
-                    // Supprimer le fichier PDF uploadé
-                    Storage::disk('public')->delete($pdfPath);
-                    continue;
+                    // Vérifier si on utilise l'image par défaut
+                    $useDefault = isset($this->useDefaultImages[$index]) && $this->useDefaultImages[$index];
+
+                    if ($useDefault) {
+                        // Récupérer le chemin de l'image par défaut
+                        $defaultImagePath = $this->getActiveDefaultImagePath($index);
+
+                        if (!$defaultImagePath || !Storage::disk('public')->exists($defaultImagePath)) {
+                            $errors[] = "{$contentFile->getClientOriginalName()}: Aucune image par défaut disponible. Veuillez configurer une image par défaut ou en uploader une.";
+                            Storage::disk('public')->delete($pdfPath);
+                            continue;
+                        }
+
+                        // Copier l'image par défaut vers le dossier images
+                        $defaultExtension = pathinfo($defaultImagePath, PATHINFO_EXTENSION);
+                        $basePresentationFilename = $originalName . '.' . $defaultExtension;
+                        $presentationFilename = $basePresentationFilename;
+                        $presentationCounter = 1;
+                        while (Storage::disk('public')->exists('images/' . $presentationFilename)) {
+                            $presentationFilename = $originalName . '-' . $presentationCounter . '.' . $defaultExtension;
+                            $presentationCounter++;
+                        }
+
+                        // Copier le fichier
+                        Storage::disk('public')->copy($defaultImagePath, 'images/' . $presentationFilename);
+                        $path = 'images/' . $presentationFilename;
+                        $fullPath = Storage::disk('public')->path($path);
+
+                        // Traiter l'image
+                        $manager = new InterventionImageManager(new Driver());
+                        $img = $manager->read($fullPath);
+                        $width = $img->width();
+                        $height = $img->height();
+                        $img->save($fullPath, quality: 85);
+                        $mimeType = mime_content_type($fullPath);
+                        $displayFilename = $presentationFilename;
+
+                        // Générer le thumbnail
+                        $thumbnailFilename = 'thumb_' . $presentationFilename;
+                        $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+                        $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+                        $thumbnailDir = dirname($thumbnailFullPath);
+                        if (!file_exists($thumbnailDir)) {
+                            mkdir($thumbnailDir, 0755, true);
+                        }
+                        $thumbnail = $manager->read($fullPath);
+                        $thumbnail->cover(300, 300);
+                        $thumbnail->save($thumbnailFullPath, quality: 80);
+                    } else {
+                        $errors[] = "{$contentFile->getClientOriginalName()}: Une image de présentation est obligatoire pour les fichiers PDF.";
+                        // Supprimer le fichier PDF uploadé
+                        Storage::disk('public')->delete($pdfPath);
+                        continue;
+                    }
                 }
 
                 // Si pas d'image de présentation et contenu est une image, l'utiliser comme présentation
@@ -561,9 +620,35 @@ class ImageManager extends Component
      */
     public function addAuthor()
     {
-        $this->validate(['newAuthorName' => 'required|string|max:255|unique:authors,name']);
-        Author::create(['name' => $this->newAuthorName]);
+        $this->validate([
+            'newAuthorName' => 'required|string|max:255|unique:authors,name',
+            'newAuthorDefaultImage' => 'nullable|image|max:10240',
+        ]);
+
+        $defaultImagePath = null;
+
+        // Gérer l'upload de l'image par défaut si fournie
+        if ($this->newAuthorDefaultImage) {
+            $author = Author::create(['name' => $this->newAuthorName]);
+
+            // Créer le dossier si nécessaire
+            $defaultsDir = storage_path('app/public/images/defaults/authors');
+            if (!file_exists($defaultsDir)) {
+                mkdir($defaultsDir, 0755, true);
+            }
+
+            $filename = 'author-' . $author->id . '-default.' . $this->newAuthorDefaultImage->getClientOriginalExtension();
+            $this->newAuthorDefaultImage->storeAs('images/defaults/authors', $filename, 'public');
+            $defaultImagePath = 'images/defaults/authors/' . $filename;
+
+            // Mettre à jour l'auteur avec le chemin de l'image
+            $author->update(['default_image_path' => $defaultImagePath]);
+        } else {
+            Author::create(['name' => $this->newAuthorName]);
+        }
+
         $this->newAuthorName = '';
+        $this->newAuthorDefaultImage = null;
         session()->flash('success', 'Auteur ajouté avec succès.');
     }
 
@@ -640,6 +725,151 @@ class ImageManager extends Component
         $this->closeReportModal();
     }
 
+    /**
+     * Toggle la section de configuration des images par défaut
+     */
+    public function toggleDefaultImageConfig(): void
+    {
+        $this->showDefaultImageConfig = !$this->showDefaultImageConfig;
+    }
+
+    /**
+     * Uploader l'image par défaut globale
+     */
+    public function uploadGlobalDefaultImage(): void
+    {
+        $this->validate([
+            'globalDefaultImage' => 'required|image|max:10240',
+        ]);
+
+        // Créer le dossier si nécessaire
+        $defaultsDir = storage_path('app/public/images/defaults');
+        if (!file_exists($defaultsDir)) {
+            mkdir($defaultsDir, 0755, true);
+        }
+
+        // Supprimer l'ancienne image si elle existe
+        $oldPath = Setting::get('default_brochure_image_path');
+        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        // Stocker la nouvelle image
+        $filename = 'global-default.' . $this->globalDefaultImage->getClientOriginalExtension();
+        $this->globalDefaultImage->storeAs('images/defaults', $filename, 'public');
+        $path = 'images/defaults/' . $filename;
+
+        // Sauvegarder le chemin dans les settings
+        Setting::set('default_brochure_image_path', $path);
+
+        $this->globalDefaultImage = null;
+        session()->flash('success', 'Image par défaut globale mise à jour.');
+    }
+
+    /**
+     * Supprimer l'image par défaut globale
+     */
+    public function deleteGlobalDefaultImage(): void
+    {
+        $path = Setting::get('default_brochure_image_path');
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+        Setting::set('default_brochure_image_path', null);
+        session()->flash('success', 'Image par défaut globale supprimée.');
+    }
+
+    /**
+     * Ouvrir/fermer le formulaire d'édition de l'image par défaut d'un auteur
+     */
+    public function toggleEditAuthorDefaultImage($authorId): void
+    {
+        if ($this->editingAuthorId === $authorId) {
+            $this->editingAuthorId = null;
+            $this->editAuthorDefaultImage = null;
+        } else {
+            $this->editingAuthorId = $authorId;
+            $this->editAuthorDefaultImage = null;
+        }
+    }
+
+    /**
+     * Mettre à jour l'image par défaut d'un auteur
+     */
+    public function updateAuthorDefaultImage($authorId): void
+    {
+        $author = Author::findOrFail($authorId);
+
+        $this->validate([
+            'editAuthorDefaultImage' => 'required|image|max:10240',
+        ]);
+
+        // Supprimer l'ancienne image si elle existe
+        if ($author->default_image_path && Storage::disk('public')->exists($author->default_image_path)) {
+            Storage::disk('public')->delete($author->default_image_path);
+        }
+
+        // Créer le dossier si nécessaire
+        $defaultsDir = storage_path('app/public/images/defaults/authors');
+        if (!file_exists($defaultsDir)) {
+            mkdir($defaultsDir, 0755, true);
+        }
+
+        // Stocker la nouvelle image
+        $filename = 'author-' . $author->id . '-default.' . $this->editAuthorDefaultImage->getClientOriginalExtension();
+        $this->editAuthorDefaultImage->storeAs('images/defaults/authors', $filename, 'public');
+        $path = 'images/defaults/authors/' . $filename;
+
+        $author->update(['default_image_path' => $path]);
+
+        // Reset
+        $this->editingAuthorId = null;
+        $this->editAuthorDefaultImage = null;
+
+        session()->flash('success', 'Image par défaut de l\'auteur mise à jour.');
+    }
+
+    /**
+     * Supprimer l'image par défaut d'un auteur
+     */
+    public function deleteAuthorDefaultImage($authorId): void
+    {
+        $author = Author::findOrFail($authorId);
+
+        if ($author->default_image_path && Storage::disk('public')->exists($author->default_image_path)) {
+            Storage::disk('public')->delete($author->default_image_path);
+        }
+
+        $author->update(['default_image_path' => null]);
+        session()->flash('success', 'Image par défaut de l\'auteur supprimée.');
+    }
+
+    /**
+     * Récupère le chemin de l'image par défaut à utiliser pour un index donné
+     */
+    public function getActiveDefaultImagePath(int $index): ?string
+    {
+        // Priorité: Image de l'auteur > Image globale
+        if (isset($this->authorIds[$index]) && $this->authorIds[$index]) {
+            $author = Author::find($this->authorIds[$index]);
+            if ($author && $author->hasDefaultImage()) {
+                return $author->default_image_path;
+            }
+        }
+
+        // Sinon utiliser l'image globale
+        return Setting::get('default_brochure_image_path');
+    }
+
+    /**
+     * Récupère l'URL de l'image par défaut à afficher pour un index donné
+     */
+    public function getActiveDefaultImageUrl(int $index): ?string
+    {
+        $path = $this->getActiveDefaultImagePath($index);
+        return $path ? asset('storage/' . $path) : null;
+    }
+
     public function render()
     {
         // Charger les ordres d'affichage déjà utilisés
@@ -676,6 +906,9 @@ class ImageManager extends Component
 
         $unreadReportsCount = BrochureReport::unread()->unresolved()->count();
 
+        // Récupérer le chemin de l'image par défaut globale
+        $globalDefaultImagePath = Setting::get('default_brochure_image_path');
+
         return view('livewire.admin.image-manager', [
             'imagesList' => $imagesList,
             'stats' => $stats,
@@ -685,6 +918,7 @@ class ImageManager extends Component
             'responsables' => User::where('approved', true)->orderBy('name')->get(),
             'pendingReports' => $pendingReports,
             'unreadReportsCount' => $unreadReportsCount,
+            'globalDefaultImagePath' => $globalDefaultImagePath,
         ])->layout('components.layouts.app');
     }
 }
