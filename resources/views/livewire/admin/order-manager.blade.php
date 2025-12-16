@@ -36,8 +36,8 @@
 
     <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-6">
         <div class="flex gap-4 mb-4">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher..." class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-            <select wire:model.live="statusFilter" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher..." class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500">
+            <select wire:model.live="statusFilter" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white">
                 <option value="all">Tous les statuts</option>
                 <option value="pending">En attente</option>
                 <option value="processing">En cours</option>
@@ -48,25 +48,25 @@
 
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead>
+                <thead class="bg-gray-100 dark:bg-gray-700">
                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                        <th class="text-left p-3">N° Commande</th>
-                        <th class="text-left p-3">Date</th>
-                        <th class="text-left p-3">Client</th>
-                        <th class="text-left p-3">Type</th>
-                        <th class="text-left p-3">Langue</th>
-                        <th class="text-left p-3">Statut</th>
-                        <th class="text-left p-3">Actions</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">N° Commande</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Date</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Client</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Type</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Langue</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Statut</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($orders as $order)
                         <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="p-3 font-medium">{{ $order->order_number }}</td>
-                            <td class="p-3 text-sm">{{ $order->created_at->format('d/m/Y H:i') }}</td>
-                            <td class="p-3">{{ $order->full_name }}</td>
-                            <td class="p-3 text-sm">{{ ucfirst($order->customer_type) }}</td>
-                            <td class="p-3 text-sm">{{ ucfirst($order->language) }}</td>
+                            <td class="p-3 font-medium text-gray-900 dark:text-white">{{ $order->order_number }}</td>
+                            <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ $order->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="p-3 text-gray-900 dark:text-white">{{ $order->full_name }}</td>
+                            <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ ucfirst($order->customer_type) }}</td>
+                            <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ ucfirst($order->language) }}</td>
                             <td class="p-3">
                                 <select wire:change="updateStatus({{ $order->id }}, $event.target.value)" class="text-sm rounded px-2 py-1 {{ $order->status_color }}">
                                     <option value="pending" @selected($order->status === 'pending')>En attente</option>
@@ -80,7 +80,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="p-8 text-center text-gray-500">Aucune commande trouvée</td></tr>
+                        <tr><td colspan="7" class="p-8 text-center text-gray-600 dark:text-gray-400">Aucune commande trouvée</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -94,24 +94,24 @@
             <div class="flex min-h-screen items-center justify-center px-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75" wire:click="closeDetailModal"></div>
                 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
-                    <h3 class="text-lg font-bold mb-4">Commande {{ $selectedOrder->order_number }}</h3>
-                    
-                    <div class="space-y-4">
+                    <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Commande {{ $selectedOrder->order_number }}</h3>
+
+                    <div class="space-y-4 text-gray-800 dark:text-gray-200">
                         <div class="grid grid-cols-2 gap-4">
-                            <div><strong>Client:</strong> {{ $selectedOrder->civility }} {{ $selectedOrder->full_name }}</div>
-                            <div><strong>Email:</strong> {{ $selectedOrder->email }}</div>
-                            <div><strong>Téléphone:</strong> {{ $selectedOrder->full_phone ?? 'N/A' }}</div>
-                            <div><strong>Type:</strong> {{ ucfirst($selectedOrder->customer_type) }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Client:</strong> {{ $selectedOrder->civility }} {{ $selectedOrder->full_name }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Email:</strong> {{ $selectedOrder->email }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Téléphone:</strong> {{ $selectedOrder->full_phone ?? 'N/A' }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Type:</strong> {{ ucfirst($selectedOrder->customer_type) }}</div>
                             @if($selectedOrder->company)
-                                <div><strong>Société:</strong> {{ $selectedOrder->company }}</div>
+                                <div><strong class="text-gray-900 dark:text-white">Société:</strong> {{ $selectedOrder->company }}</div>
                             @endif
-                            <div><strong>Langue:</strong> {{ ucfirst($selectedOrder->language) }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Langue:</strong> {{ ucfirst($selectedOrder->language) }}</div>
                         </div>
 
-                        <div><strong>Adresse:</strong><br>{{ $selectedOrder->full_address }}</div>
+                        <div><strong class="text-gray-900 dark:text-white">Adresse:</strong><br>{{ $selectedOrder->full_address }}</div>
 
                         <div>
-                            <strong>Images commandées:</strong>
+                            <strong class="text-gray-900 dark:text-white">Images commandées:</strong>
                             <ul class="mt-2 space-y-2">
                                 @foreach($selectedOrder->items as $item)
                                     <li class="flex items-center gap-3">
@@ -123,11 +123,11 @@
                         </div>
 
                         @if($selectedOrder->customer_notes)
-                            <div><strong>Notes client:</strong><br>{{ $selectedOrder->customer_notes }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Notes client:</strong><br>{{ $selectedOrder->customer_notes }}</div>
                         @endif
 
                         <div>
-                            <label class="block font-bold mb-2">Notes admin:</label>
+                            <label class="block font-bold mb-2 text-gray-900 dark:text-white">Notes admin:</label>
                             <textarea wire:model="adminNotes" rows="3" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"></textarea>
                             <button wire:click="saveAdminNotes" class="mt-2 px-4 py-2 bg-[#3E9B90] text-white rounded hover:bg-[#357f76]">Enregistrer</button>
                         </div>

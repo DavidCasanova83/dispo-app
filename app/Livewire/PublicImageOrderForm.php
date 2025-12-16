@@ -81,7 +81,7 @@ class PublicImageOrderForm extends Component
             'postal_code' => ['required', 'string', 'max:20', 'regex:/^[0-9A-Za-z\s\-]+$/'],
             'city' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
             'country' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
-            'email' => ['required', 'email:rfc,dns', 'max:255', new NotDisposableEmail()],
+            'email' => ['nullable', 'email:rfc,dns', 'max:255', new NotDisposableEmail()],
             'phone_country_code' => ['nullable', 'string', 'max:10', 'regex:/^\+?[0-9]+$/'],
             'phone_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\(\)]+$/'],
             'customer_notes' => ['nullable', 'string', 'max:1000', new NoSpamContent()],
@@ -282,6 +282,7 @@ class PublicImageOrderForm extends Component
             // Créer la commande
             $order = ImageOrder::create([
                 'order_number' => ImageOrder::generateOrderNumber(),
+                'user_id' => auth()->id(),
                 'customer_type' => $this->customer_type,
                 'language' => $this->language,
                 'company' => $sanitizedData['company'],
