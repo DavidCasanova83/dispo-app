@@ -53,6 +53,7 @@
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">N° Commande</th>
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Date</th>
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Client</th>
+                        <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Utilisateur</th>
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Type</th>
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Langue</th>
                         <th class="text-left p-3 text-gray-900 dark:text-white font-semibold">Statut</th>
@@ -65,6 +66,7 @@
                             <td class="p-3 font-medium text-gray-900 dark:text-white">{{ $order->order_number }}</td>
                             <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ $order->created_at->format('d/m/Y H:i') }}</td>
                             <td class="p-3 text-gray-900 dark:text-white">{{ $order->full_name }}</td>
+                            <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ $order->user->name ?? 'N/A' }}</td>
                             <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ ucfirst($order->customer_type) }}</td>
                             <td class="p-3 text-sm text-gray-700 dark:text-gray-300">{{ ucfirst($order->language) }}</td>
                             <td class="p-3">
@@ -80,7 +82,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="p-8 text-center text-gray-600 dark:text-gray-400">Aucune commande trouvée</td></tr>
+                        <tr><td colspan="8" class="p-8 text-center text-gray-600 dark:text-gray-400">Aucune commande trouvée</td></tr>
                     @endforelse
                 </tbody>
             </table>

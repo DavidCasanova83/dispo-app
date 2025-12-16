@@ -121,10 +121,9 @@ class PublicImageOrderForm extends Component
             return;
         }
 
-        // Vérifier la limite pour particuliers (1 image max)
-        if ($this->customer_type === 'particulier' && count($this->cart) > 0 && !isset($this->cart[$imageId])) {
-            session()->flash('error', 'Les particuliers ne peuvent commander qu\'une seule image.');
-            return;
+        // Pour les particuliers, la quantité est toujours limitée à 1 par brochure
+        if ($this->customer_type === 'particulier') {
+            $quantity = 1;
         }
 
         // Vérifier la quantité disponible
@@ -156,6 +155,11 @@ class PublicImageOrderForm extends Component
         if ($quantity <= 0) {
             $this->removeFromCart($imageId);
             return;
+        }
+
+        // Pour les particuliers, la quantité est toujours limitée à 1
+        if ($this->customer_type === 'particulier') {
+            $quantity = 1;
         }
 
         $image = Image::find($imageId);

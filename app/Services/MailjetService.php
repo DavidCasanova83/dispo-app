@@ -304,7 +304,7 @@ class MailjetService
      */
     public function sendOrderConfirmation(ImageOrder $order): array
     {
-        $order->load('items.image');
+        $order->load('user', 'items.image');
 
         $body = [
             'Messages' => [
@@ -315,8 +315,8 @@ class MailjetService
                     ],
                     'To' => [
                         [
-                            'Email' => $order->email,
-                            'Name' => $order->full_name,
+                            'Email' => $order->user->email,
+                            'Name' => $order->user->name,
                         ],
                     ],
                     'Subject' => "Confirmation de votre commande {$order->order_number}",
@@ -330,7 +330,7 @@ class MailjetService
             $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
 
             if ($response->success()) {
-                Log::info("Order confirmation email sent successfully to {$order->email}", [
+                Log::info("Order confirmation email sent successfully to {$order->user->email}", [
                     'order_number' => $order->order_number,
                     'response' => $response->getData(),
                 ]);
@@ -341,7 +341,7 @@ class MailjetService
                 ];
             }
 
-            Log::error("Failed to send order confirmation email to {$order->email}", [
+            Log::error("Failed to send order confirmation email to {$order->user->email}", [
                 'order_number' => $order->order_number,
                 'status' => $response->getStatus(),
                 'reason' => $response->getReasonPhrase(),
@@ -352,7 +352,7 @@ class MailjetService
                 'error' => $response->getReasonPhrase(),
             ];
         } catch (\Exception $e) {
-            Log::error("Exception while sending order confirmation email to {$order->email}", [
+            Log::error("Exception while sending order confirmation email to {$order->user->email}", [
                 'order_number' => $order->order_number,
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
