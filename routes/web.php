@@ -19,10 +19,9 @@ Route::redirect(
 Route::get('/storage/pdfs/guide-du-partenaire.pdf', function () {
     return redirect()->away('https://plan.verdontourisme.com/brochures/2025/guide-pratique/Guide-du-partenaire_2026.pdf', 301);
 });
-// Route publique pour commander des images (pas d'authentification requise)
-// Protection: 10 consultations par minute, 5 soumissions par heure
+// Route pour commander des images (authentification requise)
 Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
-    ->middleware('throttle:order-form')
+    ->middleware(['auth', 'throttle:order-form'])
     ->name('order.images');
 
 // Route publique pour voir la liste des brochures disponibles
