@@ -128,7 +128,7 @@ class PublicBrochuresList extends Component
         }
 
         // Valider que l'agenda existe
-        $agenda = Agenda::getCurrentAgenda();
+        $agenda = Agenda::current()->first();
         if (!$agenda) {
             return;
         }
