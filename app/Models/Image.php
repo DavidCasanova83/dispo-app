@@ -40,6 +40,7 @@ class Image extends Model
         'category_id',
         'author_id',
         'sector_id',
+        'responsable_id',
     ];
 
     protected $casts = [
@@ -83,6 +84,14 @@ class Image extends Model
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
+    }
+
+    /**
+     * Relation avec le responsable (utilisateur approuvé)
+     */
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
     }
 
     /**

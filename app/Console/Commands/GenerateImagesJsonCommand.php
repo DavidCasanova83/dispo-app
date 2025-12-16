@@ -19,7 +19,8 @@ class GenerateImagesJsonCommand extends Command
                 'uploader:id,name',
                 'category:id,name',
                 'author:id,name',
-                'sector:id,name'
+                'sector:id,name',
+                'responsable:id,name'
             ])
             ->latest()
             ->get()
@@ -67,6 +68,10 @@ class GenerateImagesJsonCommand extends Command
                     'sector' => $image->sector ? [
                         'id' => $image->sector->id,
                         'name' => $image->sector->name,
+                    ] : null,
+                    'responsable' => $image->responsable ? [
+                        'id' => $image->responsable->id,
+                        'name' => $image->responsable->name,
                     ] : null,
                     'uploader' => [
                         'id' => $image->uploader->id ?? null,

@@ -12,6 +12,7 @@ class Author extends Model
 
     protected $fillable = [
         'name',
+        'default_image_path',
     ];
 
     /**
@@ -20,5 +21,25 @@ class Author extends Model
     public function images(): HasMany
     {
         return $this->hasMany(Image::class);
+    }
+
+    /**
+     * Vérifie si l'auteur a une image par défaut
+     */
+    public function hasDefaultImage(): bool
+    {
+        return !empty($this->default_image_path) && file_exists(storage_path('app/public/' . $this->default_image_path));
+    }
+
+    /**
+     * Retourne l'URL de l'image par défaut
+     */
+    public function getDefaultImageUrl(): ?string
+    {
+        if ($this->hasDefaultImage()) {
+            return asset('storage/' . $this->default_image_path);
+        }
+
+        return null;
     }
 }

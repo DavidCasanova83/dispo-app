@@ -131,6 +131,39 @@
                     <p class="text-sm opacity-90 relative z-10">Liste des brochures disponibles</p>
                 </a>
             </div>
+
+            {{-- Mes Brochures - Only for users who are responsable of at least one brochure --}}
+            @php
+                $userBrochuresCount = \App\Models\Image::where('responsable_id', auth()->id())->count();
+                $unreadReportsCount = \App\Models\BrochureReport::whereHas('image', fn($q) => $q->where('responsable_id', auth()->id()))
+                    ->where('is_read', false)
+                    ->where('is_resolved', false)
+                    ->count();
+            @endphp
+            @if ($userBrochuresCount > 0)
+                <div
+                    class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-indigo-500 to-purple-700 hover:from-indigo-600 hover:to-purple-800 transition-all duration-300">
+                    {{-- Badge signalements non lus --}}
+                    @if ($unreadReportsCount > 0)
+                        <div class="absolute top-2 right-2 z-20">
+                            <span class="flex items-center justify-center min-w-[24px] h-6 px-2 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
+                                {{ $unreadReportsCount }}
+                            </span>
+                        </div>
+                    @endif
+                    <a href="{{ route('mes-brochures') }}"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+                        <!-- Cadre intérieur animé -->
+                        <div
+                            class="absolute inset-3 border-2 border-white/30 rounded-lg transition-all duration-500 ease-out group-hover:inset-4 group-hover:border-white/60 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                        </div>
+
+                        <div class="text-4xl mb-2 relative z-10">📁</div>
+                        <h3 class="text-lg font-semibold mb-2 relative z-10">Mes Brochures</h3>
+                        <p class="text-sm opacity-90 relative z-10">{{ $userBrochuresCount }} brochure(s) à gérer</p>
+                    </a>
+                </div>
+            @endif
         </div>
 
 

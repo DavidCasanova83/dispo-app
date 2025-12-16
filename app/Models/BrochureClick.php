@@ -29,6 +29,7 @@ class BrochureClick extends Model
 
     protected $fillable = [
         'image_id',
+        'agenda_id',
         'user_id',
         'button_type',
         'ip_address',
@@ -41,6 +42,14 @@ class BrochureClick extends Model
     public function image(): BelongsTo
     {
         return $this->belongsTo(Image::class);
+    }
+
+    /**
+     * Relation avec l'agenda
+     */
+    public function agenda(): BelongsTo
+    {
+        return $this->belongsTo(Agenda::class);
     }
 
     /**
