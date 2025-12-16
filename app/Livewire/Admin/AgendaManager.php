@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\SendNewAgendaNotification;
 use App\Models\Agenda;
 use App\Models\Author;
 use App\Models\Category;
@@ -261,6 +262,9 @@ class AgendaManager extends Component
 
             // Mettre à jour le chemin du PDF
             $agenda->update(['pdf_path' => $pdfPath]);
+
+            // Notifier les super-admins du nouvel agenda programmé
+            SendNewAgendaNotification::dispatch($agenda);
 
             session()->flash('success', 'Agenda ajouté en attente. Il sera activé automatiquement le ' . \Carbon\Carbon::parse($this->startDate)->format('d/m/Y') . '.');
             $this->reset(['pdfFile', 'title', 'description', 'startDate', 'endDate']);
