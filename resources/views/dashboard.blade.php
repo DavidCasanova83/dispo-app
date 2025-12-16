@@ -103,7 +103,7 @@
             {{-- Commander des brochures - Public link opens in new tab --}}
             <div
                 class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-amber-500 to-orange-700 hover:from-amber-600 hover:to-orange-800 transition-all duration-300">
-                <a href="{{ url('/commander-images') }}" target="_blank" rel="noopener noreferrer"
+                <a href="{{ url('/commander-images') }}" rel="noopener noreferrer"
                     class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
                     <!-- Cadre intérieur animé -->
                     <div
@@ -119,7 +119,7 @@
             {{-- Voir les brochures - Public link opens in new tab --}}
             <div
                 class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-teal-500 to-emerald-700 hover:from-teal-600 hover:to-emerald-800 transition-all duration-300">
-                <a href="{{ url('/brochures') }}" target="_blank" rel="noopener noreferrer"
+                <a href="{{ url('/brochures') }}" rel="noopener noreferrer"
                     class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
                     <!-- Cadre intérieur animé -->
                     <div

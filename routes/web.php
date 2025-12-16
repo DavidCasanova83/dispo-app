@@ -9,6 +9,16 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Redirection simple
+Route::redirect(
+    '/storage/pdfs/guide-du-partenaire-2026_1764863478_aQymTR8s9i.pdf',
+    '/storage/pdfs/guide-du-partenaire.pdf',
+    301
+);
+
+Route::get('/storage/pdfs/guide-du-partenaire.pdf', function () {
+    return redirect()->away('https://plan.verdontourisme.com/brochures/2025/guide-pratique/Guide-du-partenaire_2026.pdf', 301);
+});
 // Route publique pour commander des images (pas d'authentification requise)
 // Protection: 10 consultations par minute, 5 soumissions par heure
 Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
@@ -79,6 +89,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Route pour la gestion des agendas - requires manage-agendas permission
     Route::middleware(['permission:manage-agendas'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/agendas', \App\Livewire\Admin\AgendaManager::class)->name('agendas');
+
     });
 
     // Route pour la gestion des commandes - requires manage-orders permission
@@ -133,6 +144,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->name('save');
     });
 });
+
 
 // Route publique pour les réponses de disponibilité des hébergements
 Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])

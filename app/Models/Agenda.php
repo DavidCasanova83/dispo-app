@@ -12,6 +12,13 @@ class Agenda extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Constantes de statut
+     */
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_CURRENT = 'current';
+    public const STATUS_ARCHIVED = 'archived';
+
     protected $fillable = [
         'title',
         'pdf_path',
@@ -21,7 +28,7 @@ class Agenda extends Model
         'author_id',
         'start_date',
         'end_date',
-        'is_current',
+        'status',
         'archived_at',
         'uploaded_by',
     ];
@@ -30,7 +37,6 @@ class Agenda extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'archived_at' => 'datetime',
-        'is_current' => 'boolean',
     ];
 
     /**
@@ -64,11 +70,19 @@ class Agenda extends Model
     }
 
     /**
+     * Scope pour l'agenda en attente
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', self::STATUS_PENDING);
+    }
+
+    /**
      * Scope pour l'agenda en cours
      */
     public function scopeCurrent($query)
     {
-        return $query->where('is_current', true);
+        return $query->where('status', self::STATUS_CURRENT);
     }
 
     /**
@@ -76,7 +90,31 @@ class Agenda extends Model
      */
     public function scopeArchived($query)
     {
-        return $query->where('is_current', false)->whereNotNull('archived_at');
+        return $query->where('status', self::STATUS_ARCHIVED);
+    }
+
+    /**
+     * Vérifier si l'agenda est en attente
+     */
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Vérifier si l'agenda est en cours
+     */
+    public function isCurrent(): bool
+    {
+        return $this->status === self::STATUS_CURRENT;
+    }
+
+    /**
+     * Vérifier si l'agenda est archivé
+     */
+    public function isArchived(): bool
+    {
+        return $this->status === self::STATUS_ARCHIVED;
     }
 
     /**
