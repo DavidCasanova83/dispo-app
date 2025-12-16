@@ -81,7 +81,7 @@ class PublicImageOrderForm extends Component
             'postal_code' => ['required', 'string', 'max:20', 'regex:/^[0-9A-Za-z\s\-]+$/'],
             'city' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
             'country' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/'],
-            'email' => ['required', 'email:rfc,dns', 'max:255', new NotDisposableEmail()],
+            'email' => ['nullable', 'email:rfc,dns', 'max:255', new NotDisposableEmail()],
             'phone_country_code' => ['nullable', 'string', 'max:10', 'regex:/^\+?[0-9]+$/'],
             'phone_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\(\)]+$/'],
             'customer_notes' => ['nullable', 'string', 'max:1000', new NoSpamContent()],
@@ -121,10 +121,9 @@ class PublicImageOrderForm extends Component
             return;
         }
 
-        // Vérifier la limite pour particuliers (1 image max)
-        if ($this->customer_type === 'particulier' && count($this->cart) > 0 && !isset($this->cart[$imageId])) {
-            session()->flash('error', 'Les particuliers ne peuvent commander qu\'une seule image.');
-            return;
+        // Pour les particuliers, la quantité est toujours limitée à 1 par brochure
+        if ($this->customer_type === 'particulier') {
+            $quantity = 1;
         }
 
         // Vérifier la quantité disponible
@@ -156,6 +155,11 @@ class PublicImageOrderForm extends Component
         if ($quantity <= 0) {
             $this->removeFromCart($imageId);
             return;
+        }
+
+        // Pour les particuliers, la quantité est toujours limitée à 1
+        if ($this->customer_type === 'particulier') {
+            $quantity = 1;
         }
 
         $image = Image::find($imageId);
@@ -282,6 +286,7 @@ class PublicImageOrderForm extends Component
             // Créer la commande
             $order = ImageOrder::create([
                 'order_number' => ImageOrder::generateOrderNumber(),
+                'user_id' => auth()->id(),
                 'customer_type' => $this->customer_type,
                 'language' => $this->language,
                 'company' => $sanitizedData['company'],
@@ -420,6 +425,6 @@ class PublicImageOrderForm extends Component
         return view('livewire.public-image-order-form', [
             'availableImages' => $availableImages,
             'cartItems' => $cartItems,
-        ])->layout('components.layouts.guest'); // Layout pour pages publiques
+        ])->layout('components.layouts.app');
     }
 }

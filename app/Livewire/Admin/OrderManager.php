@@ -33,7 +33,7 @@ class OrderManager extends Component
 
     public function openDetailModal($orderId)
     {
-        $this->selectedOrder = ImageOrder::with(['items.image'])->findOrFail($orderId);
+        $this->selectedOrder = ImageOrder::with(['user', 'items.image'])->findOrFail($orderId);
         $this->adminNotes = $this->selectedOrder->admin_notes ?? '';
         $this->showDetailModal = true;
     }
@@ -63,7 +63,7 @@ class OrderManager extends Component
 
     public function exportCsv()
     {
-        $orders = ImageOrder::with(['items.image'])
+        $orders = ImageOrder::with(['user', 'items.image'])
             ->search($this->search)
             ->byStatus($this->statusFilter)
             ->latest()
@@ -130,7 +130,7 @@ class OrderManager extends Component
 
     public function render()
     {
-        $orders = ImageOrder::with(['items.image'])
+        $orders = ImageOrder::with(['user', 'items.image'])
             ->search($this->search)
             ->byStatus($this->statusFilter)
             ->latest()
