@@ -1,12 +1,39 @@
 <div class="p-6">
     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-        Gérer les rôles
+        Gérer les rôles et secteurs
     </h3>
 
     <div class="mb-6">
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Utilisateur:</p>
         <p class="font-medium text-gray-900 dark:text-white">{{ $user->name }}</p>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
+    </div>
+
+    {{-- Sectors Section --}}
+    <div class="mb-6">
+        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Secteurs assignés:</p>
+        @if($availableSectors->count() > 0)
+            <div class="grid grid-cols-2 gap-2">
+                @foreach($availableSectors as $sector)
+                    <label class="flex items-center p-3 rounded-lg border-2 transition-all cursor-pointer {{ in_array($sector->id, $selectedSectors) ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                        <input
+                            type="checkbox"
+                            wire:click="toggleSector({{ $sector->id }})"
+                            {{ in_array($sector->id, $selectedSectors) ? 'checked' : '' }}
+                            class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        >
+                        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">{{ $sector->name }}</span>
+                        @if(in_array($sector->id, $selectedSectors))
+                            <svg class="w-4 h-4 ml-auto text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        @endif
+                    </label>
+                @endforeach
+            </div>
+        @else
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucun secteur disponible</p>
+        @endif
     </div>
 
     <div class="mb-6">
