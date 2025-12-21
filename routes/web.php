@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgendaPdfController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
@@ -19,6 +20,11 @@ Route::redirect(
 Route::get('/storage/pdfs/guide-du-partenaire.pdf', function () {
     return redirect()->away('https://plan.verdontourisme.com/brochures/2025/guide-pratique/Guide-du-partenaire_2026.pdf', 301);
 });
+
+// Servir le PDF de l'agenda en cours avec contrôle du cache (5 min)
+Route::get('/storage/agendas/agenda-en-cours.pdf', [AgendaPdfController::class, 'current'])
+    ->name('pdf.agenda.current');
+
 // Route pour commander des images (authentification requise)
 Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
     ->middleware(['auth', 'throttle:order-form'])

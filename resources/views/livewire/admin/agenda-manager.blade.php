@@ -535,6 +535,29 @@
                                         class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90]"></textarea>
                                 </div>
 
+                                {{-- PDF File (optionnel) --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Remplacer le PDF (optionnel)
+                                    </label>
+                                    <input type="file" wire:model="editPdfFile" accept=".pdf,application/pdf"
+                                        class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-4 py-2">
+                                    @error('editPdfFile')
+                                        <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                    <div wire:loading wire:target="editPdfFile" class="text-sm text-gray-500 mt-1">
+                                        Chargement du PDF...
+                                    </div>
+                                    @if ($editPdfFile)
+                                        <p class="text-sm text-green-600 mt-1">
+                                            Nouveau PDF: {{ $editPdfFile->getClientOriginalName() }}
+                                        </p>
+                                    @endif
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Laissez vide pour conserver le PDF actuel. Max 50 MB.
+                                    </p>
+                                </div>
+
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date début</label>
@@ -555,8 +578,10 @@
                                     Annuler
                                 </button>
                                 <button type="submit"
-                                    class="px-6 py-2 text-sm font-medium text-white bg-[#3E9B90] hover:bg-[#2d7a72] rounded-lg transition-colors">
-                                    Enregistrer
+                                    class="px-6 py-2 text-sm font-medium text-white bg-[#3E9B90] hover:bg-[#2d7a72] rounded-lg transition-colors disabled:opacity-50"
+                                    wire:loading.attr="disabled" wire:target="editPdfFile, updateAgenda">
+                                    <span wire:loading.remove wire:target="updateAgenda">Enregistrer</span>
+                                    <span wire:loading wire:target="updateAgenda">Mise à jour...</span>
                                 </button>
                             </div>
                         </form>

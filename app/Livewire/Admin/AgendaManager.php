@@ -39,6 +39,7 @@ class AgendaManager extends Component
     public $editDescription = '';
     public $editStartDate = '';
     public $editEndDate = '';
+    public $editPdfFile = null;
 
     // Delete properties
     public $showDeleteModal = false;
@@ -294,7 +295,7 @@ class AgendaManager extends Component
     {
         $this->showEditModal = false;
         $this->editingAgenda = null;
-        $this->reset(['editTitle', 'editDescription', 'editStartDate', 'editEndDate']);
+        $this->reset(['editTitle', 'editDescription', 'editStartDate', 'editEndDate', 'editPdfFile']);
     }
 
     /**
@@ -313,17 +314,62 @@ class AgendaManager extends Component
             'editDescription' => 'nullable|string|max:1000',
             'editStartDate' => 'required|date',
             'editEndDate' => 'required|date|after_or_equal:editStartDate',
+            'editPdfFile' => 'nullable|mimes:pdf|max:51200',
         ]);
 
-        // Si c'est un agenda archivé et que les dates changent, renommer le PDF
-        if ($this->editingAgenda->isArchived()) {
-            $oldArchivePath = $this->editingAgenda->pdf_path;
-            $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
-            $newArchivePath = 'agendas/archives/' . $newArchiveFilename;
+        // Gestion du remplacement du PDF si un nouveau fichier est fourni
+        if ($this->editPdfFile) {
+            // Valider le MIME type pour la sécurité
+            if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                session()->flash('error', 'Type de fichier PDF non autorisé.');
+                return;
+            }
 
-            if ($oldArchivePath !== $newArchivePath && Storage::disk('public')->exists($oldArchivePath)) {
-                Storage::disk('public')->move($oldArchivePath, $newArchivePath);
-                $this->editingAgenda->pdf_path = $newArchivePath;
+            // Déterminer le chemin selon le statut de l'agenda
+            if ($this->editingAgenda->isCurrent()) {
+                // Pour l'agenda en cours : remplacer agenda-en-cours.pdf
+                $newPdfPath = 'agendas/agenda-en-cours.pdf';
+                if (Storage::disk('public')->exists($newPdfPath)) {
+                    Storage::disk('public')->delete($newPdfPath);
+                }
+                $this->editPdfFile->storeAs('agendas', 'agenda-en-cours.pdf', 'public');
+                $this->editingAgenda->pdf_path = $newPdfPath;
+                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
+
+            } elseif ($this->editingAgenda->isPending()) {
+                // Pour un agenda en attente : remplacer dans pending
+                $oldPath = $this->editingAgenda->pdf_path;
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                $this->editPdfFile->storeAs('agendas/pending', $this->editingAgenda->id . '.pdf', 'public');
+                $this->editingAgenda->pdf_path = 'agendas/pending/' . $this->editingAgenda->id . '.pdf';
+                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
+
+            } elseif ($this->editingAgenda->isArchived()) {
+                // Pour un agenda archivé : utiliser le nommage par date
+                $oldPath = $this->editingAgenda->pdf_path;
+                $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
+                $newPdfPath = 'agendas/archives/' . $newArchiveFilename;
+
+                if ($oldPath && $oldPath !== $newPdfPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                $this->editPdfFile->storeAs('agendas/archives', $newArchiveFilename, 'public');
+                $this->editingAgenda->pdf_path = $newPdfPath;
+                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
+            }
+        } else {
+            // Si pas de nouveau PDF mais agenda archivé avec changement de dates, renommer le fichier
+            if ($this->editingAgenda->isArchived()) {
+                $oldArchivePath = $this->editingAgenda->pdf_path;
+                $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
+                $newArchivePath = 'agendas/archives/' . $newArchiveFilename;
+
+                if ($oldArchivePath !== $newArchivePath && Storage::disk('public')->exists($oldArchivePath)) {
+                    Storage::disk('public')->move($oldArchivePath, $newArchivePath);
+                    $this->editingAgenda->pdf_path = $newArchivePath;
+                }
             }
         }
 
@@ -332,6 +378,8 @@ class AgendaManager extends Component
             'description' => $this->editDescription ?: null,
             'start_date' => $this->editStartDate,
             'end_date' => $this->editEndDate,
+            'pdf_path' => $this->editingAgenda->pdf_path,
+            'pdf_filename' => $this->editingAgenda->pdf_filename,
         ]);
 
         session()->flash('success', 'Agenda mis à jour avec succès.');
