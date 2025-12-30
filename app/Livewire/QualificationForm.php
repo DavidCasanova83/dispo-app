@@ -332,7 +332,7 @@ class QualificationForm extends Component
     {
         // Valider l'étape 3
         // Au moins une demande doit être remplie
-        if (empty($this->specificRequests) && empty($this->generalRequests) && empty(trim($this->otherRequest))) {
+        if (empty($this->specificRequests) && empty($this->otherSpecificRequests) && empty($this->generalRequests) && empty(trim($this->otherRequest))) {
             $this->addError('requests', 'Veuillez sélectionner au moins une demande ou préciser votre demande.');
             return;
         }
