@@ -271,7 +271,7 @@
 
                         {{-- Actions --}}
                         <div class="flex items-center gap-3 mt-4">
-                            <a href="{{ asset('storage/' . $currentAgenda->pdf_path) . '?v=' . $currentAgenda->id }}" target="_blank"
+                            <a href="{{ asset('storage/' . $currentAgenda->pdf_path) . '?v=' . $currentAgenda->updated_at->timestamp }}" target="_blank"
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -295,7 +295,10 @@
                 <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         <span class="font-medium">Lien permanent PDF:</span>
-                        <code class="ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs break-all">{{ asset('storage/agendas/agenda-en-cours.pdf') . '?v=' . $currentAgenda->id }}</code>
+                        <code class="ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs break-all">{{ asset('storage/agendas/agenda-en-cours.pdf') }}</code>
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                        💡 Ce lien pointe toujours vers l'agenda en cours actuel, même après un changement.
                     </p>
                 </div>
             @else

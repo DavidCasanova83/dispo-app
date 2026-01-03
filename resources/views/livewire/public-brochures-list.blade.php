@@ -255,7 +255,7 @@
 
                     {{-- Actions --}}
                     @php
-                        $agendaUrl = asset('storage/agendas/agenda-en-cours.pdf') . '?v=' . $currentAgenda->id;
+                        $agendaUrl = asset('storage/agendas/agenda-en-cours.pdf') . '?v=' . $currentAgenda->updated_at->timestamp;
                     @endphp
                     <div class="flex-shrink-0 flex items-center gap-2">
                         {{-- Bouton Consulter (bleu) --}}
