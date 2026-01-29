@@ -2,7 +2,21 @@
     <div class="max-w-4xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nos brochures</h1>
+            <div class="flex items-center justify-center gap-4">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nos brochures</h1>
+                @can('manage-images')
+                    <a href="{{ route('admin.images.statistics') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#3E9B90] text-white hover:bg-[#357f76] transition-colors shadow-md"
+                        title="Voir les statistiques">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                        Statistiques
+                    </a>
+                @endcan
+            </div>
             <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
                 Consultez et téléchargez nos brochures touristiques
             </p>
