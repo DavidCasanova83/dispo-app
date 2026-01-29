@@ -6,6 +6,7 @@ use App\Jobs\SendNewAgendaNotification;
 use App\Models\Agenda;
 use App\Models\Author;
 use App\Models\Category;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -104,6 +105,12 @@ class AgendaManager extends Component
             'agendaAuthorId' => 'nullable|exists:authors,id',
         ]);
 
+        Log::info('[AGENDA] Mise à jour paramètres agenda - Début', [
+            'user_id' => auth()->id(),
+            'category_id' => $this->agendaCategoryId,
+            'author_id' => $this->agendaAuthorId,
+        ]);
+
         // Mettre à jour l'agenda courant
         $currentAgenda = Agenda::current()->first();
         if ($currentAgenda) {
@@ -111,8 +118,14 @@ class AgendaManager extends Component
                 'category_id' => $this->agendaCategoryId ?: null,
                 'author_id' => $this->agendaAuthorId ?: null,
             ]);
+            Log::info('[AGENDA] Mise à jour paramètres agenda - Succès', [
+                'agenda_id' => $currentAgenda->id,
+                'category_id' => $this->agendaCategoryId,
+                'author_id' => $this->agendaAuthorId,
+            ]);
             session()->flash('success', 'Paramètres de l\'agenda mis à jour avec succès.');
         } else {
+            Log::warning('[AGENDA] Mise à jour paramètres agenda - Aucun agenda en cours');
             session()->flash('error', 'Aucun agenda en cours. Uploadez d\'abord un agenda.');
         }
     }
@@ -122,6 +135,10 @@ class AgendaManager extends Component
      */
     public function uploadCoverImage()
     {
+        Log::info('[AGENDA] Upload image couverture - Début', [
+            'user_id' => auth()->id(),
+        ]);
+
         // Rate limiting
         $executed = RateLimiter::attempt(
             'upload-cover:' . auth()->id(),
@@ -131,6 +148,9 @@ class AgendaManager extends Component
         );
 
         if (!$executed) {
+            Log::warning('[AGENDA] Upload image couverture - Rate limit atteint', [
+                'user_id' => auth()->id(),
+            ]);
             session()->flash('error', 'Trop de tentatives d\'upload. Veuillez attendre avant de réessayer.');
             return;
         }
@@ -144,6 +164,10 @@ class AgendaManager extends Component
         try {
             // Valider MIME type
             if (!in_array($this->coverImage->getMimeType(), self::ALLOWED_IMAGE_MIME_TYPES)) {
+                Log::warning('[AGENDA] Upload image couverture - MIME type invalide', [
+                    'user_id' => auth()->id(),
+                    'mime_type' => $this->coverImage->getMimeType(),
+                ]);
                 session()->flash('error', 'Type d\'image non autorisé.');
                 return;
             }
@@ -152,14 +176,25 @@ class AgendaManager extends Component
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $extension = strtolower($this->coverImage->getClientOriginalExtension());
             if (!in_array($extension, $allowedExtensions)) {
+                Log::warning('[AGENDA] Upload image couverture - Extension invalide', [
+                    'user_id' => auth()->id(),
+                    'extension' => $extension,
+                ]);
                 session()->flash('error', 'Extension d\'image non autorisée.');
                 return;
             }
+
+            Log::info('[AGENDA] Upload image couverture - Validation OK', [
+                'mime_type' => $this->coverImage->getMimeType(),
+                'size' => $this->coverImage->getSize(),
+                'extension' => $extension,
+            ]);
 
             // S'assurer que le dossier existe
             $agendaDir = Storage::disk('public')->path('agendas');
             if (!file_exists($agendaDir)) {
                 mkdir($agendaDir, 0755, true);
+                Log::info('[AGENDA FILE] Dossier agendas créé');
             }
 
             // Sauvegarder l'image avec un nom temporaire puis la traiter
@@ -174,19 +209,36 @@ class AgendaManager extends Component
             $coverFullPath = Storage::disk('public')->path(Agenda::COVER_IMAGE_PATH);
             $img->save($coverFullPath, quality: 85);
 
+            Log::info('[AGENDA FILE] Image couverture sauvegardée', [
+                'path' => Agenda::COVER_IMAGE_PATH,
+            ]);
+
             // Créer le thumbnail
             $thumbnailFullPath = Storage::disk('public')->path(Agenda::COVER_THUMBNAIL_PATH);
             $thumbnail = $manager->read($tempFullPath);
             $thumbnail->cover(300, 300);
             $thumbnail->save($thumbnailFullPath, quality: 80);
 
+            Log::info('[AGENDA FILE] Thumbnail couverture créé', [
+                'path' => Agenda::COVER_THUMBNAIL_PATH,
+            ]);
+
             // Supprimer le fichier temporaire
             Storage::disk('public')->delete($tempPath);
+
+            Log::info('[AGENDA] Upload image couverture - Succès', [
+                'user_id' => auth()->id(),
+            ]);
 
             session()->flash('success', 'Image de couverture mise à jour avec succès.');
             $this->reset(['coverImage']);
 
         } catch (\Exception $e) {
+            Log::error('[AGENDA] Upload image couverture - Erreur', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             session()->flash('error', 'Erreur lors de l\'upload: ' . $e->getMessage());
         }
     }
@@ -197,6 +249,13 @@ class AgendaManager extends Component
      */
     public function uploadAgenda()
     {
+        Log::info('[AGENDA] Upload nouvel agenda - Début', [
+            'user_id' => auth()->id(),
+            'title' => $this->title,
+            'start_date' => $this->startDate,
+            'end_date' => $this->endDate,
+        ]);
+
         // Rate limiting
         $executed = RateLimiter::attempt(
             'upload-agenda:' . auth()->id(),
@@ -206,6 +265,9 @@ class AgendaManager extends Component
         );
 
         if (!$executed) {
+            Log::warning('[AGENDA] Upload agenda - Rate limit atteint', [
+                'user_id' => auth()->id(),
+            ]);
             session()->flash('error', 'Trop de tentatives d\'upload. Veuillez attendre avant de réessayer.');
             return;
         }
@@ -214,6 +276,9 @@ class AgendaManager extends Component
 
         // Vérifier qu'il n'y a pas déjà un agenda en attente
         if (Agenda::pending()->exists()) {
+            Log::warning('[AGENDA] Upload agenda - Un agenda pending existe déjà', [
+                'user_id' => auth()->id(),
+            ]);
             session()->flash('error', 'Un agenda est déjà en attente. Vous devez le supprimer ou attendre son activation avant d\'en ajouter un nouveau.');
             return;
         }
@@ -229,9 +294,19 @@ class AgendaManager extends Component
         try {
             // Valider MIME type PDF
             if (!in_array($this->pdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                Log::warning('[AGENDA] Upload agenda - MIME type invalide', [
+                    'user_id' => auth()->id(),
+                    'mime_type' => $this->pdfFile->getMimeType(),
+                ]);
                 session()->flash('error', 'Type de fichier PDF non autorisé.');
                 return;
             }
+
+            Log::info('[AGENDA] Upload agenda - Validation OK', [
+                'mime_type' => $this->pdfFile->getMimeType(),
+                'size' => $this->pdfFile->getSize(),
+                'filename' => $this->pdfFile->getClientOriginalName(),
+            ]);
 
             // Sauvegarder le PDF dans le dossier pending
             $pdfFilename = $this->pdfFile->getClientOriginalName();
@@ -240,10 +315,12 @@ class AgendaManager extends Component
             $agendaDir = Storage::disk('public')->path('agendas');
             if (!file_exists($agendaDir)) {
                 mkdir($agendaDir, 0755, true);
+                Log::info('[AGENDA FILE] Dossier agendas créé');
             }
             $pendingDir = Storage::disk('public')->path('agendas/pending');
             if (!file_exists($pendingDir)) {
                 mkdir($pendingDir, 0755, true);
+                Log::info('[AGENDA FILE] Dossier pending créé');
             }
 
             // Créer l'entrée en base d'abord pour obtenir l'ID
@@ -258,8 +335,21 @@ class AgendaManager extends Component
                 'uploaded_by' => auth()->id(),
             ]);
 
+            Log::info('[AGENDA] Agenda créé en BDD', [
+                'agenda_id' => $agenda->id,
+                'title' => $agenda->title,
+                'status' => $agenda->status,
+                'start_date' => $this->startDate,
+                'end_date' => $this->endDate,
+            ]);
+
             // Stocker le PDF avec l'ID de l'agenda
             $pdfPath = $this->pdfFile->storeAs('agendas/pending', $agenda->id . '.pdf', 'public');
+
+            Log::info('[AGENDA FILE] PDF stocké dans pending', [
+                'agenda_id' => $agenda->id,
+                'pdf_path' => $pdfPath,
+            ]);
 
             // Mettre à jour le chemin du PDF
             $agenda->update(['pdf_path' => $pdfPath]);
@@ -267,10 +357,27 @@ class AgendaManager extends Component
             // Notifier les super-admins du nouvel agenda programmé
             SendNewAgendaNotification::dispatch($agenda);
 
+            Log::info('[AGENDA] Notification dispatchée', [
+                'agenda_id' => $agenda->id,
+                'title' => $agenda->title,
+            ]);
+
+            Log::info('[AGENDA] Upload nouvel agenda - Succès', [
+                'user_id' => auth()->id(),
+                'agenda_id' => $agenda->id,
+                'title' => $agenda->title,
+                'start_date' => $this->startDate,
+            ]);
+
             session()->flash('success', 'Agenda ajouté en attente. Il sera activé automatiquement le ' . \Carbon\Carbon::parse($this->startDate)->format('d/m/Y') . '.');
             $this->reset(['pdfFile', 'title', 'description', 'startDate', 'endDate']);
 
         } catch (\Exception $e) {
+            Log::error('[AGENDA] Upload nouvel agenda - Erreur', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             session()->flash('error', 'Erreur lors de l\'upload: ' . $e->getMessage());
         }
     }
@@ -309,6 +416,13 @@ class AgendaManager extends Component
 
         $this->authorize('update', $this->editingAgenda);
 
+        Log::info('[AGENDA] Modification agenda - Début', [
+            'user_id' => auth()->id(),
+            'agenda_id' => $this->editingAgenda->id,
+            'agenda_status' => $this->editingAgenda->status,
+            'has_new_pdf' => (bool)$this->editPdfFile,
+        ]);
+
         $this->validate([
             'editTitle' => 'nullable|string|max:255',
             'editDescription' => 'nullable|string|max:1000',
@@ -321,9 +435,16 @@ class AgendaManager extends Component
         if ($this->editPdfFile) {
             // Valider le MIME type pour la sécurité
             if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                Log::warning('[AGENDA] Modification agenda - MIME type PDF invalide', [
+                    'user_id' => auth()->id(),
+                    'agenda_id' => $this->editingAgenda->id,
+                    'mime_type' => $this->editPdfFile->getMimeType(),
+                ]);
                 session()->flash('error', 'Type de fichier PDF non autorisé.');
                 return;
             }
+
+            $oldPath = $this->editingAgenda->pdf_path;
 
             // Déterminer le chemin selon le statut de l'agenda
             if ($this->editingAgenda->isCurrent()) {
@@ -336,9 +457,13 @@ class AgendaManager extends Component
                 $this->editingAgenda->pdf_path = $newPdfPath;
                 $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
 
+                Log::info('[AGENDA FILE] PDF agenda courant remplacé', [
+                    'agenda_id' => $this->editingAgenda->id,
+                    'new_path' => $newPdfPath,
+                ]);
+
             } elseif ($this->editingAgenda->isPending()) {
                 // Pour un agenda en attente : remplacer dans pending
-                $oldPath = $this->editingAgenda->pdf_path;
                 if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
                 }
@@ -346,9 +471,14 @@ class AgendaManager extends Component
                 $this->editingAgenda->pdf_path = 'agendas/pending/' . $this->editingAgenda->id . '.pdf';
                 $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
 
+                Log::info('[AGENDA FILE] PDF agenda pending remplacé', [
+                    'agenda_id' => $this->editingAgenda->id,
+                    'old_path' => $oldPath,
+                    'new_path' => $this->editingAgenda->pdf_path,
+                ]);
+
             } elseif ($this->editingAgenda->isArchived()) {
                 // Pour un agenda archivé : utiliser le nommage par date
-                $oldPath = $this->editingAgenda->pdf_path;
                 $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
                 $newPdfPath = 'agendas/archives/' . $newArchiveFilename;
 
@@ -358,6 +488,12 @@ class AgendaManager extends Component
                 $this->editPdfFile->storeAs('agendas/archives', $newArchiveFilename, 'public');
                 $this->editingAgenda->pdf_path = $newPdfPath;
                 $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
+
+                Log::info('[AGENDA FILE] PDF agenda archivé remplacé', [
+                    'agenda_id' => $this->editingAgenda->id,
+                    'old_path' => $oldPath,
+                    'new_path' => $newPdfPath,
+                ]);
             }
         } else {
             // Si pas de nouveau PDF mais agenda archivé avec changement de dates, renommer le fichier
@@ -369,6 +505,12 @@ class AgendaManager extends Component
                 if ($oldArchivePath !== $newArchivePath && Storage::disk('public')->exists($oldArchivePath)) {
                     Storage::disk('public')->move($oldArchivePath, $newArchivePath);
                     $this->editingAgenda->pdf_path = $newArchivePath;
+
+                    Log::info('[AGENDA FILE] PDF archivé renommé (changement dates)', [
+                        'agenda_id' => $this->editingAgenda->id,
+                        'old_path' => $oldArchivePath,
+                        'new_path' => $newArchivePath,
+                    ]);
                 }
             }
         }
@@ -380,6 +522,14 @@ class AgendaManager extends Component
             'end_date' => $this->editEndDate,
             'pdf_path' => $this->editingAgenda->pdf_path,
             'pdf_filename' => $this->editingAgenda->pdf_filename,
+        ]);
+
+        Log::info('[AGENDA] Modification agenda - Succès', [
+            'user_id' => auth()->id(),
+            'agenda_id' => $this->editingAgenda->id,
+            'title' => $this->editTitle,
+            'start_date' => $this->editStartDate,
+            'end_date' => $this->editEndDate,
         ]);
 
         session()->flash('success', 'Agenda mis à jour avec succès.');
@@ -412,8 +562,21 @@ class AgendaManager extends Component
         $agenda = Agenda::findOrFail($agendaId);
         $this->authorize('delete', $agenda);
 
+        Log::info('[AGENDA] Suppression agenda demandée', [
+            'user_id' => auth()->id(),
+            'agenda_id' => $agendaId,
+            'agenda_title' => $agenda->title,
+            'agenda_status' => $agenda->status,
+            'pdf_path' => $agenda->pdf_path,
+        ]);
+
         // Le fichier physique sera supprimé par le model event
         $agenda->delete();
+
+        Log::info('[AGENDA] Suppression agenda - Succès', [
+            'user_id' => auth()->id(),
+            'agenda_id' => $agendaId,
+        ]);
 
         session()->flash('success', 'Agenda supprimé avec succès.');
         $this->closeDeleteModal();

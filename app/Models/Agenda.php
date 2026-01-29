@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class Agenda extends Model
@@ -118,17 +119,65 @@ class Agenda extends Model
     }
 
     /**
-     * Supprimer les fichiers physiques quand le model est supprimé
+     * Model events avec logging
      */
     protected static function booted(): void
     {
+        // Log création d'agenda
+        static::created(function (Agenda $agenda) {
+            Log::info('[AGENDA MODEL] Agenda créé', [
+                'agenda_id' => $agenda->id,
+                'title' => $agenda->title,
+                'status' => $agenda->status,
+                'uploaded_by' => $agenda->uploaded_by,
+                'start_date' => $agenda->start_date?->format('Y-m-d'),
+                'end_date' => $agenda->end_date?->format('Y-m-d'),
+            ]);
+        });
+
+        // Log modification d'agenda
+        static::updated(function (Agenda $agenda) {
+            $changes = $agenda->getChanges();
+            // Exclure updated_at des changements loggés
+            unset($changes['updated_at']);
+
+            if (!empty($changes)) {
+                Log::info('[AGENDA MODEL] Agenda modifié', [
+                    'agenda_id' => $agenda->id,
+                    'title' => $agenda->title,
+                    'changes' => $changes,
+                ]);
+            }
+        });
+
+        // Log et suppression fichier lors de la suppression d'agenda
         static::deleting(function (Agenda $agenda) {
+            Log::info('[AGENDA MODEL] Suppression agenda initiée', [
+                'agenda_id' => $agenda->id,
+                'title' => $agenda->title,
+                'status' => $agenda->status,
+                'pdf_path' => $agenda->pdf_path,
+            ]);
+
             // Supprimer le PDF si il existe (sauf si c'est agenda-en-cours.pdf)
             if ($agenda->pdf_path && Storage::disk('public')->exists($agenda->pdf_path)) {
                 // Ne pas supprimer agenda-en-cours.pdf
                 if ($agenda->pdf_path !== 'agendas/agenda-en-cours.pdf') {
                     Storage::disk('public')->delete($agenda->pdf_path);
+                    Log::info('[AGENDA FILE] Fichier PDF supprimé', [
+                        'agenda_id' => $agenda->id,
+                        'path' => $agenda->pdf_path,
+                    ]);
+                } else {
+                    Log::info('[AGENDA FILE] PDF agenda-en-cours.pdf conservé', [
+                        'agenda_id' => $agenda->id,
+                    ]);
                 }
+            } else {
+                Log::warning('[AGENDA FILE] Fichier PDF introuvable lors de la suppression', [
+                    'agenda_id' => $agenda->id,
+                    'pdf_path' => $agenda->pdf_path,
+                ]);
             }
         });
     }

@@ -23,3 +23,11 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+<FilesMatch "\.pdf$">
+	Header unset Cache-Controle
+	Header unset Expire
+	Header unset Pragma
+	Header set Cache-Controle "no-store, no-cache, must-revalidate, max-age=0"
+	Header set Pragma "no-cahe"
+</FilesMatch>
+

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -15,10 +16,20 @@ class AgendaPdfController extends Controller
         $storagePath = 'agendas/agenda-en-cours.pdf';
 
         if (!Storage::disk('public')->exists($storagePath)) {
+            Log::warning('[AGENDA] Téléchargement PDF - Fichier non trouvé', [
+                'path' => $storagePath,
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
             abort(404);
         }
 
         $fullPath = Storage::disk('public')->path($storagePath);
+
+        Log::info('[AGENDA] Téléchargement PDF courant', [
+            'ip' => request()->ip(),
+            'user_agent' => substr(request()->userAgent() ?? '', 0, 100),
+        ]);
 
         return response()->file($fullPath, [
             'Content-Type' => 'application/pdf',
