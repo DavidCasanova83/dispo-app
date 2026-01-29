@@ -48,6 +48,36 @@
             </div>
         @endif
 
+        {{-- Résumé des erreurs de validation --}}
+        @if ($errors->any())
+            <div id="error-summary" class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-red-800 dark:text-red-200">
+                            {{ $errors->count() }} erreur(s) à corriger
+                        </h3>
+                        <ul class="mt-2 space-y-1 text-sm text-red-700 dark:text-red-300">
+                            @foreach ($errors->toArray() as $field => $messages)
+                                @foreach ($messages as $message)
+                                    <li>
+                                        <a href="#field-{{ $field }}" class="hover:underline flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                            {{ $message }}
+                                        </a>
+                                    </li>
+                                @endforeach
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <form wire:submit.prevent="submitOrder" class="space-y-6">
             {{-- Protection Honeypot anti-spam --}}
             <x-honeypot wire:model="honeypot" />
@@ -57,7 +87,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Informations du client</h2>
 
                 {{-- Type de client --}}
-                <div>
+                <div id="field-customer_type">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Pour un professionnel ou un particulier ? <span class="text-red-500">*</span>
                     </label>
@@ -77,7 +107,7 @@
                 </div>
 
                 {{-- Langue --}}
-                <div>
+                <div id="field-language">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Choisissez la langue du client <span class="text-red-500">*</span>
                     </label>
@@ -114,12 +144,12 @@
 
                 {{-- Société (seulement si professionnel) --}}
                 @if ($customer_type === 'professionnel')
-                    <div>
+                    <div id="field-company">
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Société <span class="text-red-500">*</span>
                         </label>
                         <input type="text" wire:model.blur="company"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('company') border-red-500 ring-2 ring-red-500 @enderror"
                             placeholder="Nom de la société">
                         @error('company')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -130,7 +160,7 @@
                 <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Civilité --}}
-                <div>
+                <div id="field-civility">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Civilité <span class="text-red-500">*</span>
                     </label>
@@ -155,23 +185,23 @@
 
                 {{-- Nom et Prénom --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                    <div id="field-last_name">
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Nom <span class="text-red-500">*</span>
                         </label>
                         <input type="text" wire:model.blur="last_name"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('last_name') border-red-500 ring-2 ring-red-500 @enderror"
                             placeholder="Nom">
                         @error('last_name')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
-                    <div>
+                    <div id="field-first_name">
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                            Prénom <span class="text-red-500">*</span>
+                            Prénom
                         </label>
                         <input type="text" wire:model.blur="first_name"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('first_name') border-red-500 ring-2 ring-red-500 @enderror"
                             placeholder="Prénom">
                         @error('first_name')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -182,12 +212,12 @@
                 <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Adresse --}}
-                <div>
+                <div id="field-address_line1">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Adresse 1 <span class="text-red-500">*</span>
                     </label>
                     <input type="text" wire:model.blur="address_line1"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('address_line1') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="Adresse 1">
                     @error('address_line1')
                         <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -205,23 +235,23 @@
 
                 {{-- Code postal et Ville --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                    <div id="field-postal_code">
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Code Postal <span class="text-red-500">*</span>
                         </label>
                         <input type="text" wire:model.blur="postal_code"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('postal_code') border-red-500 ring-2 ring-red-500 @enderror"
                             placeholder="Code Postal">
                         @error('postal_code')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
                         @enderror
                     </div>
-                    <div>
+                    <div id="field-city">
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                             Ville <span class="text-red-500">*</span>
                         </label>
                         <input type="text" wire:model.blur="city"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('city') border-red-500 ring-2 ring-red-500 @enderror"
                             placeholder="Ville">
                         @error('city')
                             <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -230,12 +260,12 @@
                 </div>
 
                 {{-- Pays --}}
-                <div>
+                <div id="field-country">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Pays <span class="text-red-500">*</span>
                     </label>
                     <input type="text" wire:model.blur="country"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('country') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="Pays">
                     @error('country')
                         <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -245,12 +275,12 @@
                 <hr class="my-6 border-gray-200 dark:border-gray-600">
 
                 {{-- Email --}}
-                <div>
+                <div id="field-email">
                     <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Mail
                     </label>
                     <input type="email" wire:model.blur="email"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all @error('email') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="exemple@email.com">
                     @error('email')
                         <span class="text-sm text-red-600 dark:text-red-400 mt-1 block">{{ $message }}</span>
@@ -480,6 +510,36 @@
             </div>
         </form>
     </div>
+
+    {{-- Script de scroll automatique vers les erreurs --}}
+    @push('scripts')
+        <script>
+            document.addEventListener('livewire:init', () => {
+                let hadErrorsBefore = false;
+
+                // Écouter les requêtes Livewire pour détecter les erreurs de validation après soumission
+                Livewire.hook('request', ({ respond }) => {
+                    respond(({ response }) => {
+                        // Attendre que le DOM soit mis à jour
+                        setTimeout(() => {
+                            const errorSummary = document.getElementById('error-summary');
+                            const hasErrors = errorSummary !== null;
+
+                            // Scroller uniquement si des erreurs viennent d'apparaître
+                            if (hasErrors && !hadErrorsBefore) {
+                                errorSummary.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                            }
+
+                            hadErrorsBefore = hasErrors;
+                        }, 100);
+                    });
+                });
+            });
+        </script>
+    @endpush
 
     @if (config('turnstile.turnstile_site_key') && config('turnstile.turnstile_secret_key'))
         @push('scripts')
