@@ -63,9 +63,18 @@ class ImageOrder extends Model
     public static function generateOrderNumber(): string
     {
         $year = date('Y');
-        $count = static::whereYear('created_at', $year)->count() + 1;
+        $prefix = 'CMD-' . $year . '-';
 
-        return 'CMD-' . $year . '-' . str_pad($count, 5, '0', STR_PAD_LEFT);
+        $lastOrder = static::withTrashed()
+            ->where('order_number', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING(order_number, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
+            ->first();
+
+        $nextNumber = $lastOrder
+            ? (int) substr($lastOrder->order_number, strlen($prefix)) + 1
+            : 1;
+
+        return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -151,9 +151,24 @@ Route::middleware(['auth', 'approved'])->group(function () {
 });
 
 
-// Route publique pour les réponses de disponibilité des hébergements
-Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponse'])
-    ->name('accommodation.response');
+// GET : affiche la page de confirmation (middleware signed, pas d'action en BDD)
+Route::get('/accommodation/response/{accommodation}', [App\Http\Controllers\AccommodationResponseController::class, 'showConfirmation'])
+    ->name('accommodation.response')
+    ->middleware('signed');
+
+// POST : enregistre la réponse après confirmation (middleware signed = même URL signée)
+Route::post('/accommodation/response/{accommodation}', [App\Http\Controllers\AccommodationResponseController::class, 'processResponse'])
+    ->name('accommodation.response.process')
+    ->middleware('signed');
+
+// Fallback pour les anciens liens avec token (rétrocompatibilité)
+Route::get('/accommodation/response', [App\Http\Controllers\AccommodationResponseController::class, 'handleResponseLegacy'])
+    ->name('accommodation.response.legacy');
+
+// Signalement de problème par un hébergeur
+Route::post('/accommodation/report-problem', [App\Http\Controllers\AccommodationResponseController::class, 'reportProblem'])
+    ->name('accommodation.report-problem')
+    ->middleware('throttle:5,10');
 
 // API publique pour les images
 Route::prefix('api')->name('api.')->group(function () {

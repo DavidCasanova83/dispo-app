@@ -61,12 +61,19 @@
                         {{ $message }}
                     </p>
 
-                    <p class="text-sm text-gray-500">
-                        Si vous pensez qu'il s'agit d'une erreur,<br>
-                        veuillez contacter le support.
-                    </p>
+                    <div class="bg-blue-50 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-gray-700">
+                            Un nouvel email vous est envoyé <strong>chaque matin à 6h</strong>.<br>
+                            Veuillez cliquer sur le lien contenu dans le <strong>dernier email reçu</strong>.
+                        </p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Les liens des anciens emails ne sont plus valides.
+                        </p>
+                    </div>
                 </div>
             @endif
+
+            @include('partials.accommodation-report-form', ['accommodationName' => $accommodation->name ?? 'Non identifié'])
         </div>
     </div>
 </body>

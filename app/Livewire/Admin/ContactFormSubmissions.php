@@ -62,6 +62,77 @@ class ContactFormSubmissions extends Component
         session()->flash('success', 'Soumission supprimée avec succès.');
     }
 
+    public function exportCsv()
+    {
+        $query = ContactFormSubmission::query();
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('visiteur_nom', 'like', '%' . $this->search . '%')
+                  ->orWhere('visiteur_prenom', 'like', '%' . $this->search . '%')
+                  ->orWhere('visiteur_email', 'like', '%' . $this->search . '%')
+                  ->orWhere('etablissement_nom', 'like', '%' . $this->search . '%')
+                  ->orWhere('etablissement_apidae_id', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        if ($this->filterStatus === 'read') {
+            $query->read();
+        } elseif ($this->filterStatus === 'unread') {
+            $query->unread();
+        }
+
+        $submissions = $query->latest()->get();
+
+        $filename = 'soumissions_contact_' . date('Y-m-d_His') . '.csv';
+        $handle = fopen('php://temp', 'w');
+
+        // BOM UTF-8 pour compatibilité Excel
+        fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($handle, [
+            'Date de soumission',
+            'Statut',
+            'Nom',
+            'Prénom',
+            'Email visiteur',
+            'Téléphone',
+            'Message',
+            'ID Apidae établissement',
+            'Nom établissement',
+            'Email établissement',
+            'URL page',
+            'IP visiteur',
+            'Form ID',
+        ]);
+
+        foreach ($submissions as $submission) {
+            fputcsv($handle, [
+                $submission->date_soumission?->format('d/m/Y H:i') ?? $submission->created_at->format('d/m/Y H:i'),
+                $submission->is_read ? 'Lu' : 'Non lu',
+                $submission->visiteur_nom,
+                $submission->visiteur_prenom ?? '',
+                $submission->visiteur_email,
+                $submission->visiteur_telephone ?? '',
+                $submission->visiteur_message ?? '',
+                $submission->etablissement_apidae_id ?? '',
+                $submission->etablissement_nom ?? '',
+                $submission->etablissement_email ?? '',
+                $submission->url_page ?? '',
+                $submission->ip_visiteur ?? '',
+                $submission->form_id,
+            ]);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return response()->streamDownload(function () use ($csv) {
+            echo $csv;
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     public function render()
     {
         $query = ContactFormSubmission::query();

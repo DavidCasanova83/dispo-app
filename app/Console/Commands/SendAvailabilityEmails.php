@@ -32,9 +32,13 @@ class SendAvailabilityEmails extends Command
         $this->info('🚀 Début de l\'envoi des emails de disponibilité...');
         $this->newLine();
 
-        // Récupérer tous les hébergements avec email
+        // Récupérer les hébergements avec email qui n'ont pas encore reçu d'email aujourd'hui
         $accommodations = Accommodation::whereNotNull('email')
             ->where('email', '!=', '')
+            ->where(function ($query) {
+                $query->whereNull('email_sent_at')
+                      ->orWhereDate('email_sent_at', '<', today());
+            })
             ->get();
 
         if ($accommodations->isEmpty()) {

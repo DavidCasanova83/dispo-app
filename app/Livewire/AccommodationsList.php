@@ -108,13 +108,17 @@ class AccommodationsList extends Component
 
   public function sendAvailabilityEmails()
   {
-    // Récupère tous les hébergements qui ont une adresse email
+    // Récupère les hébergements avec email qui n'ont pas encore reçu d'email aujourd'hui
     $accommodations = Accommodation::whereNotNull('email')
       ->where('email', '!=', '')
+      ->where(function ($query) {
+        $query->whereNull('email_sent_at')
+              ->orWhereDate('email_sent_at', '<', today());
+      })
       ->get();
 
     if ($accommodations->isEmpty()) {
-      session()->flash('error', 'Aucun hébergement avec email trouvé.');
+      session()->flash('info', 'Tous les hébergements ont déjà reçu leur email aujourd\'hui.');
       return;
     }
 

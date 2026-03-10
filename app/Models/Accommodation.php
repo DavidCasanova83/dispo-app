@@ -98,16 +98,6 @@ class Accommodation extends Model
   }
 
   /**
-   * Generate a unique response token for email tracking.
-   */
-  public function generateResponseToken(): string
-  {
-    $token = bin2hex(random_bytes(32));
-    $this->update(['email_response_token' => $token]);
-    return $token;
-  }
-
-  /**
    * Mark the accommodation as having received an email.
    */
   public function markEmailSent(): void

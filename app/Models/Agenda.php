@@ -123,12 +123,8 @@ class Agenda extends Model
     protected static function booted(): void
     {
         static::deleting(function (Agenda $agenda) {
-            // Supprimer le PDF si il existe (sauf si c'est agenda-en-cours.pdf)
             if ($agenda->pdf_path && Storage::disk('public')->exists($agenda->pdf_path)) {
-                // Ne pas supprimer agenda-en-cours.pdf
-                if ($agenda->pdf_path !== 'agendas/agenda-en-cours.pdf') {
-                    Storage::disk('public')->delete($agenda->pdf_path);
-                }
+                Storage::disk('public')->delete($agenda->pdf_path);
             }
         });
     }

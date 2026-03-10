@@ -53,6 +53,12 @@ class MailjetService
                             'Name' => $toName,
                         ],
                     ],
+                    'Bcc' => [
+                        [
+                            'Email' => 'webmaster@verdontourisme.com',
+                            'Name' => 'Webmaster',
+                        ],
+                    ],
                     'Subject' => "Mise à jour de vos disponibilités - {$accommodationName}",
                     'TextPart' => "Bonjour,\n\nMerci de nous indiquer vos disponibilités en cliquant sur l'un des liens suivants:\n\nDisponible: {$availableUrl}\nPas disponible: {$notAvailableUrl}",
                     'HTMLPart' => $this->generateEmailHtml($accommodationName, $availableUrl, $notAvailableUrl),
@@ -492,7 +498,7 @@ class MailjetService
                         ],
                     ],
                     'Subject' => "Nouvelle commande {$order->order_number}",
-                    'TextPart' => "Une nouvelle commande vient d'etre passee.\n\nNumero: {$order->order_number}\nClient: {$order->full_name}\nEmail: {$order->email}",
+                    'TextPart' => "Une nouvelle commande vient d'etre passee.\n\nNumero: {$order->order_number}\nClient: {$order->full_name}\nEmail: {$order->email}\nCommandee par: " . ($order->user->name ?? 'N/A'),
                     'HTMLPart' => $this->generateNewOrderNotificationHtml($order),
                 ],
             ],
@@ -563,6 +569,7 @@ class MailjetService
             'city' => $order->city,
             'country' => $order->country,
             'items' => $items,
+            'agentName' => $order->user->name ?? 'N/A',
         ])->render();
     }
 
@@ -598,6 +605,7 @@ class MailjetService
             'customerNotes' => $order->customer_notes,
             'items' => $items,
             'adminUrl' => url('/admin/commandes'),
+            'agentName' => $order->user->name ?? 'N/A',
         ])->render();
     }
 
@@ -856,5 +864,94 @@ class MailjetService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Envoyer un signalement de problème d'un hébergeur au webmaster.
+     */
+    public function sendAccommodationProblemReport(
+        string $accommodationName,
+        string $comment,
+        string $pageUrl,
+        ?string $ipAddress,
+        ?string $userAgent
+    ): array {
+        $body = [
+            'Messages' => [
+                [
+                    'From' => [
+                        'Email' => config('mail.from.address'),
+                        'Name' => config('mail.from.name'),
+                    ],
+                    'To' => [
+                        [
+                            'Email' => 'webmaster@verdontourisme.com',
+                            'Name' => 'Webmaster',
+                        ],
+                    ],
+                    'Subject' => "Signalement hébergeur : {$accommodationName}",
+                    'TextPart' => "Un hébergeur a signalé un problème.\n\nHébergement : {$accommodationName}\nPage : {$pageUrl}\nCommentaire : {$comment}",
+                    'HTMLPart' => $this->generateAccommodationProblemReportHtml(
+                        $accommodationName, $comment, $pageUrl, $ipAddress, $userAgent
+                    ),
+                ],
+            ],
+        ];
+
+        try {
+            $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
+
+            if ($response->success()) {
+                Log::info("Accommodation problem report email sent successfully", [
+                    'accommodation' => $accommodationName,
+                    'response' => $response->getData(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $response->getData(),
+                ];
+            }
+
+            Log::error("Failed to send accommodation problem report email", [
+                'status' => $response->getStatus(),
+                'reason' => $response->getReasonPhrase(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->getReasonPhrase(),
+            ];
+        } catch (\Exception $e) {
+            Log::error("Exception while sending accommodation problem report email", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Générer le HTML pour l'email de signalement hébergeur.
+     */
+    protected function generateAccommodationProblemReportHtml(
+        string $accommodationName,
+        string $comment,
+        string $pageUrl,
+        ?string $ipAddress,
+        ?string $userAgent
+    ): string {
+        return view('emails.accommodation-problem-report', [
+            'accommodationName' => $accommodationName,
+            'comment' => $comment,
+            'pageUrl' => $pageUrl,
+            'reportDate' => now()->format('d/m/Y à H:i'),
+            'ipAddress' => $ipAddress ?? 'Inconnue',
+            'userAgent' => $userAgent ?? 'Inconnu',
+        ])->render();
     }
 }

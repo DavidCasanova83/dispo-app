@@ -61,6 +61,19 @@ class OrderManager extends Component
         }
     }
 
+    public function deleteOrder($orderId)
+    {
+        if (!auth()->user()->hasRole('Super-admin')) {
+            abort(403);
+        }
+
+        $order = ImageOrder::findOrFail($orderId);
+        $order->delete();
+
+        $this->closeDetailModal();
+        session()->flash('success', 'Commande supprimée avec succès.');
+    }
+
     public function exportCsv()
     {
         $orders = ImageOrder::with(['user', 'items.image'])

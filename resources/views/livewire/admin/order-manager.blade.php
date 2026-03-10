@@ -77,8 +77,18 @@
                                     <option value="cancelled" @selected($order->status === 'cancelled')>Annulée</option>
                                 </select>
                             </td>
-                            <td class="p-3">
+                            <td class="p-3 flex items-center gap-2">
                                 <button wire:click="openDetailModal({{ $order->id }})" class="text-blue-600 hover:underline">Détails</button>
+                                @if(auth()->user()->hasRole('Super-admin'))
+                                    <button wire:click="deleteOrder({{ $order->id }})"
+                                        wire:confirm="Êtes-vous sûr de vouloir supprimer la commande {{ $order->order_number }} ?"
+                                        class="p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                        title="Supprimer">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -108,6 +118,7 @@
                                 <div><strong class="text-gray-900 dark:text-white">Société:</strong> {{ $selectedOrder->company }}</div>
                             @endif
                             <div><strong class="text-gray-900 dark:text-white">Langue:</strong> {{ ucfirst($selectedOrder->language) }}</div>
+                            <div><strong class="text-gray-900 dark:text-white">Utilisateur:</strong> {{ $selectedOrder->user->name ?? 'N/A' }}</div>
                         </div>
 
                         <div><strong class="text-gray-900 dark:text-white">Adresse:</strong><br>{{ $selectedOrder->full_address }}</div>
