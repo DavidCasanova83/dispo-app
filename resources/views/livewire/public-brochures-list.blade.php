@@ -246,18 +246,21 @@
                     </span>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex gap-3 sm:gap-4 sm:items-center">
                     {{-- Thumbnail --}}
                     @if (\App\Models\Agenda::hasCoverImage())
                         <div class="flex-shrink-0">
                             <img src="{{ \App\Models\Agenda::getCoverThumbnailUrl() }}" alt="Couverture de l'agenda"
-                                class="w-16 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md ring-2 ring-[#3E9B90]/30">
+                                class="w-12 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md ring-2 ring-[#3E9B90]/30">
                         </div>
                     @endif
 
+                    {{-- Wrapper: infos + boutons --}}
+                    <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-4">
+
                     {{-- Infos --}}
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 class="text-sm sm:text-lg font-bold text-gray-900 dark:text-white max-sm:line-clamp-2">
                             {{ $currentAgenda->title ?? 'Agenda en cours' }} - {{ $currentAgenda->period }}
                         </h3>
                         @if ($currentAgenda->description)
@@ -269,15 +272,15 @@
 
                     {{-- Actions --}}
                     @php
-                        $agendaUrl = asset('storage/agendas/agenda-en-cours.pdf');
+                        $agendaUrl = route('pdf.agenda.current');
                     @endphp
-                    <div class="flex-shrink-0 flex items-center gap-2">
+                    <div class="flex-shrink-0 flex items-center gap-1 sm:gap-2 self-end sm:self-center mt-1 sm:mt-0">
                         {{-- Bouton Consulter (bleu) --}}
                         <a href="{{ $agendaUrl }}" target="_blank" rel="noopener noreferrer"
                             wire:click="trackAgendaClick('consulter')"
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shadow-md cursor-pointer"
+                            class="inline-flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shadow-md cursor-pointer"
                             title="Consulter en ligne">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -289,9 +292,9 @@
                         {{-- Bouton Télécharger (rouge) --}}
                         <a href="{{ $agendaUrl }}" target="_blank" rel="noopener noreferrer"
                             wire:click="trackAgendaClick('telecharger')"
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors shadow-md cursor-pointer"
+                            class="inline-flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors shadow-md cursor-pointer"
                             title="Télécharger" download>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                                 </path>
@@ -301,22 +304,23 @@
                         {{-- Bouton Copier le lien (vert) --}}
                         <button x-data="{ copied: false }"
                             @click="navigator.clipboard.writeText('{{ $agendaUrl }}'); copied = true; setTimeout(() => copied = false, 2000); $wire.trackAgendaClick('copier_lien')"
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-lg transition-colors shadow-md cursor-pointer"
+                            class="inline-flex items-center justify-center w-7 h-7 sm:w-10 sm:h-10 rounded-lg transition-colors shadow-md cursor-pointer"
                             :class="copied ? 'bg-green-500 text-white' :
                                 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
                             :title="copied ? 'Lien copié !' : 'Copier le lien'">
-                            <svg x-show="!copied" class="w-5 h-5" fill="none" stroke="currentColor"
+                            <svg x-show="!copied" class="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
                                 </path>
                             </svg>
-                            <svg x-show="copied" x-cloak class="w-5 h-5" fill="none" stroke="currentColor"
+                            <svg x-show="copied" x-cloak class="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5 13l4 4L19 7"></path>
                             </svg>
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -327,18 +331,21 @@
             @if ($brochures->count() > 0)
                 <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     @foreach ($brochures as $brochure)
-                        <li class="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <div class="flex items-center gap-4">
+                        <li class="p-3 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div class="flex gap-3 sm:gap-4 sm:items-center">
                                 {{-- Thumbnail --}}
                                 <div class="flex-shrink-0">
                                     <img src="{{ $brochure->thumbnail_path ? asset('storage/' . $brochure->thumbnail_path) : asset('storage/' . $brochure->path) }}"
                                         alt="{{ $brochure->alt_text ?? ($brochure->title ?? $brochure->name) }}"
-                                        class="w-16 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md">
+                                        class="w-12 sm:w-20 aspect-[210/297] object-cover rounded-lg shadow-md">
                                 </div>
+
+                                {{-- Wrapper: titre + boutons --}}
+                                <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-4">
 
                                 {{-- Titre et description --}}
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                    <h3 class="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white max-sm:line-clamp-2 sm:truncate">
                                         {{ $brochure->title ?? $brochure->name }}
                                     </h3>
                                     @if ($brochure->description)
@@ -374,7 +381,7 @@
                                 </div>
 
                                 {{-- Liens (icônes) --}}
-                                <div class="flex-shrink-0 flex items-center gap-2">
+                                <div class="flex-shrink-0 flex items-center gap-1 sm:gap-2 self-end sm:self-center mt-1 sm:mt-0">
                                     @php
                                         // URL pour télécharger (priorité: PDF > link > image)
                                         $downloadUrl = $brochure->pdf_path
@@ -391,9 +398,9 @@
                                     {{-- Bouton Consulter --}}
                                     <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
                                         wire:click="trackClick({{ $brochure->id }}, 'consulter')"
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                                        class="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
                                         title="Consulter en ligne">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -406,9 +413,9 @@
                                     {{-- Bouton Télécharger --}}
                                     <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
                                         wire:click="trackClick({{ $brochure->id }}, 'telecharger')"
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+                                        class="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
                                         title="Télécharger" {{ $brochure->pdf_path ? 'download' : '' }}>
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
@@ -419,17 +426,17 @@
                                     {{-- Bouton Copier le lien --}}
                                     <button x-data="{ copied: false }"
                                         @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000); $wire.trackClick({{ $brochure->id }}, 'copier_lien')"
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
+                                        class="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg transition-colors cursor-pointer"
                                         :class="copied ? 'bg-green-500 text-white' :
                                             'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
                                         :title="copied ? 'Lien copié !' : 'Copier le lien'">
-                                        <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor"
+                                        <svg x-show="!copied" class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
                                             </path>
                                         </svg>
-                                        <svg x-show="copied" x-cloak class="w-4 h-4" fill="none"
+                                        <svg x-show="copied" x-cloak class="w-3 h-3 sm:w-4 sm:h-4" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 13l4 4L19 7"></path>
@@ -439,9 +446,9 @@
                                     {{-- Bouton Signaler (visible uniquement si connecté) --}}
                                     @auth
                                         <button wire:click="openReportModal({{ $brochure->id }})"
-                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                                            class="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
                                             title="Signaler un problème">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
@@ -449,6 +456,7 @@
                                             </svg>
                                         </button>
                                     @endauth
+                                </div>
                                 </div>
                             </div>
                         </li>

@@ -245,6 +245,11 @@
                 {{ ucfirst($language) }}
             </p>
 
+            <p>
+                <strong>Commandee par :</strong>
+                {{ $agentName }}
+            </p>
+
             <div class="section-title">Informations client</div>
 
             <div class="info-box">

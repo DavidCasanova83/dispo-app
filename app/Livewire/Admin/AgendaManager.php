@@ -233,18 +233,17 @@ class AgendaManager extends Component
                 return;
             }
 
-            // Sauvegarder le PDF dans le dossier pending
+            // Sauvegarder le PDF
             $pdfFilename = $this->pdfFile->getClientOriginalName();
 
-            // S'assurer que les dossiers existent
+            // S'assurer que le dossier existe
             $agendaDir = Storage::disk('public')->path('agendas');
             if (!file_exists($agendaDir)) {
                 mkdir($agendaDir, 0755, true);
             }
-            $pendingDir = Storage::disk('public')->path('agendas/pending');
-            if (!file_exists($pendingDir)) {
-                mkdir($pendingDir, 0755, true);
-            }
+
+            // Hériter catégorie/auteur de l'agenda en cours
+            $currentAgenda = Agenda::current()->first();
 
             // Créer l'entrée en base d'abord pour obtenir l'ID
             $agenda = Agenda::create([
@@ -256,10 +255,12 @@ class AgendaManager extends Component
                 'end_date' => $this->endDate,
                 'status' => Agenda::STATUS_PENDING,
                 'uploaded_by' => auth()->id(),
+                'category_id' => $currentAgenda?->category_id,
+                'author_id' => $currentAgenda?->author_id,
             ]);
 
-            // Stocker le PDF avec l'ID de l'agenda
-            $pdfPath = $this->pdfFile->storeAs('agendas/pending', $agenda->id . '.pdf', 'public');
+            // Stocker le PDF avec un chemin unique permanent : agendas/{id}.pdf
+            $pdfPath = $this->pdfFile->storeAs('agendas', $agenda->id . '.pdf', 'public');
 
             // Mettre à jour le chemin du PDF
             $agenda->update(['pdf_path' => $pdfPath]);
@@ -325,52 +326,16 @@ class AgendaManager extends Component
                 return;
             }
 
-            // Déterminer le chemin selon le statut de l'agenda
-            if ($this->editingAgenda->isCurrent()) {
-                // Pour l'agenda en cours : remplacer agenda-en-cours.pdf
-                $newPdfPath = 'agendas/agenda-en-cours.pdf';
-                if (Storage::disk('public')->exists($newPdfPath)) {
-                    Storage::disk('public')->delete($newPdfPath);
-                }
-                $this->editPdfFile->storeAs('agendas', 'agenda-en-cours.pdf', 'public');
-                $this->editingAgenda->pdf_path = $newPdfPath;
-                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
-
-            } elseif ($this->editingAgenda->isPending()) {
-                // Pour un agenda en attente : remplacer dans pending
-                $oldPath = $this->editingAgenda->pdf_path;
-                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-                $this->editPdfFile->storeAs('agendas/pending', $this->editingAgenda->id . '.pdf', 'public');
-                $this->editingAgenda->pdf_path = 'agendas/pending/' . $this->editingAgenda->id . '.pdf';
-                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
-
-            } elseif ($this->editingAgenda->isArchived()) {
-                // Pour un agenda archivé : utiliser le nommage par date
-                $oldPath = $this->editingAgenda->pdf_path;
-                $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
-                $newPdfPath = 'agendas/archives/' . $newArchiveFilename;
-
-                if ($oldPath && $oldPath !== $newPdfPath && Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-                $this->editPdfFile->storeAs('agendas/archives', $newArchiveFilename, 'public');
-                $this->editingAgenda->pdf_path = $newPdfPath;
-                $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
+            // Supprimer l'ancien fichier s'il existe
+            $oldPath = $this->editingAgenda->pdf_path;
+            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
             }
-        } else {
-            // Si pas de nouveau PDF mais agenda archivé avec changement de dates, renommer le fichier
-            if ($this->editingAgenda->isArchived()) {
-                $oldArchivePath = $this->editingAgenda->pdf_path;
-                $newArchiveFilename = $this->editStartDate . '_' . $this->editEndDate . '.pdf';
-                $newArchivePath = 'agendas/archives/' . $newArchiveFilename;
 
-                if ($oldArchivePath !== $newArchivePath && Storage::disk('public')->exists($oldArchivePath)) {
-                    Storage::disk('public')->move($oldArchivePath, $newArchivePath);
-                    $this->editingAgenda->pdf_path = $newArchivePath;
-                }
-            }
+            // Stocker le nouveau PDF au chemin permanent agendas/{id}.pdf
+            $this->editPdfFile->storeAs('agendas', $this->editingAgenda->id . '.pdf', 'public');
+            $this->editingAgenda->pdf_path = 'agendas/' . $this->editingAgenda->id . '.pdf';
+            $this->editingAgenda->pdf_filename = $this->editPdfFile->getClientOriginalName();
         }
 
         $this->editingAgenda->update([

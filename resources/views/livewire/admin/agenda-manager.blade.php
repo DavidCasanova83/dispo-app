@@ -295,7 +295,7 @@
                 <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         <span class="font-medium">Lien permanent PDF:</span>
-                        <code class="ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs break-all">{{ asset('storage/agendas/agenda-en-cours.pdf') }}</code>
+                        <code class="ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs break-all">{{ route('pdf.agenda.current') }}</code>
                     </p>
                 </div>
             @else

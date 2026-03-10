@@ -43,8 +43,13 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $schedule->command('emails:send-availability')
             ->dailyAt('06:00')
+            ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/emails-daily.log'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Illuminate\Routing\Exceptions\InvalidSignatureException $e, $request) {
+            if ($request->is('accommodation/response/*')) {
+                return response()->view('accommodation-response-expired', [], 403);
+            }
+        });
     })->create();

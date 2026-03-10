@@ -8,27 +8,28 @@
             </p>
         </div>
 
-        {{-- Message de succès --}}
+        {{-- Modale de succès --}}
         @if ($showSuccessMessage)
-            <div class="mb-6 rounded-lg bg-gradient-to-r from-green-500 to-green-600 p-6 shadow-lg">
-                <div class="flex items-start">
-                    <svg class="w-6 h-6 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-white">Commande confirmée !</h3>
-                        <p class="mt-1 text-white">
-                            La commande <strong>{{ $orderNumber }}</strong> a été enregistrée avec succès.
-                            Vous allez recevoir un email de confirmation à votre adresse mail.
-                        </p>
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeSuccessMessage">
+                <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-[#3E9B90] flex items-center justify-center">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
                     </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Commande confirmée !</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-1">
+                        La commande <strong class="text-[#3E9B90]">{{ $orderNumber }}</strong> a été enregistrée avec succès.
+                    </p>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                        Vous allez recevoir un email de confirmation à votre adresse mail.
+                    </p>
                     <button type="button" wire:click="closeSuccessMessage"
-                        class="text-white hover:text-gray-200 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+                        class="px-8 py-2.5 bg-[#3E9B90] text-white font-semibold rounded-lg hover:bg-[#357f76] transition-colors">
+                        Fermer
                     </button>
                 </div>
             </div>

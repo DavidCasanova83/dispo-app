@@ -4,13 +4,22 @@ namespace App\Jobs;
 
 use App\Models\Accommodation;
 use App\Services\MailjetService;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
-class SendAccommodationAvailabilityEmail implements ShouldQueue
+class SendAccommodationAvailabilityEmail implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
+
+    public $uniqueFor = 86400;
+
+    public function uniqueId(): string
+    {
+        return 'accommodation-email-' . $this->accommodation->id;
+    }
 
     /**
      * Create a new job instance.
@@ -25,23 +34,27 @@ class SendAccommodationAvailabilityEmail implements ShouldQueue
      */
     public function handle(MailjetService $mailjetService): void
     {
+        // Vérifier si l'email a déjà été envoyé aujourd'hui
+        $this->accommodation->refresh();
+        if ($this->accommodation->email_sent_at && $this->accommodation->email_sent_at->isToday()) {
+            Log::info("Email already sent today for accommodation {$this->accommodation->id}, skipping");
+            return;
+        }
+
         // Vérifie que l'hébergement a une adresse email
         if (empty($this->accommodation->email)) {
             Log::warning("Accommodation {$this->accommodation->id} has no email address");
             return;
         }
 
-        // Génère un token unique pour ce processus d'envoi
-        $token = $this->accommodation->generateResponseToken();
-
-        // Génère les URLs de réponse
-        $availableUrl = route('accommodation.response', [
-            'token' => $token,
+        // Génère les URLs de réponse signées avec expiration à 7 jours
+        $availableUrl = URL::temporarySignedRoute('accommodation.response', now()->addDays(7), [
+            'accommodation' => $this->accommodation->id,
             'available' => 1,
         ]);
 
-        $notAvailableUrl = route('accommodation.response', [
-            'token' => $token,
+        $notAvailableUrl = URL::temporarySignedRoute('accommodation.response', now()->addDays(7), [
+            'accommodation' => $this->accommodation->id,
             'available' => 0,
         ]);
 

@@ -179,14 +179,16 @@
                 </div>
             </div>
 
-            <h2>Merci pour votre commande !</h2>
+            <h2>Commande enregistree !</h2>
 
             <p>
-                Bonjour {{ $civility === 'mr' ? 'Monsieur' : ($civility === 'mme' ? 'Madame' : '') }} {{ $fullName }},
+                Bonjour <strong>{{ $agentName }}</strong>,
             </p>
 
             <p>
-                Nous avons bien recu votre commande de brochures et nous vous en remercions.
+                Votre commande de brochures au nom de
+                <strong>{{ $civility === 'mr' ? 'M.' : ($civility === 'mme' ? 'Mme' : '') }} {{ $fullName }}</strong>
+                a bien ete enregistree.
             </p>
 
             <div class="order-number">

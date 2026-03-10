@@ -7,6 +7,9 @@
                 Consultez les messages reçus depuis le site WordPress
             </p>
         </div>
+        <button wire:click="exportCsv" class="px-4 py-2 bg-[#3E9B90] text-white rounded-lg hover:bg-[#357f76]">
+            Exporter CSV
+        </button>
     </div>
 
     {{-- Flash Messages --}}
