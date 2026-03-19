@@ -6,8 +6,11 @@ use App\Models\BrochureReport;
 use App\Models\Image;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager as InterventionImageManager;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Livewire\WithPagination;
@@ -18,9 +21,12 @@ class MyBrochuresManager extends Component
 
     public $search = '';
 
-    // Edit PDF modal properties
+    // Edit modal properties
     public $showEditModal = false;
     public $editingImage = null;
+    public $editTitle = '';
+    public $editDescription = '';
+    public $editPresentationImage = null;
     public $editPdfFile = null;
     public $removePdf = false;
 
@@ -29,9 +35,16 @@ class MyBrochuresManager extends Component
     public ?BrochureReport $selectedReport = null;
     public string $resolutionNote = '';
 
-    // Whitelist des MIME types PDF autorisés
+    // Whitelist des MIME types autorisés
     private const ALLOWED_PDF_MIME_TYPES = [
         'application/pdf',
+    ];
+
+    private const ALLOWED_IMAGE_MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
     ];
 
     protected $queryString = [
@@ -39,6 +52,10 @@ class MyBrochuresManager extends Component
     ];
 
     protected $messages = [
+        'editTitle.max' => 'Le titre ne doit pas dépasser 255 caractères.',
+        'editDescription.max' => 'La description ne doit pas dépasser 1000 caractères.',
+        'editPresentationImage.image' => 'Le fichier doit être une image.',
+        'editPresentationImage.max' => 'L\'image ne doit pas dépasser 10 MB.',
         'editPdfFile.mimes' => 'Le fichier doit être un PDF.',
         'editPdfFile.max' => 'Le PDF ne doit pas dépasser 50 MB.',
     ];
@@ -57,6 +74,9 @@ class MyBrochuresManager extends Component
             ->findOrFail($imageId);
 
         $this->editingImage = $image;
+        $this->editTitle = $image->title ?? '';
+        $this->editDescription = $image->description ?? '';
+        $this->editPresentationImage = null;
         $this->editPdfFile = null;
         $this->removePdf = false;
         $this->showEditModal = true;
@@ -69,7 +89,7 @@ class MyBrochuresManager extends Component
     {
         $this->showEditModal = false;
         $this->editingImage = null;
-        $this->reset(['editPdfFile', 'removePdf']);
+        $this->reset(['editTitle', 'editDescription', 'editPresentationImage', 'editPdfFile', 'removePdf']);
     }
 
     /**
@@ -124,30 +144,121 @@ class MyBrochuresManager extends Component
     }
 
     /**
-     * Update the PDF only
+     * Update the brochure (title, description, presentation image, PDF)
      */
-    public function updatePdf()
+    public function updateBrochure()
     {
         if (!$this->editingImage) {
             return;
         }
 
+        $userId = Auth::id();
+        $imageId = $this->editingImage->id;
+
+        Log::info('Brochure update initiated', [
+            'user_id' => $userId,
+            'image_id' => $imageId,
+            'has_new_image' => (bool) $this->editPresentationImage,
+            'has_new_pdf' => (bool) $this->editPdfFile,
+            'remove_pdf_requested' => $this->removePdf,
+        ]);
+
         // Verify user is still responsable of this image
-        if ($this->editingImage->responsable_id !== Auth::id()) {
+        if ($this->editingImage->responsable_id !== $userId) {
+            Log::warning('Brochure update unauthorized', [
+                'user_id' => $userId,
+                'image_id' => $imageId,
+                'responsable_id' => $this->editingImage->responsable_id,
+            ]);
             session()->flash('error', 'Vous n\'êtes pas autorisé à modifier cette brochure.');
             $this->closeEditModal();
             return;
         }
 
         $this->validate([
+            'editTitle' => 'nullable|max:255',
+            'editDescription' => 'nullable|max:1000',
+            'editPresentationImage' => 'nullable|image|max:10240',
             'editPdfFile' => 'nullable|mimes:pdf|max:51200',
         ]);
 
-        // Handle PDF update
+        $updateData = [
+            'title' => $this->editTitle ?: null,
+            'description' => $this->editDescription ?: null,
+        ];
+
+        // === Handle presentation image ===
+        if ($this->editPresentationImage) {
+            if (!in_array($this->editPresentationImage->getMimeType(), self::ALLOWED_IMAGE_MIME_TYPES)) {
+                Log::warning('Image upload rejected - invalid MIME type', [
+                    'user_id' => $userId,
+                    'image_id' => $imageId,
+                    'mime_type' => $this->editPresentationImage->getMimeType(),
+                ]);
+                session()->flash('error', 'Type de fichier image non autorisé.');
+                return;
+            }
+
+            $imageSlug = Str::limit(Str::slug($this->editTitle ?: $this->editingImage->name), 100) ?: 'brochure';
+            $extension = strtolower($this->editPresentationImage->getClientOriginalExtension());
+            $presentationFilename = $imageSlug . '.' . $extension;
+            $counter = 1;
+            while (Storage::disk('public')->exists('images/' . $presentationFilename)) {
+                $presentationFilename = $imageSlug . '-' . $counter . '.' . $extension;
+                $counter++;
+            }
+
+            $newPath = $this->editPresentationImage->storeAs('images', $presentationFilename, 'public');
+            $fullPath = Storage::disk('public')->path($newPath);
+
+            // Process image with Intervention
+            $manager = new InterventionImageManager(new Driver());
+            $img = $manager->read($fullPath);
+            $updateData['width'] = $img->width();
+            $updateData['height'] = $img->height();
+            $img->save($fullPath, quality: 85);
+            $updateData['mime_type'] = $this->editPresentationImage->getMimeType();
+
+            // Generate thumbnail
+            $thumbnailFilename = 'thumb_' . $presentationFilename;
+            $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+            $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+            $thumbnailDir = dirname($thumbnailFullPath);
+            if (!file_exists($thumbnailDir)) {
+                mkdir($thumbnailDir, 0755, true);
+            }
+            $thumbnail = $manager->read($fullPath);
+            $thumbnail->cover(300, 300);
+            $thumbnail->save($thumbnailFullPath, quality: 80);
+
+            // Delete old files
+            if ($this->editingImage->path && Storage::disk('public')->exists($this->editingImage->path)) {
+                Storage::disk('public')->delete($this->editingImage->path);
+            }
+            if ($this->editingImage->thumbnail_path && Storage::disk('public')->exists($this->editingImage->thumbnail_path)) {
+                Storage::disk('public')->delete($this->editingImage->thumbnail_path);
+            }
+
+            $updateData['path'] = $newPath;
+            $updateData['thumbnail_path'] = $thumbnailPath;
+
+            Log::info('Presentation image updated', [
+                'user_id' => $userId,
+                'image_id' => $imageId,
+                'new_path' => $newPath,
+            ]);
+        }
+
+        // === Handle PDF ===
         $pdfPath = $this->editingImage->pdf_path;
 
         // Remove PDF if requested
         if ($this->removePdf && $pdfPath) {
+            Log::info('PDF removal requested', [
+                'user_id' => $userId,
+                'image_id' => $imageId,
+                'deleted_pdf_path' => $pdfPath,
+            ]);
             if (Storage::disk('public')->exists($pdfPath)) {
                 Storage::disk('public')->delete($pdfPath);
             }
@@ -156,25 +267,28 @@ class MyBrochuresManager extends Component
 
         // Upload new PDF if provided
         if ($this->editPdfFile && !$this->removePdf) {
-            // Validate MIME type
             if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_PDF_MIME_TYPES)) {
+                Log::warning('PDF upload rejected - invalid MIME type', [
+                    'user_id' => $userId,
+                    'image_id' => $imageId,
+                    'mime_type' => $this->editPdfFile->getMimeType(),
+                ]);
                 session()->flash('error', 'Type de fichier PDF non autorisé.');
                 return;
             }
 
-            // If a PDF already exists, overwrite with the same name (stable URL)
             if ($this->editingImage->pdf_path) {
                 $pdfFilename = basename($this->editingImage->pdf_path);
                 Storage::disk('public')->putFileAs('pdfs', $this->editPdfFile, $pdfFilename);
                 $pdfPath = $this->editingImage->pdf_path;
+                Log::info('PDF replaced (overwrite)', [
+                    'user_id' => $userId,
+                    'image_id' => $imageId,
+                    'pdf_filename' => $pdfFilename,
+                    'file_size_kb' => round($this->editPdfFile->getSize() / 1024, 2),
+                ]);
             } else {
-                // New PDF: use the title (fallback to image name)
-                $imageSlug = Str::limit(Str::slug($this->editingImage->title) ?: Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
-                if (empty($imageSlug)) {
-                    $imageSlug = 'document';
-                }
-
-                // If a file already exists with this name, add a numeric suffix
+                $imageSlug = Str::limit(Str::slug($this->editTitle ?: $this->editingImage->name), 100) ?: 'document';
                 $basePdfFilename = $imageSlug . '.pdf';
                 $pdfFilename = $basePdfFilename;
                 $pdfCounter = 1;
@@ -183,18 +297,30 @@ class MyBrochuresManager extends Component
                     $pdfCounter++;
                 }
                 $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
+                Log::info('New PDF added', [
+                    'user_id' => $userId,
+                    'image_id' => $imageId,
+                    'new_pdf_path' => $pdfPath,
+                    'file_size_kb' => round($this->editPdfFile->getSize() / 1024, 2),
+                ]);
             }
         }
 
-        // Update only the pdf_path field
-        $this->editingImage->update([
-            'pdf_path' => $pdfPath,
-        ]);
+        $updateData['pdf_path'] = $pdfPath;
+
+        // Update the brochure
+        $this->editingImage->update($updateData);
 
         // Regenerate JSON file
         Artisan::call('images:generate-json');
 
-        session()->flash('success', 'Le PDF de la brochure a été mis à jour avec succès.');
+        Log::info('Brochure update completed', [
+            'user_id' => $userId,
+            'image_id' => $imageId,
+            'brochure_title' => $this->editTitle,
+        ]);
+
+        session()->flash('success', 'La brochure a été mise à jour avec succès.');
         $this->closeEditModal();
     }
 

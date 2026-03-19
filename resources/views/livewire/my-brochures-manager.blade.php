@@ -4,7 +4,7 @@
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Mes Brochures</h1>
             <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                Gérez les PDFs de vos brochures
+                Gérez vos brochures
             </p>
         </div>
 
@@ -155,7 +155,7 @@
                                 {{-- Edit PDF button --}}
                                 <button wire:click="openEditModal({{ $brochure->id }})"
                                     class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
-                                    title="Modifier le PDF">
+                                    title="Modifier la brochure">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -184,27 +184,82 @@
             @endif
         </div>
 
-        {{-- Edit PDF Modal --}}
+        {{-- Edit Brochure Modal --}}
         @if ($showEditModal && $editingImage)
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="flex min-h-screen items-center justify-center px-4 py-6">
                     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
                         wire:click="closeEditModal"></div>
 
-                    <div class="relative bg-white dark:bg-[#001716] rounded-lg shadow-xl max-w-lg w-full p-6">
+                    <div class="relative bg-white dark:bg-[#001716] rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                            Modifier le PDF
+                            Modifier la brochure
                         </h3>
 
-                        <form wire:submit.prevent="updatePdf">
-                            {{-- Image preview --}}
+                        <form wire:submit.prevent="updateBrochure">
+                            {{-- Current image preview --}}
                             <div class="mb-4 flex items-center gap-4">
                                 <img src="{{ $editingImage->thumbnail_path ? asset('storage/' . $editingImage->thumbnail_path) : asset('storage/' . $editingImage->path) }}"
                                     alt="{{ $editingImage->alt_text ?? $editingImage->name }}"
-                                    class="w-20 h-28 object-cover rounded-lg">
+                                    class="w-20 h-28 object-cover rounded-lg border border-gray-200 dark:border-gray-600">
                                 <div>
                                     <p class="font-semibold text-gray-900 dark:text-white">{{ $editingImage->title ?? $editingImage->name }}</p>
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ $editingImage->name }}</p>
+                                </div>
+                            </div>
+
+                            {{-- Title --}}
+                            <div class="mb-4">
+                                <label for="editTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Titre
+                                </label>
+                                <input type="text" id="editTitle" wire:model="editTitle"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                    placeholder="Titre de la brochure">
+                                @error('editTitle')
+                                    <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            {{-- Description --}}
+                            <div class="mb-4">
+                                <label for="editDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Description
+                                </label>
+                                <textarea id="editDescription" wire:model="editDescription" rows="3"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                    placeholder="Description de la brochure"></textarea>
+                                @error('editDescription')
+                                    <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            {{-- Presentation Image --}}
+                            <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Image de présentation
+                                </label>
+
+                                @if ($editPresentationImage)
+                                    <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Aperçu de la nouvelle image :</p>
+                                        <img src="{{ $editPresentationImage->temporaryUrl() }}"
+                                            class="w-24 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600">
+                                    </div>
+                                @endif
+
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Changer l'image de présentation (max 10MB)
+                                    </label>
+                                    <input type="file" wire:model="editPresentationImage" accept="image/jpeg,image/png,image/gif,image/webp"
+                                        class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2">
+                                    @error('editPresentationImage')
+                                        <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                    <div wire:loading wire:target="editPresentationImage" class="text-xs text-gray-500 mt-1">
+                                        Chargement de l'image...
+                                    </div>
                                 </div>
                             </div>
 
@@ -259,9 +314,9 @@
 
                                 <button type="submit"
                                     class="px-6 py-3 text-sm font-medium text-white bg-[#3E9B90] hover:bg-[#2d7a72] rounded-lg transition-colors shadow-md"
-                                    wire:loading.attr="disabled" wire:target="editPdfFile, updatePdf">
-                                    <span wire:loading.remove wire:target="updatePdf">Enregistrer</span>
-                                    <span wire:loading wire:target="updatePdf">Enregistrement...</span>
+                                    wire:loading.attr="disabled" wire:target="editPresentationImage, editPdfFile, updateBrochure">
+                                    <span wire:loading.remove wire:target="updateBrochure">Enregistrer</span>
+                                    <span wire:loading wire:target="updateBrochure">Enregistrement...</span>
                                 </button>
                             </div>
                         </form>
