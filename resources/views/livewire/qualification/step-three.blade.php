@@ -213,6 +213,67 @@
                 </button>
             @endforeach
         </div>
+        <!-- Chips des "Autre" sélectionnées -->
+        @if (count($otherGeneralRequests) > 0)
+            <div class="flex flex-wrap gap-2 mt-3">
+                @foreach ($otherGeneralRequests as $request)
+                    <span class="inline-flex items-center gap-1 px-3 py-1 bg-[#3E9B90] text-white rounded-lg text-sm">
+                        {{ $request }}
+                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($request) }})"
+                            class="hover:bg-white/20 rounded-full p-0.5 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </span>
+                @endforeach
+            </div>
+        @endif
+
+        <!-- Bouton Autre avec dropdown -->
+        <div class="relative mt-3" x-data="{ showGeneralOther: false }">
+            <button type="button" @click="showGeneralOther = !showGeneralOther"
+                @class([
+                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                    'bg-[#3E9B90] text-white shadow-md scale-105' =>
+                        count($otherGeneralRequests) > 0,
+                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' =>
+                        count($otherGeneralRequests) === 0,
+                ])>
+                Autre
+                <svg class="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+
+            <div x-show="showGeneralOther" @click.away="showGeneralOther = false"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:enter-end="opacity-100 transform scale-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 transform scale-100"
+                x-transition:leave-end="opacity-0 transform scale-95"
+                class="absolute z-10 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                style="display: none;">
+                <div class="max-h-60 overflow-y-auto">
+                    @foreach (['Patou', 'Pluies', 'Enfant en bas age'] as $option)
+                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($option) }})"
+                            class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between">
+                            <span class="text-gray-900 dark:text-white">{{ $option }}</span>
+                            @if (in_array($option, $otherGeneralRequests))
+                                <svg class="w-5 h-5 text-[#3E9B90]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            @endif
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
         @error('generalRequests')
             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror

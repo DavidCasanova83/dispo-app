@@ -40,7 +40,7 @@
             Tranche(s) d'âge correspondant <span class="text-red-500">*</span>
         </label>
         <div class="flex flex-wrap gap-2 mb-3">
-            @foreach (['0-18', '18-25', '25-40', '40-60', '60+'] as $ageOption)
+            @foreach (['0-6', '6-12', '12-18', '18-25', '25-40', '40-60', '60+'] as $ageOption)
                 <button type="button" wire:click="toggleAgeGroup('{{ $ageOption }}')" :disabled="$wire.ageUnknown"
                     @class([
                         'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed',
@@ -65,6 +65,31 @@
         @error('ageGroups')
             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
+    </div>
+
+    <hr class="my-6 border-gray-300 dark:border-gray-600">
+
+    <!-- Caractéristiques -->
+    <div class="mb-6">
+        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+            Caractéristiques
+        </label>
+        <div class="flex flex-wrap gap-2">
+            @foreach (['Avec un chien', 'Avec ses enfants', 'En situation de handicap'] as $charOption)
+                <button type="button" wire:click="toggleCharacteristic({{ json_encode($charOption) }})"
+                    @class([
+                        'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                        'bg-[#3E9B90] text-white shadow-md scale-105' => in_array(
+                            $charOption,
+                            $characteristics),
+                        'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => !in_array(
+                            $charOption,
+                            $characteristics),
+                    ])>
+                    {{ $charOption }}
+                </button>
+            @endforeach
+        </div>
     </div>
 
     <!-- Navigation -->

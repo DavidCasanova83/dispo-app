@@ -171,9 +171,9 @@ class QualificationStatisticsService
             return $country;
         })->filter()->countBy()->sortDesc()->take(10);
 
-        // Départements (seulement pour France)
+        // Départements
         $departments = $qualifications->filter(function($q) {
-            return ($q->form_data['country'] ?? null) === 'France' && !($q->form_data['departmentUnknown'] ?? false);
+            return !($q->form_data['departmentUnknown'] ?? false);
         })->flatMap(function($q) {
             return $q->form_data['departments'] ?? [];
         })->countBy()->sortDesc()->take(10);
@@ -191,6 +191,11 @@ class QualificationStatisticsService
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
 
+        // Types de visiteur
+        $visitorTypes = $qualifications->map(function($q) {
+            return $q->form_data['visitorType'] ?? 'Touriste';
+        })->countBy();
+
         // Profils
         $profiles = $qualifications->pluck('form_data.profile')->filter()->countBy();
 
@@ -199,9 +204,16 @@ class QualificationStatisticsService
             return $q->form_data['ageGroups'] ?? [];
         })->countBy();
 
+        // Caractéristiques
+        $characteristics = $qualifications->flatMap(function($q) {
+            return $q->form_data['characteristics'] ?? [];
+        })->countBy();
+
         return [
+            'visitorTypes' => $visitorTypes->toArray(),
             'profiles' => $profiles->toArray(),
             'ageGroups' => $ageGroups->toArray(),
+            'characteristics' => $characteristics->toArray(),
         ];
     }
 

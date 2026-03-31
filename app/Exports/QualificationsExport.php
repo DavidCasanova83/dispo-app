@@ -78,6 +78,7 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             'Étape actuelle',
             'Nom de l\'agent',
             'Email de l\'agent',
+            'Type de visiteur',
             'Pays',
             'Département(s)',
             'Département inconnu',
@@ -86,11 +87,13 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             'Consent Traitement données',
             'Profil visiteur',
             'Tranches d\'âge',
+            'Caractéristiques',
             'Date de modification',
             'Méthode de contact',
             'Demandes spécifiques ville',
             'Autres demandes spécifiques',
             'Demandes générales',
+            'Autres demandes générales',
             'Demande texte libre',
         ];
     }
@@ -115,6 +118,11 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             ? implode(', ', $formData['ageGroups'])
             : '';
 
+        // Caractéristiques (array to string)
+        $characteristics = isset($formData['characteristics']) && is_array($formData['characteristics'])
+            ? implode(', ', $formData['characteristics'])
+            : '';
+
         // Demandes spécifiques (array to string)
         $specificRequests = isset($formData['specificRequests']) && is_array($formData['specificRequests'])
             ? implode(', ', $formData['specificRequests'])
@@ -130,6 +138,11 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             ? implode(', ', $formData['generalRequests'])
             : '';
 
+        // Autres demandes générales (array to string)
+        $otherGeneralRequests = isset($formData['otherGeneralRequests']) && is_array($formData['otherGeneralRequests'])
+            ? implode(', ', $formData['otherGeneralRequests'])
+            : '';
+
         return [
             $qualification->id,
             $cityName,
@@ -139,6 +152,7 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             $qualification->current_step,
             $qualification->user->name ?? '',
             $qualification->user->email ?? '',
+            $formData['visitorType'] ?? 'Touriste',
             $formData['country'] ?? '',
             $departments,
             ($formData['departmentUnknown'] ?? false) ? 'Oui' : 'Non',
@@ -147,11 +161,13 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             ($formData['consentDataProcessing'] ?? false) ? 'Oui' : 'Non',
             $formData['profile'] ?? '',
             $ageGroups,
+            $characteristics,
             $formData['addedDate'] ?? '',
             $formData['contactMethod'] ?? '',
             $specificRequests,
             $otherSpecificRequests,
             $generalRequests,
+            $otherGeneralRequests,
             $formData['otherRequest'] ?? '',
         ];
     }
@@ -175,13 +191,13 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 // Appliquer un filtre automatique
-                $event->sheet->getDelegate()->setAutoFilter('A1:V1');
+                $event->sheet->getDelegate()->setAutoFilter('A1:Y1');
 
                 // Figer la première ligne
                 $event->sheet->getDelegate()->freezePane('A2');
 
                 // Couleur de fond pour les en-têtes
-                $event->sheet->getDelegate()->getStyle('A1:V1')->applyFromArray([
+                $event->sheet->getDelegate()->getStyle('A1:Y1')->applyFromArray([
                     'fill' => [
                         'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                         'color' => ['rgb' => '3E9B90']

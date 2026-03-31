@@ -399,8 +399,16 @@
                     </div>
                 </div>
 
-                <!-- Row: Profils + Âges -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Row: Types de visiteur + Profils + Âges -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Types de visiteur -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Types de visiteur</h3>
+                        <div wire:ignore class="h-80">
+                            <canvas id="visitorTypesChart"></canvas>
+                        </div>
+                    </div>
+
                     <!-- Profils visiteurs -->
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profils visiteurs</h3>
@@ -885,6 +893,42 @@
 
                     // Initialiser le graphique avec l'état préservé (ou en mode valeurs par défaut)
                     window.updateCountriesChart(window.countriesChartPercentageMode);
+
+                    // 3b. Types de visiteur (Pie chart)
+                    const visitorTypes = statistics.profiles.visitorTypes || {};
+                    const visitorTypeLabels = Object.keys(visitorTypes);
+                    const visitorTypeValues = Object.values(visitorTypes);
+
+                    const visitorTypesCtx = document.getElementById('visitorTypesChart');
+                    if (visitorTypesCtx) {
+                        chartInstances.visitorTypesChart = new Chart(visitorTypesCtx, {
+                            type: 'pie',
+                            data: {
+                                labels: visitorTypeLabels,
+                                datasets: [{
+                                    data: visitorTypeValues,
+                                    backgroundColor: colors
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: {
+                                            color: textColor,
+                                            padding: 15,
+                                            font: {
+                                                size: 11
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
 
                     // 4. Profils visiteurs (Pie chart)
                     const profiles = statistics.profiles.profiles;

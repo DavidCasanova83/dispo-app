@@ -28,6 +28,27 @@
                 <div class="border-b border-gray-200 dark:border-gray-700 pb-8">
                     <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Informations générales</h2>
 
+                    <!-- Type de visiteur -->
+                    <div class="mb-6">
+                        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+                            Type de visiteur <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (['Touriste', 'Habitant', 'Socio Pro'] as $typeOption)
+                                <button type="button" wire:click="$set('visitorType', '{{ $typeOption }}')"
+                                    @class([
+                                        'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                        'bg-[#3E9B90] text-white shadow-md scale-105' =>
+                                            $visitorType === $typeOption,
+                                        'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' =>
+                                            $visitorType !== $typeOption,
+                                    ])>
+                                    {{ $typeOption }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
                     <!-- Pays de résidence -->
                     <div class="mb-6">
                         <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
@@ -62,56 +83,17 @@
                         @endif
                     </div>
 
-                    <!-- Département (si France) -->
-                    @if ($country === 'France')
-                        <div class="mb-6">
-                            <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-                                Préciser le(s) département(s) <span class="text-red-500">*</span>
-                            </label>
-                            <livewire:department-selector :departments="$departments" :unknown="$departmentUnknown" :key="'department-selector-edit-' . $qualificationId . '-' . $country" />
-                            @error('departments')
-                                <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    @endif
-
-                    <hr class="my-6 border-gray-300 dark:border-gray-600">
-
-                    <!-- Email -->
+                    <!-- Département -->
                     <div class="mb-6">
                         <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-                            Email <span class="text-sm text-gray-500 font-normal">(optionnel)</span>
+                            Préciser le(s) département(s)
                         </label>
-                        <input type="email" wire:model.blur="email"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all"
-                            placeholder="contact@exemple.com">
-                        @error('email')
+                        <livewire:department-selector :departments="$departments" :unknown="$departmentUnknown" :key="'department-selector-edit-' . $qualificationId . '-' . $country" />
+                        @error('departments')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <!-- Consentements -->
-                    <div class="space-y-3 mb-6">
-                        <label
-                            class="flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                            <input type="checkbox" wire:model="consentNewsletter"
-                                class="w-5 h-5 text-[#3E9B90] border-gray-300 rounded focus:ring-2 focus:ring-[#3E9B90] mt-0.5">
-                            <span class="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                                La personne souhaite recevoir la <strong>newsletter</strong> et des informations sur les
-                                événements.
-                            </span>
-                        </label>
-
-                        <label
-                            class="flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                            <input type="checkbox" wire:model="consentDataProcessing"
-                                class="w-5 h-5 text-[#3E9B90] border-gray-300 rounded focus:ring-2 focus:ring-[#3E9B90] mt-0.5">
-                            <span class="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                                J'accepte que mes données soient traitées conformément à la politique de confidentialité
-                                RGPD.
-                            </span>
-                        </label>
-                    </div>
                 </div>
 
                 <!-- Section 2 : Profil -->
@@ -158,7 +140,7 @@
                             Tranche(s) d'âge correspondant <span class="text-red-500">*</span>
                         </label>
                         <div class="flex flex-wrap gap-2 mb-3">
-                            @foreach (['0-18', '18-25', '25-40', '40-60', '60+'] as $ageOption)
+                            @foreach (['0-6', '6-12', '12-18', '18-25', '25-40', '40-60', '60+'] as $ageOption)
                                 <button type="button" wire:click="toggleAgeGroup('{{ $ageOption }}')"
                                     {{ $ageUnknown ? 'disabled' : '' }} @class([
                                         'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
@@ -184,6 +166,31 @@
                         @error('ageGroups')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    <hr class="my-6 border-gray-300 dark:border-gray-600">
+
+                    <!-- Caractéristiques -->
+                    <div class="mb-6">
+                        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+                            Caractéristiques
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (['Avec un chien', 'Avec ses enfants', 'En situation de handicap'] as $charOption)
+                                <button type="button" wire:click="toggleCharacteristic({{ json_encode($charOption) }})"
+                                    @class([
+                                        'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                        'bg-[#3E9B90] text-white shadow-md scale-105' => in_array(
+                                            $charOption,
+                                            $characteristics),
+                                        'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => !in_array(
+                                            $charOption,
+                                            $characteristics),
+                                    ])>
+                                    {{ $charOption }}
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 
@@ -411,6 +418,67 @@
                                 </button>
                             @endforeach
                         </div>
+                        <!-- Chips des "Autre" sélectionnées -->
+                        @if (count($otherGeneralRequests) > 0)
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                @foreach ($otherGeneralRequests as $request)
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 bg-[#3E9B90] text-white rounded-lg text-sm">
+                                        {{ $request }}
+                                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($request) }})"
+                                            class="hover:bg-white/20 rounded-full p-0.5 transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <!-- Bouton Autre avec dropdown -->
+                        <div class="relative mt-3" x-data="{ showGeneralOther: false }">
+                            <button type="button" @click="showGeneralOther = !showGeneralOther"
+                                @class([
+                                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                    'bg-[#3E9B90] text-white shadow-md scale-105' =>
+                                        count($otherGeneralRequests) > 0,
+                                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' =>
+                                        count($otherGeneralRequests) === 0,
+                                ])>
+                                Autre
+                                <svg class="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div x-show="showGeneralOther" @click.away="showGeneralOther = false"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 transform scale-95"
+                                x-transition:enter-end="opacity-100 transform scale-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 transform scale-100"
+                                x-transition:leave-end="opacity-0 transform scale-95"
+                                class="absolute z-10 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                                style="display: none;">
+                                <div class="max-h-60 overflow-y-auto">
+                                    @foreach (['Patou', 'Pluies', 'Enfant en bas age'] as $option)
+                                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($option) }})"
+                                            class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between">
+                                            <span class="text-gray-900 dark:text-white">{{ $option }}</span>
+                                            @if (in_array($option, $otherGeneralRequests))
+                                                <svg class="w-5 h-5 text-[#3E9B90]" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            @endif
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
                         @error('generalRequests')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror

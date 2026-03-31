@@ -99,6 +99,7 @@ class QualificationController extends Controller
   {
     $validated = $request->validate([
       'city' => 'required|string|in:annot,colmars-les-alpes,entrevaux,la-palud-sur-verdon,saint-andre-les-alpes',
+      'visitorType' => 'required|string|in:Touriste,Habitant,Socio Pro',
       'country' => 'required|string',
       'department' => 'nullable|string',
       'email' => 'nullable|email',
@@ -106,6 +107,7 @@ class QualificationController extends Controller
       'consentDataProcessing' => 'nullable|boolean',
       'profile' => 'required|string',
       'ageGroups' => 'required|array',
+      'characteristics' => 'nullable|array',
       'specificRequests' => 'nullable|array',
       'generalRequests' => 'nullable|array',
       'otherRequest' => 'nullable|string',

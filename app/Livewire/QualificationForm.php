@@ -20,6 +20,7 @@ class QualificationForm extends Component
     public $currentStep = 1;
 
     // Étape 1 : Informations générales
+    public $visitorType = 'Touriste';
     public $country = 'France';
     public $otherCountry = '';
     public $departments = [];
@@ -33,6 +34,7 @@ class QualificationForm extends Component
     public $profileUnknown = false;
     public $ageGroups = [];
     public $ageUnknown = false;
+    public $characteristics = [];
 
     // Étape 3 : Demandes
     public $addedDate;
@@ -40,6 +42,7 @@ class QualificationForm extends Component
     public $specificRequests = [];
     public $otherSpecificRequests = [];
     public $generalRequests = [];
+    public $otherGeneralRequests = [];
     public $otherRequest = '';
 
     // État UI pour dropdown "Autre" des demandes spécifiques
@@ -85,18 +88,17 @@ class QualificationForm extends Component
     {
         // Options spécifiques par ville
         $this->specificOptions = [
-            'annot' => ['Escalade', 'Train à Vapeur', 'Grès d\'Annot'],
+            'annot' => ['Sport de falaise', 'Train à Vapeur', 'Grès d\'Annot'],
             'colmars-les-alpes' => ['Lac d\'Allos', 'Cascade de la Lance', 'Maison Musée'],
             'entrevaux' => ['Nice', 'Côte d\'azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à Vapeur'],
-            'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Escalade et via cordatta'],
-            'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train à vapeur']
+            'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Sport de falaise'],
+            'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train des Pignes']
         ];
 
         // Options générales
         $this->generalOptions = [
             'Randonnées',
             'Pêche',
-            'Train',
             'Sports',
             'Sports d\'hiver',
             'Villages alentours',
@@ -142,6 +144,7 @@ class QualificationForm extends Component
             $data = $draft->form_data;
 
             // Charger les données de l'étape 1
+            $this->visitorType = $data['visitorType'] ?? 'Touriste';
             $this->country = $data['country'] ?? 'France';
             $this->otherCountry = $data['otherCountry'] ?? '';
 
@@ -163,6 +166,7 @@ class QualificationForm extends Component
             $this->profileUnknown = $data['profileUnknown'] ?? false;
             $this->ageGroups = $data['ageGroups'] ?? [];
             $this->ageUnknown = $data['ageUnknown'] ?? false;
+            $this->characteristics = $data['characteristics'] ?? [];
 
             // Charger les données de l'étape 3
             $this->addedDate = $data['addedDate'] ?? now()->format('Y-m-d');
@@ -170,6 +174,7 @@ class QualificationForm extends Component
             $this->specificRequests = $data['specificRequests'] ?? [];
             $this->otherSpecificRequests = $data['otherSpecificRequests'] ?? [];
             $this->generalRequests = $data['generalRequests'] ?? [];
+            $this->otherGeneralRequests = $data['otherGeneralRequests'] ?? [];
             $this->otherRequest = $data['otherRequest'] ?? '';
         }
     }
@@ -177,6 +182,7 @@ class QualificationForm extends Component
     protected function saveDraft()
     {
         $formData = [
+            'visitorType' => $this->visitorType,
             'country' => $this->country,
             'otherCountry' => $this->otherCountry,
             'departments' => $this->departments,
@@ -188,11 +194,13 @@ class QualificationForm extends Component
             'profileUnknown' => $this->profileUnknown,
             'ageGroups' => $this->ageGroups,
             'ageUnknown' => $this->ageUnknown,
+            'characteristics' => $this->characteristics,
             'addedDate' => $this->addedDate,
             'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
+            'otherGeneralRequests' => $this->otherGeneralRequests,
             'otherRequest' => $this->otherRequest,
         ];
 
@@ -249,9 +257,6 @@ class QualificationForm extends Component
             $rules['otherCountry'] = 'required|string';
         }
 
-        if ($this->country === 'France' && !$this->departmentUnknown) {
-            $rules['departments'] = 'required|array|min:1';
-        }
 
         if ($this->email) {
             $rules['email'] = 'email';
@@ -282,7 +287,7 @@ class QualificationForm extends Component
         }
 
         // Additional validation: Check if each department is valid using FrenchGeographyService
-        if ($this->country === 'France' && !$this->departmentUnknown && !empty($this->departments)) {
+        if (!$this->departmentUnknown && !empty($this->departments)) {
             foreach ($this->departments as $department) {
                 if (!$this->geographyService->isValidDepartment($department)) {
                     $this->addError('departments', "Le département \"$department\" n'est pas valide.");
@@ -332,7 +337,7 @@ class QualificationForm extends Component
     {
         // Valider l'étape 3
         // Au moins une demande doit être remplie
-        if (empty($this->specificRequests) && empty($this->otherSpecificRequests) && empty($this->generalRequests) && empty(trim($this->otherRequest))) {
+        if (empty($this->specificRequests) && empty($this->otherSpecificRequests) && empty($this->generalRequests) && empty($this->otherGeneralRequests) && empty(trim($this->otherRequest))) {
             $this->addError('requests', 'Veuillez sélectionner au moins une demande ou préciser votre demande.');
             return;
         }
@@ -359,17 +364,20 @@ class QualificationForm extends Component
 
         // Créer une nouvelle qualification complète
         $formData = [
+            'visitorType' => $this->visitorType,
             'country' => $this->country === 'Autre' ? $this->otherCountry : $this->country,
-            'departments' => $this->country === 'France' ? ($this->departmentUnknown ? [] : $this->departments) : [],
+            'departments' => $this->departmentUnknown ? [] : $this->departments,
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
             'consentDataProcessing' => $this->consentDataProcessing,
             'profile' => $this->profileUnknown ? 'Inconnu' : $this->profile,
             'ageGroups' => $this->ageUnknown ? ['Inconnu'] : $this->ageGroups,
+            'characteristics' => $this->characteristics,
             'contactMethod' => $this->contactMethod,
             'specificRequests' => $this->specificRequests,
             'otherSpecificRequests' => $this->otherSpecificRequests,
             'generalRequests' => $this->generalRequests,
+            'otherGeneralRequests' => $this->otherGeneralRequests,
             'otherRequest' => $this->otherRequest,
         ];
 
@@ -404,6 +412,7 @@ class QualificationForm extends Component
         $this->qualificationId = null;
 
         // Réinitialiser Étape 1
+        $this->visitorType = 'Touriste';
         $this->country = 'France';
         $this->otherCountry = '';
         $this->departments = [];
@@ -417,6 +426,7 @@ class QualificationForm extends Component
         $this->profileUnknown = false;
         $this->ageGroups = [];
         $this->ageUnknown = false;
+        $this->characteristics = [];
 
         // Réinitialiser Étape 3
         $this->addedDate = now()->format('Y-m-d');
@@ -424,6 +434,7 @@ class QualificationForm extends Component
         $this->specificRequests = [];
         $this->otherSpecificRequests = [];
         $this->generalRequests = [];
+        $this->otherGeneralRequests = [];
         $this->otherRequest = '';
         $this->showOtherSpecificDropdown = false;
         $this->otherSpecificSearchQuery = '';
@@ -471,10 +482,6 @@ class QualificationForm extends Component
         if ($value !== 'Autre') {
             $this->otherCountry = '';
         }
-        if ($value !== 'France') {
-            $this->departments = [];
-            $this->departmentUnknown = false;
-        }
     }
 
     public function updatedOtherRequest($value)
@@ -515,6 +522,15 @@ class QualificationForm extends Component
         }
     }
 
+    public function toggleCharacteristic($characteristic)
+    {
+        if (in_array($characteristic, $this->characteristics)) {
+            $this->characteristics = array_values(array_diff($this->characteristics, [$characteristic]));
+        } else {
+            $this->characteristics[] = $characteristic;
+        }
+    }
+
     public function toggleSpecificRequest($request)
     {
         if (in_array($request, $this->specificRequests)) {
@@ -530,6 +546,15 @@ class QualificationForm extends Component
             $this->generalRequests = array_values(array_diff($this->generalRequests, [$request]));
         } else {
             $this->generalRequests[] = $request;
+        }
+    }
+
+    public function toggleOtherGeneralRequest($request)
+    {
+        if (in_array($request, $this->otherGeneralRequests)) {
+            $this->otherGeneralRequests = array_values(array_diff($this->otherGeneralRequests, [$request]));
+        } else {
+            $this->otherGeneralRequests[] = $request;
         }
     }
 
