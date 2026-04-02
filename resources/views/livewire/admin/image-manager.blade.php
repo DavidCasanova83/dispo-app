@@ -356,7 +356,7 @@
                                                     class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Auteur
                                                 </label>
-                                                <select wire:model="authorIds.{{ $index }}"
+                                                <select wire:model.live="authorIds.{{ $index }}"
                                                     class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                                     <option value="">-- Aucun --</option>
                                                     @foreach ($authors as $author)
@@ -840,15 +840,22 @@
 
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                                {{-- View button (priorité: PDF > calameo > link > image) --}}
                                 @php
+                                    // URL pour télécharger (priorité: PDF > link > image)
+                                    $downloadUrl = $image->pdf_path
+                                        ? asset('storage/' . $image->pdf_path)
+                                        : ($image->link_url ?? asset('storage/' . $image->path));
+
+                                    // URL pour consulter (priorité: PDF > calameo > link > image)
                                     $consultUrl = $image->pdf_path
                                         ? asset('storage/' . $image->pdf_path)
                                         : ($image->calameo_link_url ?? $image->link_url ?? asset('storage/' . $image->path));
                                 @endphp
-                                <a href="{{ $consultUrl }}" target="_blank"
-                                    class="p-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white rounded-lg transition-colors"
-                                    title="Consulter">
+
+                                {{-- Bouton Consulter (bleu) --}}
+                                <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                                    title="Consulter en ligne">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -856,6 +863,32 @@
                                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                     </svg>
                                 </a>
+
+                                {{-- Bouton Télécharger (rouge) --}}
+                                <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                                    title="Télécharger" {{ $image->pdf_path ? 'download' : '' }}>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </a>
+
+                                {{-- Bouton Copier le lien (vert) --}}
+                                <button x-data="{ copied: false }"
+                                    @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                    class="p-2 rounded-lg transition-colors"
+                                    :class="copied ? 'bg-green-500 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
+                                    :title="copied ? 'Lien copié !' : 'Copier le lien'">
+                                    <svg x-show="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                                    </svg>
+                                    <svg x-show="copied" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
 
                                 {{-- Edit button --}}
                                 <button wire:click="openEditModal({{ $image->id }})"
@@ -1211,7 +1244,7 @@
         @endif
 
         {{-- Report Detail Modal --}}
-        @if ($showReportModal && $selectedReport)
+        @if ($showReportModal && $selectedReport && $selectedReport->image)
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="flex min-h-screen items-center justify-center px-4 py-6">
                     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"

@@ -127,6 +127,16 @@ class ImageManager extends Component
     }
 
     /**
+     * Quand la checkbox "utiliser image par défaut" change, nettoyer l'image de présentation uploadée
+     */
+    public function updatedUseDefaultImages($value, $key)
+    {
+        if ($value) {
+            unset($this->presentationImages[$key]);
+        }
+    }
+
+    /**
      * Upload des brochures (PDF ou images comme contenu principal)
      */
     public function uploadImages()
@@ -201,8 +211,11 @@ class ImageManager extends Component
                 $mimeType = $contentFile->getMimeType();
                 $displayFilename = $contentFilename;
 
-                // Vérifier si une image de présentation a été fournie
-                $hasPresentationImage = isset($this->presentationImages[$index]) && $this->presentationImages[$index];
+                // Si "utiliser image par défaut" est coché, ignorer toute image de présentation uploadée
+                $useDefault = $isPdf && isset($this->useDefaultImages[$index]) && $this->useDefaultImages[$index];
+
+                // Vérifier si une image de présentation a été fournie (et qu'on n'utilise pas l'image par défaut)
+                $hasPresentationImage = !$useDefault && isset($this->presentationImages[$index]) && $this->presentationImages[$index];
 
                 if ($hasPresentationImage) {
                     // === IMAGE DE PRÉSENTATION FOURNIE ===
@@ -250,9 +263,6 @@ class ImageManager extends Component
 
                 // Si pas d'image de présentation et contenu est un PDF
                 if (!$path && $isPdf) {
-                    // Vérifier si on utilise l'image par défaut
-                    $useDefault = isset($this->useDefaultImages[$index]) && $this->useDefaultImages[$index];
-
                     if ($useDefault) {
                         // Récupérer le chemin de l'image par défaut
                         $defaultImagePath = $this->getActiveDefaultImagePath($index);
@@ -393,7 +403,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['contentFiles', 'presentationImages', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds']);
+        $this->reset(['contentFiles', 'presentationImages', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds', 'useDefaultImages']);
     }
 
     /**
@@ -658,6 +668,12 @@ class ImageManager extends Component
     public function deleteAuthor($id)
     {
         $author = Author::findOrFail($id);
+
+        // Supprimer l'image par défaut de l'auteur du disque
+        if ($author->default_image_path && Storage::disk('public')->exists($author->default_image_path)) {
+            Storage::disk('public')->delete($author->default_image_path);
+        }
+
         Image::where('author_id', $id)->update(['author_id' => null]);
         $author->delete();
         session()->flash('success', 'Auteur supprimé.');
@@ -691,13 +707,19 @@ class ImageManager extends Component
     public function openReportModal(int $reportId): void
     {
         $this->selectedReport = BrochureReport::with(['image', 'user'])->find($reportId);
-        if ($this->selectedReport) {
+        if ($this->selectedReport && $this->selectedReport->image) {
             // Marquer comme lu
             if (!$this->selectedReport->is_read) {
                 $this->selectedReport->markAsRead();
             }
             $this->resolutionNote = '';
             $this->showReportModal = true;
+        } else {
+            // La brochure a été supprimée entre-temps
+            if ($this->selectedReport) {
+                $this->selectedReport->resolve(Auth::user(), 'Résolu automatiquement : brochure supprimée.');
+            }
+            session()->flash('info', 'Ce signalement a été résolu car la brochure a été supprimée.');
         }
     }
 
@@ -857,8 +879,13 @@ class ImageManager extends Component
             }
         }
 
-        // Sinon utiliser l'image globale
-        return Setting::get('default_brochure_image_path');
+        // Sinon utiliser l'image globale (vérifier qu'elle existe sur le disque)
+        $globalPath = Setting::get('default_brochure_image_path');
+        if ($globalPath && Storage::disk('public')->exists($globalPath)) {
+            return $globalPath;
+        }
+
+        return null;
     }
 
     /**
@@ -898,13 +925,23 @@ class ImageManager extends Component
             'today' => Image::whereDate('created_at', today())->count(),
         ];
 
-        // Récupérer les signalements non résolus pour les admins
+        // Récupérer les signalements non résolus dont la brochure existe encore
         $pendingReports = BrochureReport::with(['image', 'user'])
             ->unresolved()
+            ->whereHas('image')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $unreadReportsCount = BrochureReport::unread()->unresolved()->count();
+        // Auto-résoudre les signalements dont la brochure a été supprimée
+        BrochureReport::unresolved()
+            ->whereDoesntHave('image')
+            ->update([
+                'is_resolved' => true,
+                'resolution_note' => 'Résolu automatiquement : brochure supprimée.',
+                'resolved_at' => now(),
+            ]);
+
+        $unreadReportsCount = BrochureReport::unread()->unresolved()->whereHas('image')->count();
 
         // Récupérer le chemin de l'image par défaut globale
         $globalDefaultImagePath = Setting::get('default_brochure_image_path');

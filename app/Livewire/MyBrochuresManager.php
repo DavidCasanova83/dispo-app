@@ -2,8 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Models\Author;
 use App\Models\BrochureReport;
 use App\Models\Image;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +31,8 @@ class MyBrochuresManager extends Component
     public $editPresentationImage = null;
     public $editPdfFile = null;
     public $removePdf = false;
+    public $editEditionYear = null;
+    public $editUseDefaultImage = false;
 
     // Report modal properties
     public bool $showReportModal = false;
@@ -58,6 +62,9 @@ class MyBrochuresManager extends Component
         'editPresentationImage.max' => 'L\'image ne doit pas dépasser 10 MB.',
         'editPdfFile.mimes' => 'Le fichier doit être un PDF.',
         'editPdfFile.max' => 'Le PDF ne doit pas dépasser 50 MB.',
+        'editEditionYear.integer' => 'L\'année d\'édition doit être un nombre.',
+        'editEditionYear.min' => 'L\'année d\'édition doit être supérieure à 1900.',
+        'editEditionYear.max' => 'L\'année d\'édition n\'est pas valide.',
     ];
 
     public function updatingSearch()
@@ -76,9 +83,11 @@ class MyBrochuresManager extends Component
         $this->editingImage = $image;
         $this->editTitle = $image->title ?? '';
         $this->editDescription = $image->description ?? '';
+        $this->editEditionYear = $image->edition_year;
         $this->editPresentationImage = null;
         $this->editPdfFile = null;
         $this->removePdf = false;
+        $this->editUseDefaultImage = false;
         $this->showEditModal = true;
     }
 
@@ -89,7 +98,7 @@ class MyBrochuresManager extends Component
     {
         $this->showEditModal = false;
         $this->editingImage = null;
-        $this->reset(['editTitle', 'editDescription', 'editPresentationImage', 'editPdfFile', 'removePdf']);
+        $this->reset(['editTitle', 'editDescription', 'editEditionYear', 'editPresentationImage', 'editPdfFile', 'removePdf', 'editUseDefaultImage']);
     }
 
     /**
@@ -144,6 +153,50 @@ class MyBrochuresManager extends Component
     }
 
     /**
+     * Quand la checkbox "utiliser image par défaut" change, nettoyer l'image de présentation uploadée
+     */
+    public function updatedEditUseDefaultImage($value)
+    {
+        if ($value) {
+            $this->editPresentationImage = null;
+        }
+    }
+
+    /**
+     * Récupère le chemin de l'image par défaut pour la brochure en cours d'édition
+     */
+    public function getEditDefaultImagePath(): ?string
+    {
+        if (!$this->editingImage) {
+            return null;
+        }
+
+        // Priorité: Image de l'auteur > Image globale
+        if ($this->editingImage->author_id) {
+            $author = Author::find($this->editingImage->author_id);
+            if ($author && $author->hasDefaultImage()) {
+                return $author->default_image_path;
+            }
+        }
+
+        $globalPath = Setting::get('default_brochure_image_path');
+        if ($globalPath && Storage::disk('public')->exists($globalPath)) {
+            return $globalPath;
+        }
+
+        return null;
+    }
+
+    /**
+     * Récupère l'URL de l'image par défaut pour la brochure en cours d'édition
+     */
+    public function getEditDefaultImageUrl(): ?string
+    {
+        $path = $this->getEditDefaultImagePath();
+        return $path ? asset('storage/' . $path) : null;
+    }
+
+    /**
      * Update the brochure (title, description, presentation image, PDF)
      */
     public function updateBrochure()
@@ -178,6 +231,7 @@ class MyBrochuresManager extends Component
         $this->validate([
             'editTitle' => 'nullable|max:255',
             'editDescription' => 'nullable|max:1000',
+            'editEditionYear' => 'nullable|integer|min:1900|max:' . (date('Y') + 5),
             'editPresentationImage' => 'nullable|image|max:10240',
             'editPdfFile' => 'nullable|mimes:pdf|max:51200',
         ]);
@@ -185,10 +239,71 @@ class MyBrochuresManager extends Component
         $updateData = [
             'title' => $this->editTitle ?: null,
             'description' => $this->editDescription ?: null,
+            'edition_year' => $this->editEditionYear ?: null,
         ];
 
         // === Handle presentation image ===
-        if ($this->editPresentationImage) {
+        if ($this->editUseDefaultImage) {
+            // Utiliser l'image par défaut (auteur > globale)
+            $defaultImagePath = $this->getEditDefaultImagePath();
+
+            if (!$defaultImagePath || !Storage::disk('public')->exists($defaultImagePath)) {
+                session()->flash('error', 'Aucune image par défaut disponible.');
+                return;
+            }
+
+            $imageSlug = Str::limit(Str::slug($this->editTitle ?: $this->editingImage->name), 100) ?: 'brochure';
+            $defaultExtension = pathinfo($defaultImagePath, PATHINFO_EXTENSION);
+            $presentationFilename = $imageSlug . '.' . $defaultExtension;
+            $counter = 1;
+            while (Storage::disk('public')->exists('images/' . $presentationFilename)) {
+                $presentationFilename = $imageSlug . '-' . $counter . '.' . $defaultExtension;
+                $counter++;
+            }
+
+            // Copier l'image par défaut
+            Storage::disk('public')->copy($defaultImagePath, 'images/' . $presentationFilename);
+            $newPath = 'images/' . $presentationFilename;
+            $fullPath = Storage::disk('public')->path($newPath);
+
+            // Traiter l'image
+            $manager = new InterventionImageManager(new Driver());
+            $img = $manager->read($fullPath);
+            $updateData['width'] = $img->width();
+            $updateData['height'] = $img->height();
+            $img->save($fullPath, quality: 85);
+            $updateData['mime_type'] = mime_content_type($fullPath);
+
+            // Générer le thumbnail
+            $thumbnailFilename = 'thumb_' . $presentationFilename;
+            $thumbnailPath = 'images/thumbnails/' . $thumbnailFilename;
+            $thumbnailFullPath = Storage::disk('public')->path($thumbnailPath);
+            $thumbnailDir = dirname($thumbnailFullPath);
+            if (!file_exists($thumbnailDir)) {
+                mkdir($thumbnailDir, 0755, true);
+            }
+            $thumbnail = $manager->read($fullPath);
+            $thumbnail->cover(300, 300);
+            $thumbnail->save($thumbnailFullPath, quality: 80);
+
+            // Supprimer les anciens fichiers
+            if ($this->editingImage->path && Storage::disk('public')->exists($this->editingImage->path)) {
+                Storage::disk('public')->delete($this->editingImage->path);
+            }
+            if ($this->editingImage->thumbnail_path && Storage::disk('public')->exists($this->editingImage->thumbnail_path)) {
+                Storage::disk('public')->delete($this->editingImage->thumbnail_path);
+            }
+
+            $updateData['path'] = $newPath;
+            $updateData['thumbnail_path'] = $thumbnailPath;
+
+            Log::info('Presentation image updated with default image', [
+                'user_id' => $userId,
+                'image_id' => $imageId,
+                'default_source' => $defaultImagePath,
+                'new_path' => $newPath,
+            ]);
+        } elseif ($this->editPresentationImage) {
             if (!in_array($this->editPresentationImage->getMimeType(), self::ALLOWED_IMAGE_MIME_TYPES)) {
                 Log::warning('Image upload rejected - invalid MIME type', [
                     'user_id' => $userId,

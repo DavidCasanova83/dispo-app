@@ -11,6 +11,7 @@ use App\Models\Image;
 use App\Models\Sector;
 use App\Services\MailjetService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
 
@@ -72,7 +73,36 @@ class PublicBrochuresList extends Component
             return;
         }
 
+        // Rate limiting : max 5 signalements par utilisateur par heure
+        $rateLimitKey = 'report-brochure:' . Auth::id();
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            session()->flash('error', 'Vous avez envoyé trop de signalements. Veuillez réessayer plus tard.');
+            $this->closeReportModal();
+            return;
+        }
+
         $this->validate();
+
+        // Vérifier que la brochure existe encore
+        if (!Image::find($this->selectedBrochureId)) {
+            session()->flash('error', 'Cette brochure n\'existe plus.');
+            $this->closeReportModal();
+            return;
+        }
+
+        // Vérifier qu'il n'y a pas déjà un signalement non résolu de cet utilisateur pour cette brochure
+        $existingReport = BrochureReport::where('image_id', $this->selectedBrochureId)
+            ->where('user_id', Auth::id())
+            ->unresolved()
+            ->exists();
+
+        if ($existingReport) {
+            session()->flash('error', 'Vous avez déjà un signalement en cours pour cette brochure.');
+            $this->closeReportModal();
+            return;
+        }
+
+        RateLimiter::hit($rateLimitKey, 3600);
 
         $report = BrochureReport::create([
             'image_id' => $this->selectedBrochureId,
