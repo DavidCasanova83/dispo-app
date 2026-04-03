@@ -52,4 +52,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->view('accommodation-response-expired', [], 403);
             }
         });
+
+        // Logger les 404 sur les fichiers PDF uniquement
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {
+            $path = $request->path();
+            if (str_ends_with(strtolower($path), '.pdf')) {
+                \App\Models\PdfNotFoundLog::logNotFound(
+                    url: $path,
+                    referer: $request->header('referer'),
+                    ip: $request->ip(),
+                    userAgent: $request->userAgent(),
+                    userId: $request->user()?->id,
+                );
+            }
+        });
     })->create();

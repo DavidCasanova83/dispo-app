@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Author;
+use App\Models\BrochureMenuItem;
 use App\Models\BrochureReport;
 use App\Models\Image;
 use App\Models\Setting;
@@ -469,10 +470,13 @@ class MyBrochuresManager extends Component
             ->unresolved()
             ->count();
 
+        $configuredMenu = BrochureMenuItem::getOrderedMenu(true);
+
         return view('livewire.my-brochures-manager', [
             'brochures' => $brochures,
             'pendingReports' => $pendingReports,
             'unreadReportsCount' => $unreadReportsCount,
+            'configuredMenu' => $configuredMenu,
         ])->layout('components.layouts.app');
     }
 }

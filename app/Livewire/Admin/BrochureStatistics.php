@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\BrochureClick;
 use App\Models\Image;
+use App\Models\PdfNotFoundLog;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -13,6 +14,7 @@ class BrochureStatistics extends Component
     public string $selectedPeriod = '1year';
     public string $periodFilter = '1year';
     public ?string $buttonTypeFilter = null;
+    public string $activeTab = 'ranking';
 
     public function applyFilter(): void
     {
@@ -24,6 +26,16 @@ class BrochureStatistics extends Component
     {
         $this->buttonTypeFilter = $type;
         $this->dispatch('statistics-updated', statistics: $this->getStatisticsData());
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
+
+    public function delete404(int $id): void
+    {
+        PdfNotFoundLog::destroy($id);
     }
 
     public function getStatisticsData(): array
@@ -115,9 +127,12 @@ class BrochureStatistics extends Component
     #[Layout('components.layouts.app')]
     public function render()
     {
+        $notFoundLogs = PdfNotFoundLog::orderByDesc('last_hit_at')->get();
+
         return view('livewire.admin.brochure-statistics', [
             'statistics' => $this->getStatisticsData(),
             'buttonTypes' => BrochureClick::BUTTON_LABELS,
+            'notFoundLogs' => $notFoundLogs,
         ]);
     }
 }

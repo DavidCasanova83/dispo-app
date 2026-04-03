@@ -10,7 +10,7 @@
                     Analyse des clics sur les brochures - {{ $statistics['periodLabel'] }}
                 </p>
             </div>
-            <a href="{{ route('admin.images') }}" wire:navigate
+            <a href="{{ route('brochures-oti-vt') }}"
                 class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg shadow-md transition-all duration-300 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -119,124 +119,209 @@
             </div>
         </div>
 
-        {{-- Tableau --}}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-            @if($statistics['brochureRanking']->isEmpty())
-                <div class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucune donnée</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Aucun clic enregistré pour cette période.</p>
-                </div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700/50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Brochure</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider w-28">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                        Consulter
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wider w-28">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        Télécharger
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wider w-28">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-                                        </svg>
-                                        Copier
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-[#3E9B90] uppercase tracking-wider w-28">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            {{-- Ligne totaux --}}
-                            <tr class="bg-[#3E9B90]/5 dark:bg-[#3E9B90]/10 font-semibold">
-                                <td class="px-4 py-3"></td>
-                                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">Totaux</td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                                        {{ number_format($statistics['clicksByType']['consulter'] ?? 0) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
-                                        {{ number_format($statistics['clicksByType']['telecharger'] ?? 0) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                                        {{ number_format($statistics['clicksByType']['copier_lien'] ?? 0) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#3E9B90]/10 text-[#3E9B90]">
-                                        {{ number_format($statistics['totalClicks']) }}
-                                    </span>
-                                </td>
-                            </tr>
+        {{-- Onglets --}}
+        <div class="mb-4 flex gap-2">
+            <button wire:click="setTab('ranking')"
+                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer {{ $activeTab === 'ranking' ? 'bg-[#3E9B90] text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                Classement des brochures
+            </button>
+            <button wire:click="setTab('404')"
+                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-2 {{ $activeTab === '404' ? 'bg-red-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                Liens 404
+                @if($notFoundLogs->count() > 0)
+                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold rounded-full {{ $activeTab === '404' ? 'bg-white text-red-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }}">
+                        {{ $notFoundLogs->count() }}
+                    </span>
+                @endif
+            </button>
+        </div>
 
-                            {{-- Lignes brochures --}}
-                            @foreach($statistics['brochureRanking'] as $index => $brochure)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        @if($index < 3)
-                                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full {{ $index === 0 ? 'bg-yellow-100 text-yellow-800' : ($index === 1 ? 'bg-gray-100 text-gray-800' : 'bg-orange-100 text-orange-800') }} font-bold text-xs">
-                                                {{ $index + 1 }}
-                                            </span>
-                                        @else
-                                            <span class="text-sm text-gray-500 dark:text-gray-400 pl-2">{{ $index + 1 }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-10 w-10">
-                                                <img class="h-10 w-10 rounded-lg object-cover shadow-sm"
-                                                    src="{{ $brochure->thumbnail_path ? asset('storage/' . $brochure->thumbnail_path) : asset('storage/' . $brochure->path) }}"
-                                                    alt="{{ $brochure->title ?? $brochure->name }}">
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
-                                                    {{ $brochure->title ?? $brochure->name }}
-                                                </div>
-                                            </div>
+        @if ($activeTab === 'ranking')
+            {{-- Tableau classement --}}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                @if($statistics['brochureRanking']->isEmpty())
+                    <div class="text-center py-12">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucune donnée</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Aucun clic enregistré pour cette période.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Brochure</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider w-28">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            Consulter
                                         </div>
-                                    </td>
-                                    <td class="px-4 py-3 text-center text-sm text-blue-600 dark:text-blue-400">
-                                        {{ number_format($brochure->consulter_clicks) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-center text-sm text-red-600 dark:text-red-400">
-                                        {{ number_format($brochure->telecharger_clicks) }}
-                                    </td>
-                                    <td class="px-4 py-3 text-center text-sm text-green-600 dark:text-green-400">
-                                        {{ number_format($brochure->copier_lien_clicks) }}
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wider w-28">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Télécharger
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wider w-28">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                                            </svg>
+                                            Copier
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-[#3E9B90] uppercase tracking-wider w-28">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr class="bg-[#3E9B90]/5 dark:bg-[#3E9B90]/10 font-semibold">
+                                    <td class="px-4 py-3"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">Totaux</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                            {{ number_format($statistics['clicksByType']['consulter'] ?? 0) }}
+                                        </span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3E9B90]/10 text-[#3E9B90]">
-                                            {{ number_format($brochure->total_clicks) }}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                                            {{ number_format($statistics['clicksByType']['telecharger'] ?? 0) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                            {{ number_format($statistics['clicksByType']['copier_lien'] ?? 0) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#3E9B90]/10 text-[#3E9B90]">
+                                            {{ number_format($statistics['totalClicks']) }}
                                         </span>
                                     </td>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </div>
+                                @foreach($statistics['brochureRanking'] as $index => $brochure)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            @if($index < 3)
+                                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full {{ $index === 0 ? 'bg-yellow-100 text-yellow-800' : ($index === 1 ? 'bg-gray-100 text-gray-800' : 'bg-orange-100 text-orange-800') }} font-bold text-xs">
+                                                    {{ $index + 1 }}
+                                                </span>
+                                            @else
+                                                <span class="text-sm text-gray-500 dark:text-gray-400 pl-2">{{ $index + 1 }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-lg object-cover shadow-sm"
+                                                        src="{{ $brochure->thumbnail_path ? asset('storage/' . $brochure->thumbnail_path) : asset('storage/' . $brochure->path) }}"
+                                                        alt="{{ $brochure->title ?? $brochure->name }}">
+                                                </div>
+                                                <div class="ml-3">
+                                                    <div class="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
+                                                        {{ $brochure->title ?? $brochure->name }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-blue-600 dark:text-blue-400">
+                                            {{ number_format($brochure->consulter_clicks) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-red-600 dark:text-red-400">
+                                            {{ number_format($brochure->telecharger_clicks) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-green-600 dark:text-green-400">
+                                            {{ number_format($brochure->copier_lien_clicks) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#3E9B90]/10 text-[#3E9B90]">
+                                                {{ number_format($brochure->total_clicks) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        @else
+            {{-- Tableau 404 --}}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                @if($notFoundLogs->isEmpty())
+                    <div class="text-center py-12">
+                        <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun lien cassé</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Tous les liens PDF fonctionnent correctement.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">URL 404</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Origine (referer)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">Hits</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-40">Dernier hit</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach($notFoundLogs as $log)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td class="px-4 py-3">
+                                            <div class="text-sm text-red-600 dark:text-red-400 font-mono break-all">
+                                                /{{ $log->url }}
+                                            </div>
+                                            @if($log->ip_address)
+                                                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                                    IP : {{ $log->ip_address }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            @if($log->referer)
+                                                <div class="text-sm text-gray-700 dark:text-gray-300 break-all max-w-xs">
+                                                    {{ $log->referer }}
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Accès direct</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $log->hit_count >= 10 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : ($log->hit_count >= 3 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300') }}">
+                                                {{ $log->hit_count }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            {{ $log->last_hit_at->format('d/m/Y H:i') }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <button wire:click="delete404({{ $log->id }})" wire:confirm="Supprimer cette entrée ?"
+                                                class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                                                title="Supprimer">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
 </div>
