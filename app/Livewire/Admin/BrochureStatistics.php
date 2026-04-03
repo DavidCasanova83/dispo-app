@@ -50,11 +50,14 @@ class BrochureStatistics extends Component
             ->pluck('count', 'button_type')
             ->toArray();
 
-        // Classement des brochures
+        // Classement des brochures avec détail par type
         $brochureRankingQuery = BrochureClick::query()
             ->whereBetween('brochure_clicks.created_at', [$startDate, $endDate])
             ->join('images', 'brochure_clicks.image_id', '=', 'images.id')
-            ->selectRaw('images.id, images.title, images.name, images.thumbnail_path, images.path, COUNT(*) as total_clicks')
+            ->selectRaw('images.id, images.title, images.name, images.thumbnail_path, images.path, COUNT(*) as total_clicks,
+                SUM(CASE WHEN brochure_clicks.button_type = "consulter" THEN 1 ELSE 0 END) as consulter_clicks,
+                SUM(CASE WHEN brochure_clicks.button_type = "telecharger" THEN 1 ELSE 0 END) as telecharger_clicks,
+                SUM(CASE WHEN brochure_clicks.button_type = "copier_lien" THEN 1 ELSE 0 END) as copier_lien_clicks')
             ->groupBy('images.id', 'images.title', 'images.name', 'images.thumbnail_path', 'images.path')
             ->orderByDesc('total_clicks');
 
@@ -62,7 +65,7 @@ class BrochureStatistics extends Component
             $brochureRankingQuery->where('button_type', $this->buttonTypeFilter);
         }
 
-        $brochureRanking = $brochureRankingQuery->limit(20)->get();
+        $brochureRanking = $brochureRankingQuery->get();
 
         // Clics authentifiés vs anonymes
         $authenticatedClicks = BrochureClick::query()

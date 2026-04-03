@@ -20,6 +20,7 @@ class BrochureMenuManager extends Component
     public string $itemUrl = '';
 
     public bool $itemIsActive = true;
+    public bool $itemAuthOnly = false;
 
     // Modal de suppression
     public bool $showDeleteModal = false;
@@ -58,6 +59,7 @@ class BrochureMenuManager extends Component
         $this->itemTitle = $item->title;
         $this->itemUrl = $item->url;
         $this->itemIsActive = $item->is_active;
+        $this->itemAuthOnly = $item->auth_only;
         $this->showModal = true;
     }
 
@@ -74,6 +76,7 @@ class BrochureMenuManager extends Component
                 'title' => $this->itemTitle,
                 'url' => $this->itemUrl,
                 'is_active' => $this->itemIsActive,
+                'auth_only' => $this->itemAuthOnly,
             ]);
             session()->flash('success', 'Élément de menu mis à jour.');
         } else {
@@ -86,6 +89,7 @@ class BrochureMenuManager extends Component
                 'url' => $this->itemUrl,
                 'sort_order' => $maxOrder + 1,
                 'is_active' => $this->itemIsActive,
+                'auth_only' => $this->itemAuthOnly,
             ]);
             session()->flash('success', 'Élément de menu ajouté.');
         }
@@ -192,6 +196,7 @@ class BrochureMenuManager extends Component
         $this->itemTitle = '';
         $this->itemUrl = '';
         $this->itemIsActive = true;
+        $this->itemAuthOnly = false;
         $this->resetValidation();
     }
 

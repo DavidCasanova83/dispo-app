@@ -30,13 +30,10 @@ Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
     ->middleware(['auth', 'throttle:order-form'])
     ->name('order.images');
 
-// Routes publiques pour les brochures
-Route::get('/brochures', \App\Livewire\PublicBrochuresList::class)
-     ->name('brochures');
-Route::get('/brochures/{categorySlug}', \App\Livewire\PublicBrochuresList::class)
-     ->name('brochures.category');
-Route::get('/brochures/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresList::class)
-     ->name('brochures.subcategory');
+// Redirections permanentes /brochures vers /brochures-oti-vt
+Route::redirect('/brochures', '/brochures-oti-vt', 301);
+Route::redirect('/brochures/{categorySlug}', '/brochures-oti-vt/{categorySlug}', 301);
+Route::redirect('/brochures/{categorySlug}/{subCategorySlug}', '/brochures-oti-vt/{categorySlug}/{subCategorySlug}', 301);
 
 // Routes publiques pour les brochures OTI-VT
 Route::get('/brochures-oti-vt', \App\Livewire\PublicBrochuresOtiVt::class)

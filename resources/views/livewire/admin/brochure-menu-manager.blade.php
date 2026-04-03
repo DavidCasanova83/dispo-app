@@ -66,9 +66,14 @@
 
                         {{-- Infos --}}
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-gray-900 dark:text-white truncate {{ !$item->is_active ? 'opacity-50' : '' }}">
-                                {{ $item->title }}
-                            </p>
+                            <div class="flex items-center gap-2 {{ !$item->is_active ? 'opacity-50' : '' }}">
+                                <p class="font-semibold text-gray-900 dark:text-white truncate">
+                                    {{ $item->title }}
+                                </p>
+                                @if ($item->auth_only)
+                                    <span class="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded">Connectés</span>
+                                @endif
+                            </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate {{ !$item->is_active ? 'opacity-50' : '' }}">
                                 {{ $item->url }}
                             </p>
@@ -132,9 +137,14 @@
 
                                     {{-- Infos --}}
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate {{ !$child->is_active ? 'opacity-50' : '' }}">
-                                            {{ $child->title }}
-                                        </p>
+                                        <div class="flex items-center gap-1.5 {{ !$child->is_active ? 'opacity-50' : '' }}">
+                                            <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                                {{ $child->title }}
+                                            </p>
+                                            @if ($child->auth_only)
+                                                <span class="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded">Connectés</span>
+                                            @endif
+                                        </div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 truncate {{ !$child->is_active ? 'opacity-50' : '' }}">
                                             {{ $child->url }}
                                         </p>
@@ -276,6 +286,14 @@
                                         class="rounded border-gray-300 dark:border-zinc-600 text-[#3E9B90] focus:ring-[#3E9B90]">
                                     <label for="itemIsActive" class="text-sm text-gray-700 dark:text-gray-300">
                                         Actif (visible dans le menu)
+                                    </label>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" id="itemAuthOnly" wire:model="itemAuthOnly"
+                                        class="rounded border-gray-300 dark:border-zinc-600 text-amber-500 focus:ring-amber-500">
+                                    <label for="itemAuthOnly" class="text-sm text-gray-700 dark:text-gray-300">
+                                        Réservé aux utilisateurs connectés
                                     </label>
                                 </div>
                             </div>

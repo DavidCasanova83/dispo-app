@@ -42,26 +42,28 @@
                     {{-- ===== MENU CONFIGURÉ DEPUIS L'ADMIN ===== --}}
                     <nav class="space-y-1">
                         @foreach ($configuredMenu as $menuItem)
-                            <div x-data="{ open: false }">
-                                <div class="flex items-center">
-                                    <a href="{{ $menuItem->url }}"
-                                        class="flex-1 flex items-center gap-2 px-3 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 {{ request()->url() === url($menuItem->url) ? 'bg-[#3E9B90]/15 text-[#3E9B90]' : 'text-[#3E9B90] hover:bg-[#3E9B90]/10 hover:translate-x-0.5' }}">
-                                        <span class="truncate">{{ $menuItem->title }}</span>
-                                    </a>
+                            @php $isOrange = $menuItem->auth_only; @endphp
+                            <div x-data="{ open: true }">
+                                <a href="{{ $menuItem->url }}"
+                                    class="flex items-center gap-2 px-3 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 {{ $isOrange
+                                        ? (request()->url() === url($menuItem->url) ? 'bg-orange-500/15 text-orange-600' : 'text-orange-600 hover:bg-orange-500/10 hover:translate-x-0.5')
+                                        : (request()->url() === url($menuItem->url) ? 'bg-[#3E9B90]/15 text-[#3E9B90]' : 'text-[#3E9B90] hover:bg-[#3E9B90]/10 hover:translate-x-0.5') }}">
                                     @if ($menuItem->children->count() > 0)
-                                        <button @click="open = !open" class="p-1.5 text-[#3E9B90] hover:bg-[#3E9B90]/10 rounded-lg cursor-pointer transition-colors">
-                                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-45': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                            </svg>
-                                        </button>
+                                        <svg @click.prevent="open = !open" class="w-4 h-4 flex-shrink-0 transition-transform cursor-pointer" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
                                     @endif
-                                </div>
+                                    <span class="truncate">{{ $menuItem->title }}</span>
+                                </a>
 
                                 @if ($menuItem->children->count() > 0)
-                                    <div x-show="open" x-collapse class="ml-4 mt-0.5 space-y-0.5 border-l-2 border-[#3E9B90]/20 pl-2">
+                                    <div x-show="open" x-collapse class="ml-4 mt-0.5 space-y-0.5 border-l-2 {{ $isOrange ? 'border-orange-500/20' : 'border-[#3E9B90]/20' }} pl-2">
                                         @foreach ($menuItem->children as $childItem)
+                                            @php $isChildOrange = $childItem->auth_only || $isOrange; @endphp
                                             <a href="{{ $childItem->url }}"
-                                                class="block px-3 py-2 text-sm rounded-lg transition-all duration-200 {{ request()->url() === url($childItem->url) ? 'bg-[#3E9B90]/15 text-[#3E9B90] font-medium' : 'text-[#3E9B90] hover:bg-[#3E9B90]/10 hover:translate-x-0.5' }}">
+                                                class="block px-3 py-2 text-sm rounded-lg transition-all duration-200 {{ $isChildOrange
+                                                    ? (request()->url() === url($childItem->url) ? 'bg-orange-500/15 text-orange-600 font-medium' : 'text-orange-600 hover:bg-orange-500/10 hover:translate-x-0.5')
+                                                    : (request()->url() === url($childItem->url) ? 'bg-[#3E9B90]/15 text-[#3E9B90] font-medium' : 'text-[#3E9B90] hover:bg-[#3E9B90]/10 hover:translate-x-0.5') }}">
                                                 {{ $childItem->title }}
                                             </a>
                                         @endforeach
@@ -179,6 +181,19 @@
                         @endforeach
                     </nav>
                 @endif
+
+                @auth
+                    <div class="mt-auto pt-4 border-t border-[#3E9B90]/15">
+                        <a href="{{ route('admin.images.statistics') }}"
+                            class="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-[#3E9B90] text-white hover:bg-[#357f76] shadow-md hover:shadow-lg transition-all duration-200">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Statistiques
+                        </a>
+                    </div>
+                @endauth
             </div>
         </aside>
 

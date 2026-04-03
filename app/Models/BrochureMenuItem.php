@@ -17,10 +17,12 @@ class BrochureMenuItem extends Model
         'url',
         'sort_order',
         'is_active',
+        'auth_only',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'auth_only' => 'boolean',
         'sort_order' => 'integer',
     ];
 
@@ -58,12 +60,16 @@ class BrochureMenuItem extends Model
 
     /**
      * Récupère le menu complet ordonné (items parents + enfants actifs)
+     * Filtre les items auth_only si l'utilisateur n'est pas connecté
      */
-    public static function getOrderedMenu()
+    public static function getOrderedMenu(bool $isAuthenticated = false)
     {
         return self::topLevel()
             ->active()
-            ->with(['children' => fn($q) => $q->active()->orderBy('sort_order')])
+            ->when(!$isAuthenticated, fn($q) => $q->where('auth_only', false))
+            ->with(['children' => fn($q) => $q->active()
+                ->when(!$isAuthenticated, fn($q2) => $q2->where('auth_only', false))
+                ->orderBy('sort_order')])
             ->orderBy('sort_order')
             ->get();
     }

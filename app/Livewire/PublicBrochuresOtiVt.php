@@ -277,6 +277,11 @@ class PublicBrochuresOtiVt extends Component
         return true;
     }
 
+    /**
+     * Slugs des auteurs réservés aux utilisateurs connectés
+     */
+    private const RESTRICTED_AUTHOR_SLUGS = ['pro-verdon-tourisme', 'documentation-interne'];
+
     public function render()
     {
         // Récupérer l'agenda en cours
@@ -284,12 +289,18 @@ class PublicBrochuresOtiVt extends Component
             ->with(['category', 'author'])
             ->first();
 
+        // IDs des auteurs restreints (visibles uniquement pour les connectés)
+        $restrictedAuthorIds = Auth::check()
+            ? []
+            : Author::whereIn('slug', self::RESTRICTED_AUTHOR_SLUGS)->pluck('id')->toArray();
+
         // Récupérer les brochures
         if ($this->search) {
             // Mode recherche : ignorer les filtres, rechercher dans tous les champs avec priorité
             $searchTerm = '%' . $this->search . '%';
 
             $brochures = Image::query()
+                ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
                 ->where(function ($q) use ($searchTerm) {
                     $q->where('title', 'like', $searchTerm)
                       ->orWhere('name', 'like', $searchTerm)
@@ -311,17 +322,20 @@ class PublicBrochuresOtiVt extends Component
         } else {
             // Mode filtres : logique actuelle
             $brochures = Image::query()
+                ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
                 ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
                 ->when($this->subCategoryId, fn($q) => $q->where('sub_category_id', $this->subCategoryId))
                 ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
-                ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
+                ->when($this->sectorId, fn($q) => $q->where(fn($q2) => $q2->where('sector_id', $this->sectorId)->orWhereNull('sector_id')))
                 ->orderByRaw('display_order IS NULL, display_order ASC')
                 ->orderBy('title')
                 ->get();
         }
 
-        // Récupérer les IDs de toutes les brochures pour les filtres
-        $availableBrochureIds = Image::pluck('id');
+        // Récupérer les IDs de toutes les brochures visibles pour les filtres
+        $availableBrochureIds = Image::query()
+            ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
+            ->pluck('id');
 
         // Toujours utiliser le layout app (sidebar admin pour les connectés)
         $layout = auth()->check()
@@ -335,7 +349,7 @@ class PublicBrochuresOtiVt extends Component
         $currentAuthor = $this->authorId ? Author::find($this->authorId) : null;
 
         // Menu configuré depuis l'admin (prioritaire) ou catégories auto-générées
-        $configuredMenu = BrochureMenuItem::getOrderedMenu();
+        $configuredMenu = BrochureMenuItem::getOrderedMenu(Auth::check());
 
         // Fallback : catégories auto-générées si le menu configuré est vide
         $menuCategories = $configuredMenu->isEmpty()
@@ -355,7 +369,9 @@ class PublicBrochuresOtiVt extends Component
             'subCategories' => $this->categoryId
                 ? SubCategory::where('category_id', $this->categoryId)->whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get()
                 : collect(),
-            'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))
+                ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('id', $restrictedAuthorIds))
+                ->orderBy('name')->get(),
             'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
             'currentCategory' => $currentCategory,
             'currentSubCategory' => $currentSubCategory,
