@@ -4,10 +4,16 @@
         <div class="text-center mb-8">
             <div class="flex items-center justify-center gap-4">
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                    @if ($isFilteredByUrl && $currentCategory)
-                        Nos brochures — {{ $currentCategory->name }}
-                        @if ($currentSubCategory)
-                            / {{ $currentSubCategory->name }}
+                    @if ($isFilteredByUrl)
+                        Nos brochures
+                        @if ($currentCategory)
+                             — {{ $currentCategory->name }}
+                            @if ($currentSubCategory)
+                                / {{ $currentSubCategory->name }}
+                            @endif
+                        @endif
+                        @if ($currentSector && $this->sectorSlug)
+                            @if ($currentCategory) — @else — @endif {{ $currentSector->name }}
                         @endif
                     @else
                         Nos brochures
@@ -27,21 +33,32 @@
                 @endcan
             </div>
 
-            {{-- Fil d'Ariane pour les pages catégorie/sous-catégorie --}}
-            @if ($isFilteredByUrl && $currentCategory)
-                <nav class="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            {{-- Fil d'Ariane pour les pages filtrées par URL --}}
+            @if ($isFilteredByUrl)
+                @php
+                    $sectorQuery = $this->sectorSlug ? ['secteur' => $this->sectorSlug] : [];
+                @endphp
+                <nav class="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <a href="{{ route('brochures') }}" class="hover:text-[#3E9B90] transition-colors">Toutes les brochures</a>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                    @if ($currentSubCategory)
-                        <a href="{{ route('brochures.category', $currentCategory->slug) }}" class="hover:text-[#3E9B90] transition-colors">{{ $currentCategory->name }}</a>
+                    @if ($currentCategory)
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
-                        <span class="text-gray-900 dark:text-white font-medium">{{ $currentSubCategory->name }}</span>
-                    @else
-                        <span class="text-gray-900 dark:text-white font-medium">{{ $currentCategory->name }}</span>
+                        @if ($currentSubCategory)
+                            <a href="{{ route('brochures.category', ['categorySlug' => $currentCategory->slug] + $sectorQuery) }}" class="hover:text-[#3E9B90] transition-colors">{{ $currentCategory->name }}</a>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                            <span class="text-gray-900 dark:text-white font-medium">{{ $currentSubCategory->name }}</span>
+                        @else
+                            <span class="text-gray-900 dark:text-white font-medium">{{ $currentCategory->name }}</span>
+                        @endif
+                    @endif
+                    @if ($currentSector && $this->sectorSlug)
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ $currentSector->name }}</span>
                     @endif
                 </nav>
             @else
@@ -98,15 +115,18 @@
                                 x-transition:leave-start="opacity-100 scale-100"
                                 x-transition:leave-end="opacity-0 scale-95"
                                 class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                @php
+                                    $catSectorQuery = $this->sectorSlug ? '?secteur=' . $this->sectorSlug : '';
+                                @endphp
                                 <div class="py-1 max-h-60 overflow-y-auto">
-                                    <a href="{{ route('brochures') }}"
+                                    <a href="{{ route('brochures') . $catSectorQuery }}"
                                         class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$categoryId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                         <span
                                             class="w-2 h-2 rounded-full {{ !$categoryId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                         Toutes les catégories
                                     </a>
                                     @foreach ($categories as $category)
-                                        <a href="{{ route('brochures.category', $category->slug) }}"
+                                        <a href="{{ route('brochures.category', $category->slug) . $catSectorQuery }}"
                                             class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $categoryId == $category->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                             <span
                                                 class="w-2 h-2 rounded-full {{ $categoryId == $category->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
@@ -146,15 +166,19 @@
                                 x-transition:leave-start="opacity-100 scale-100"
                                 x-transition:leave-end="opacity-0 scale-95"
                                 class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                @php
+                                    $subCatSectorQuery = $this->sectorSlug ? '?secteur=' . $this->sectorSlug : '';
+                                    $parentCatSlug = $currentCategory->slug ?? $categories->firstWhere('id', $categoryId)?->slug;
+                                @endphp
                                 <div class="py-1 max-h-60 overflow-y-auto">
-                                    <a href="{{ route('brochures.category', $currentCategory->slug ?? $categories->firstWhere('id', $categoryId)?->slug) }}"
+                                    <a href="{{ route('brochures.category', $parentCatSlug) . $subCatSectorQuery }}"
                                         class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$subCategoryId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                         <span
                                             class="w-2 h-2 rounded-full {{ !$subCategoryId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                         Toutes les sous-catégories
                                     </a>
                                     @foreach ($subCategories as $subCategory)
-                                        <a href="{{ route('brochures.subcategory', [$currentCategory->slug ?? $categories->firstWhere('id', $categoryId)?->slug, $subCategory->slug]) }}"
+                                        <a href="{{ route('brochures.subcategory', [$parentCatSlug, $subCategory->slug]) . $subCatSectorQuery }}"
                                             class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $subCategoryId == $subCategory->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                             <span
                                                 class="w-2 h-2 rounded-full {{ $subCategoryId == $subCategory->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
@@ -216,6 +240,16 @@
 
                     {{-- Filtre Secteur --}}
                     @if ($sectors->count() > 0)
+                        @php
+                            // Construire l'URL de base (sans le paramètre secteur)
+                            if ($this->subCategorySlug && $this->categorySlug) {
+                                $sectorBaseRoute = route('brochures.subcategory', [$this->categorySlug, $this->subCategorySlug]);
+                            } elseif ($this->categorySlug) {
+                                $sectorBaseRoute = route('brochures.category', $this->categorySlug);
+                            } else {
+                                $sectorBaseRoute = route('brochures');
+                            }
+                        @endphp
                         <div x-data="{ open: false }" @click.away="open = false" class="relative">
                             <button @click="open = !open" type="button"
                                 class="inline-flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-medium rounded-full border-2 transition-all duration-200
@@ -245,20 +279,19 @@
                                 x-transition:leave-end="opacity-0 scale-95"
                                 class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
                                 <div class="py-1 max-h-60 overflow-y-auto">
-                                    <button wire:click="$set('sectorId', null)" @click="open = false"
+                                    <a href="{{ $sectorBaseRoute }}"
                                         class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$sectorId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                         <span
                                             class="w-2 h-2 rounded-full {{ !$sectorId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                         Tous les secteurs
-                                    </button>
+                                    </a>
                                     @foreach ($sectors as $sector)
-                                        <button wire:click="$set('sectorId', {{ $sector->id }})"
-                                            @click="open = false"
+                                        <a href="{{ $sectorBaseRoute . '?secteur=' . $sector->slug }}"
                                             class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $sectorId == $sector->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                             <span
                                                 class="w-2 h-2 rounded-full {{ $sectorId == $sector->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                             {{ $sector->name }}
-                                        </button>
+                                        </a>
                                     @endforeach
                                 </div>
                             </div>
@@ -267,14 +300,14 @@
 
                     {{-- Bouton Réinitialiser --}}
                     @if ($categoryId || $subCategoryId || $authorId || $sectorId)
-                        <button wire:click="resetFilters" type="button"
+                        <a href="{{ route('brochures') }}"
                             class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                             Effacer
-                        </button>
+                        </a>
                     @endif
                 </div>
             </div>

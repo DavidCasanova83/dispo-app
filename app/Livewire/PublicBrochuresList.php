@@ -27,6 +27,7 @@ class PublicBrochuresList extends Component
     // Slug depuis l'URL (pour les pages dédiées)
     public ?string $categorySlug = null;
     public ?string $subCategorySlug = null;
+    public ?string $sectorSlug = null;
 
     // Recherche
     public string $search = '';
@@ -41,6 +42,18 @@ class PublicBrochuresList extends Component
 
     public function mount(?string $categorySlug = null, ?string $subCategorySlug = null): void
     {
+        // Gérer le paramètre secteur depuis l'URL (?secteur=slug)
+        $sectorParam = request()->query('secteur');
+        if ($sectorParam) {
+            $sector = Sector::where('slug', $sectorParam)->first();
+            if ($sector) {
+                $this->sectorSlug = $sectorParam;
+                $this->sectorId = $sector->id;
+            } else {
+                abort(404);
+            }
+        }
+
         // Si on arrive via une URL de catégorie/sous-catégorie
         if ($categorySlug) {
             $this->categorySlug = $categorySlug;
@@ -62,8 +75,10 @@ class PublicBrochuresList extends Component
             } else {
                 abort(404);
             }
-        } else {
-            // Définir "Verdon Tourisme" comme auteur par défaut
+        }
+
+        // Auteur par défaut uniquement si aucun filtre URL n'est actif
+        if (!$categorySlug && !$sectorParam) {
             $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
             if ($defaultAuthor) {
                 $this->authorId = $defaultAuthor->id;
@@ -299,9 +314,10 @@ class PublicBrochuresList extends Component
             ? 'components.layouts.app'
             : 'components.layouts.guest';
 
-        // Récupérer la catégorie/sous-catégorie courante pour l'affichage
+        // Récupérer la catégorie/sous-catégorie/secteur courants pour l'affichage
         $currentCategory = $this->categoryId ? Category::find($this->categoryId) : null;
         $currentSubCategory = $this->subCategoryId ? SubCategory::find($this->subCategoryId) : null;
+        $currentSector = $this->sectorId ? Sector::find($this->sectorId) : null;
 
         return view('livewire.public-brochures-list', [
             'brochures' => $brochures,
@@ -315,7 +331,8 @@ class PublicBrochuresList extends Component
             'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
             'currentCategory' => $currentCategory,
             'currentSubCategory' => $currentSubCategory,
-            'isFilteredByUrl' => (bool) $this->categorySlug,
+            'currentSector' => $currentSector,
+            'isFilteredByUrl' => (bool) ($this->categorySlug || $this->sectorSlug),
         ])->layout($layout);
     }
 }
