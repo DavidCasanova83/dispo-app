@@ -7,6 +7,7 @@ use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
+use App\Models\SubCategory;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
@@ -44,6 +45,7 @@ class ImageManager extends Component
     public $displayOrders = [];        // Ordre d'affichage pour chaque image
     public $usedDisplayOrders = [];    // Liste des ordres déjà utilisés
     public $categoryIds = [];          // Catégories pour chaque image
+    public $subCategoryIds = [];       // Sous-catégories pour chaque image
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
     public $responsableIds = [];        // Responsables pour chaque image
@@ -64,6 +66,7 @@ class ImageManager extends Component
     public $editEditionYear = null;
     public $editDisplayOrder = null;
     public $editCategoryId = null;
+    public $editSubCategoryId = null;
     public $editAuthorId = null;
     public $editSectorId = null;
     public $editResponsableId = null;
@@ -72,6 +75,8 @@ class ImageManager extends Component
 
     // Propriétés pour la gestion des entités (CRUD)
     public $newCategoryName = '';
+    public $newSubCategoryName = '';
+    public $newSubCategoryCategoryId = null;
     public $newAuthorName = '';
     public $newAuthorDefaultImage = null;  // Image par défaut pour le nouvel auteur
     public $newSectorName = '';
@@ -380,6 +385,7 @@ class ImageManager extends Component
                     'edition_year' => $this->editionYears[$index] ?? null,
                     'display_order' => $this->displayOrders[$index] ?? null,
                     'category_id' => $this->categoryIds[$index] ?? null,
+                    'sub_category_id' => $this->subCategoryIds[$index] ?? null,
                     'author_id' => $this->authorIds[$index] ?? null,
                     'sector_id' => $this->sectorIds[$index] ?? null,
                     'responsable_id' => $this->responsableIds[$index] ?? null,
@@ -403,7 +409,7 @@ class ImageManager extends Component
             session()->flash('error', 'Erreurs : ' . implode(' | ', $errors));
         }
 
-        $this->reset(['contentFiles', 'presentationImages', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'authorIds', 'sectorIds', 'responsableIds', 'useDefaultImages']);
+        $this->reset(['contentFiles', 'presentationImages', 'titles', 'altTexts', 'descriptions', 'linkUrls', 'linkTexts', 'calameoLinkUrls', 'calameoLinkTexts', 'quantitiesAvailable', 'maxOrderQuantities', 'printAvailables', 'editionYears', 'displayOrders', 'categoryIds', 'subCategoryIds', 'authorIds', 'sectorIds', 'responsableIds', 'useDefaultImages']);
     }
 
     /**
@@ -465,6 +471,7 @@ class ImageManager extends Component
         $this->editEditionYear = $this->editingImage->edition_year;
         $this->editDisplayOrder = $this->editingImage->display_order;
         $this->editCategoryId = $this->editingImage->category_id;
+        $this->editSubCategoryId = $this->editingImage->sub_category_id;
         $this->editAuthorId = $this->editingImage->author_id;
         $this->editSectorId = $this->editingImage->sector_id;
         $this->editResponsableId = $this->editingImage->responsable_id;
@@ -485,7 +492,7 @@ class ImageManager extends Component
             'editTitle', 'editAltText', 'editDescription',
             'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
             'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder',
-            'editCategoryId', 'editAuthorId', 'editSectorId', 'editResponsableId',
+            'editCategoryId', 'editSubCategoryId', 'editAuthorId', 'editSectorId', 'editResponsableId',
             'editPdfFile', 'removePdf'
         ]);
     }
@@ -516,6 +523,7 @@ class ImageManager extends Component
             'editEditionYear' => 'nullable|integer|min:1900|max:2100',
             'editDisplayOrder' => 'nullable|integer|min:0',
             'editCategoryId' => 'nullable|exists:categories,id',
+            'editSubCategoryId' => 'nullable|exists:sub_categories,id',
             'editAuthorId' => 'nullable|exists:authors,id',
             'editSectorId' => 'nullable|exists:sectors,id',
             'editResponsableId' => 'nullable|exists:users,id',
@@ -589,6 +597,7 @@ class ImageManager extends Component
             'edition_year' => $this->editEditionYear,
             'display_order' => $this->editDisplayOrder,
             'category_id' => $this->editCategoryId ?: null,
+            'sub_category_id' => $this->editSubCategoryId ?: null,
             'author_id' => $this->editAuthorId ?: null,
             'sector_id' => $this->editSectorId ?: null,
             'responsable_id' => $this->editResponsableId ?: null,
@@ -620,9 +629,77 @@ class ImageManager extends Component
     {
         $category = Category::findOrFail($id);
         // Mettre à null les images associées
-        Image::where('category_id', $id)->update(['category_id' => null]);
+        Image::where('category_id', $id)->update(['category_id' => null, 'sub_category_id' => null]);
         $category->delete();
         session()->flash('success', 'Catégorie supprimée.');
+    }
+
+    /**
+     * Ajouter une nouvelle sous-catégorie
+     */
+    public function addSubCategory()
+    {
+        $this->validate([
+            'newSubCategoryName' => 'required|string|max:255',
+            'newSubCategoryCategoryId' => 'required|exists:categories,id',
+        ]);
+
+        // Vérifier l'unicité dans la catégorie
+        $exists = SubCategory::where('name', $this->newSubCategoryName)
+            ->where('category_id', $this->newSubCategoryCategoryId)
+            ->exists();
+
+        if ($exists) {
+            $this->addError('newSubCategoryName', 'Cette sous-catégorie existe déjà dans cette catégorie.');
+            return;
+        }
+
+        SubCategory::create([
+            'name' => $this->newSubCategoryName,
+            'category_id' => $this->newSubCategoryCategoryId,
+        ]);
+
+        $this->newSubCategoryName = '';
+        $this->newSubCategoryCategoryId = null;
+        session()->flash('success', 'Sous-catégorie ajoutée avec succès.');
+    }
+
+    /**
+     * Supprimer une sous-catégorie
+     */
+    public function deleteSubCategory($id)
+    {
+        $subCategory = SubCategory::findOrFail($id);
+        Image::where('sub_category_id', $id)->update(['sub_category_id' => null]);
+        $subCategory->delete();
+        session()->flash('success', 'Sous-catégorie supprimée.');
+    }
+
+    /**
+     * Récupère les sous-catégories d'une catégorie (pour les selects dynamiques)
+     */
+    public function getSubCategoriesForCategory($categoryId): array
+    {
+        if (!$categoryId) {
+            return [];
+        }
+        return SubCategory::where('category_id', $categoryId)->orderBy('name')->get()->toArray();
+    }
+
+    /**
+     * Quand la catégorie change dans le formulaire d'upload, réinitialiser la sous-catégorie
+     */
+    public function updatedCategoryIds($value, $key)
+    {
+        unset($this->subCategoryIds[$key]);
+    }
+
+    /**
+     * Quand la catégorie change dans le modal d'édition, réinitialiser la sous-catégorie
+     */
+    public function updatedEditCategoryId()
+    {
+        $this->editSubCategoryId = null;
     }
 
     /**
@@ -907,7 +984,7 @@ class ImageManager extends Component
             ->values()
             ->toArray();
 
-        $query = Image::with(['uploader', 'category', 'author', 'sector', 'responsable'])
+        $query = Image::with(['uploader', 'category', 'subCategory', 'author', 'sector', 'responsable'])
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');
 
@@ -950,6 +1027,7 @@ class ImageManager extends Component
             'imagesList' => $imagesList,
             'stats' => $stats,
             'categories' => Category::orderBy('name')->get(),
+            'subCategories' => SubCategory::with('category')->orderBy('name')->get(),
             'authors' => Author::orderBy('name')->get(),
             'sectors' => Sector::orderBy('name')->get(),
             'responsables' => User::where('approved', true)->orderBy('name')->get(),

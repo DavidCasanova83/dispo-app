@@ -441,7 +441,7 @@ class MyBrochuresManager extends Component
 
     public function render()
     {
-        $query = Image::with(['category', 'author', 'sector'])
+        $query = Image::with(['category', 'subCategory', 'author', 'sector'])
             ->where('responsable_id', Auth::id())
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');

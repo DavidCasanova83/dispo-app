@@ -38,6 +38,7 @@ class Image extends Model
         'edition_year',
         'display_order',
         'category_id',
+        'sub_category_id',
         'author_id',
         'sector_id',
         'responsable_id',
@@ -68,6 +69,14 @@ class Image extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Relation avec la sous-catégorie
+     */
+    public function subCategory(): BelongsTo
+    {
+        return $this->belongsTo(SubCategory::class);
     }
 
     /**

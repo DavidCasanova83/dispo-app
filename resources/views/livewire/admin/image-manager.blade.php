@@ -337,17 +337,31 @@
                                             </div>
                                         </div>
                                         {{-- Catégorie, Auteur, Secteur --}}
-                                        <div class="grid grid-cols-3 gap-2">
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                                             <div>
                                                 <label
                                                     class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Catégorie
                                                 </label>
-                                                <select wire:model="categoryIds.{{ $index }}"
+                                                <select wire:model.live="categoryIds.{{ $index }}"
                                                     class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                                     <option value="">-- Aucune --</option>
                                                     @foreach ($categories as $category)
                                                         <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Sous-catégorie
+                                                </label>
+                                                <select wire:model="subCategoryIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                                    {{ empty($categoryIds[$index] ?? null) ? 'disabled' : '' }}>
+                                                    <option value="">-- Aucune --</option>
+                                                    @foreach ($subCategories->where('category_id', (int) ($categoryIds[$index] ?? 0)) as $subCategory)
+                                                        <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -570,7 +584,7 @@
         {{-- Gestion des Catégories, Auteurs, Secteurs --}}
         <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Gérer les listes</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {{-- Catégories --}}
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Catégories</h3>
@@ -601,6 +615,51 @@
                         </button>
                     </div>
                     @error('newCategoryName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                {{-- Sous-catégories --}}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Sous-catégories</h3>
+                    <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        @forelse ($subCategories as $subCategory)
+                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded">
+                                <div>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ $subCategory->name }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">({{ $subCategory->category->name }})</span>
+                                </div>
+                                <button wire:click="deleteSubCategory({{ $subCategory->id }})"
+                                    wire:confirm="Supprimer cette sous-catégorie ?"
+                                    class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400 italic">Aucune sous-catégorie</p>
+                        @endforelse
+                    </div>
+                    <div class="space-y-2">
+                        <select wire:model="newSubCategoryCategoryId"
+                            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                            <option value="">-- Catégorie parente --</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="flex gap-2">
+                            <input type="text" wire:model="newSubCategoryName" placeholder="Nouvelle sous-catégorie"
+                                class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                            <button wire:click="addSubCategory"
+                                class="px-3 py-2 bg-[#3E9B90] hover:bg-[#2d7a72] text-white text-sm rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    @error('newSubCategoryName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                    @error('newSubCategoryCategoryId') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                 </div>
 
                 {{-- Auteurs --}}
@@ -779,6 +838,9 @@
                                         @endif
                                         @if ($image->category)
                                             <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{{ $image->category->name }}</span>
+                                        @endif
+                                        @if ($image->subCategory)
+                                            <span class="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded text-xs">{{ $image->subCategory->name }}</span>
                                         @endif
                                         @if ($image->author)
                                             <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs">{{ $image->author->name }}</span>
@@ -1116,13 +1178,13 @@
                                     </div>
                                 </div>
 
-                                {{-- Catégorie, Auteur, Secteur --}}
-                                <div class="grid grid-cols-3 gap-4">
+                                {{-- Catégorie, Sous-catégorie, Auteur, Secteur --}}
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             Catégorie
                                         </label>
-                                        <select wire:model="editCategoryId"
+                                        <select wire:model.live="editCategoryId"
                                             class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                             <option value="">-- Aucune --</option>
                                             @foreach ($categories as $category)
@@ -1130,6 +1192,20 @@
                                             @endforeach
                                         </select>
                                         @error('editCategoryId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Sous-catégorie
+                                        </label>
+                                        <select wire:model="editSubCategoryId"
+                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
+                                            {{ !$editCategoryId ? 'disabled' : '' }}>
+                                            <option value="">-- Aucune --</option>
+                                            @foreach ($subCategories->where('category_id', (int) $editCategoryId) as $subCategory)
+                                                <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('editSubCategoryId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

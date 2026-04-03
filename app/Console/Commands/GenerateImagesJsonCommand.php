@@ -18,6 +18,7 @@ class GenerateImagesJsonCommand extends Command
         $images = Image::with([
                 'uploader:id,name',
                 'category:id,name',
+                'subCategory:id,name,category_id',
                 'author:id,name',
                 'sector:id,name',
                 'responsable:id,name'
@@ -60,6 +61,10 @@ class GenerateImagesJsonCommand extends Command
                     'category' => $image->category ? [
                         'id' => $image->category->id,
                         'name' => $image->category->name,
+                    ] : null,
+                    'sub_category' => $image->subCategory ? [
+                        'id' => $image->subCategory->id,
+                        'name' => $image->subCategory->name,
                     ] : null,
                     'author' => $image->author ? [
                         'id' => $image->author->id,

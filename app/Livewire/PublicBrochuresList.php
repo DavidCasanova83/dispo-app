@@ -9,6 +9,7 @@ use App\Models\BrochureReport;
 use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
+use App\Models\SubCategory;
 use App\Services\MailjetService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,8 +20,13 @@ class PublicBrochuresList extends Component
 {
     // Filtres
     public ?int $categoryId = null;
+    public ?int $subCategoryId = null;
     public ?int $authorId = null;
     public ?int $sectorId = null;
+
+    // Slug depuis l'URL (pour les pages dédiées)
+    public ?string $categorySlug = null;
+    public ?string $subCategorySlug = null;
 
     // Recherche
     public string $search = '';
@@ -33,12 +39,35 @@ class PublicBrochuresList extends Component
     #[Rule('required|string|min:10|max:1000')]
     public string $reportComment = '';
 
-    public function mount(): void
+    public function mount(?string $categorySlug = null, ?string $subCategorySlug = null): void
     {
-        // Définir "Verdon Tourisme" comme auteur par défaut
-        $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
-        if ($defaultAuthor) {
-            $this->authorId = $defaultAuthor->id;
+        // Si on arrive via une URL de catégorie/sous-catégorie
+        if ($categorySlug) {
+            $this->categorySlug = $categorySlug;
+            $category = Category::where('slug', $categorySlug)->first();
+            if ($category) {
+                $this->categoryId = $category->id;
+
+                if ($subCategorySlug) {
+                    $this->subCategorySlug = $subCategorySlug;
+                    $subCategory = SubCategory::where('slug', $subCategorySlug)
+                        ->where('category_id', $category->id)
+                        ->first();
+                    if ($subCategory) {
+                        $this->subCategoryId = $subCategory->id;
+                    } else {
+                        abort(404);
+                    }
+                }
+            } else {
+                abort(404);
+            }
+        } else {
+            // Définir "Verdon Tourisme" comme auteur par défaut
+            $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
+            if ($defaultAuthor) {
+                $this->authorId = $defaultAuthor->id;
+            }
         }
     }
 
@@ -175,8 +204,17 @@ class PublicBrochuresList extends Component
     public function resetFilters(): void
     {
         $this->categoryId = null;
+        $this->subCategoryId = null;
         $this->authorId = null;
         $this->sectorId = null;
+    }
+
+    /**
+     * Quand la catégorie change, réinitialiser la sous-catégorie
+     */
+    public function updatedCategoryId(): void
+    {
+        $this->subCategoryId = null;
     }
 
     /**
@@ -189,7 +227,7 @@ class PublicBrochuresList extends Component
         }
 
         // Pas de filtre actif = afficher l'agenda
-        if (!$this->categoryId && !$this->authorId && !$this->sectorId) {
+        if (!$this->categoryId && !$this->subCategoryId && !$this->authorId && !$this->sectorId) {
             return true;
         }
 
@@ -245,6 +283,7 @@ class PublicBrochuresList extends Component
             // Mode filtres : logique actuelle
             $brochures = Image::query()
                 ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
+                ->when($this->subCategoryId, fn($q) => $q->where('sub_category_id', $this->subCategoryId))
                 ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
                 ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
                 ->orderByRaw('display_order IS NULL, display_order ASC')
@@ -260,13 +299,23 @@ class PublicBrochuresList extends Component
             ? 'components.layouts.app'
             : 'components.layouts.guest';
 
+        // Récupérer la catégorie/sous-catégorie courante pour l'affichage
+        $currentCategory = $this->categoryId ? Category::find($this->categoryId) : null;
+        $currentSubCategory = $this->subCategoryId ? SubCategory::find($this->subCategoryId) : null;
+
         return view('livewire.public-brochures-list', [
             'brochures' => $brochures,
             'currentAgenda' => $currentAgenda,
             'showAgenda' => $this->shouldShowAgenda($currentAgenda),
             'categories' => Category::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'subCategories' => $this->categoryId
+                ? SubCategory::where('category_id', $this->categoryId)->whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get()
+                : collect(),
             'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
             'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'currentCategory' => $currentCategory,
+            'currentSubCategory' => $currentSubCategory,
+            'isFilteredByUrl' => (bool) $this->categorySlug,
         ])->layout($layout);
     }
 }

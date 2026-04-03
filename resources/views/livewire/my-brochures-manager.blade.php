@@ -119,6 +119,9 @@
                                         @if ($brochure->category)
                                             <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{{ $brochure->category->name }}</span>
                                         @endif
+                                        @if ($brochure->subCategory)
+                                            <span class="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded text-xs">{{ $brochure->subCategory->name }}</span>
+                                        @endif
                                         @if ($brochure->author)
                                             <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs">{{ $brochure->author->name }}</span>
                                         @endif

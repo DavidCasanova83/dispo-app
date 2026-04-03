@@ -3,7 +3,16 @@
         {{-- Header --}}
         <div class="text-center mb-8">
             <div class="flex items-center justify-center gap-4">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nos brochures</h1>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    @if ($isFilteredByUrl && $currentCategory)
+                        Nos brochures — {{ $currentCategory->name }}
+                        @if ($currentSubCategory)
+                            / {{ $currentSubCategory->name }}
+                        @endif
+                    @else
+                        Nos brochures
+                    @endif
+                </h1>
                 @can('manage-images')
                     <a href="{{ route('admin.images.statistics') }}"
                         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#3E9B90] text-white hover:bg-[#357f76] transition-colors shadow-md"
@@ -17,9 +26,29 @@
                     </a>
                 @endcan
             </div>
-            <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                Consultez et téléchargez nos brochures touristiques
-            </p>
+
+            {{-- Fil d'Ariane pour les pages catégorie/sous-catégorie --}}
+            @if ($isFilteredByUrl && $currentCategory)
+                <nav class="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <a href="{{ route('brochures') }}" class="hover:text-[#3E9B90] transition-colors">Toutes les brochures</a>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    @if ($currentSubCategory)
+                        <a href="{{ route('brochures.category', $currentCategory->slug) }}" class="hover:text-[#3E9B90] transition-colors">{{ $currentCategory->name }}</a>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ $currentSubCategory->name }}</span>
+                    @else
+                        <span class="text-gray-900 dark:text-white font-medium">{{ $currentCategory->name }}</span>
+                    @endif
+                </nav>
+            @else
+                <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                    Consultez et téléchargez nos brochures touristiques
+                </p>
+            @endif
         </div>
 
         {{-- Flash Messages --}}
@@ -70,20 +99,67 @@
                                 x-transition:leave-end="opacity-0 scale-95"
                                 class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
                                 <div class="py-1 max-h-60 overflow-y-auto">
-                                    <button wire:click="$set('categoryId', null)" @click="open = false"
+                                    <a href="{{ route('brochures') }}"
                                         class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$categoryId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                         <span
                                             class="w-2 h-2 rounded-full {{ !$categoryId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                         Toutes les catégories
-                                    </button>
+                                    </a>
                                     @foreach ($categories as $category)
-                                        <button wire:click="$set('categoryId', {{ $category->id }})"
-                                            @click="open = false"
+                                        <a href="{{ route('brochures.category', $category->slug) }}"
                                             class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $categoryId == $category->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
                                             <span
                                                 class="w-2 h-2 rounded-full {{ $categoryId == $category->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
                                             {{ $category->name }}
-                                        </button>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Filtre Sous-catégorie (visible uniquement si catégorie sélectionnée et sous-catégories disponibles) --}}
+                    @if ($categoryId && $subCategories->count() > 0)
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <button @click="open = !open" type="button"
+                                class="inline-flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-medium rounded-full border-2 transition-all duration-200
+                                {{ $subCategoryId
+                                    ? 'bg-[#3E9B90] border-[#3E9B90] text-white shadow-md'
+                                    : 'bg-white dark:bg-[#001716] border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 hover:border-[#3E9B90] dark:hover:border-[#3E9B90]' }}">
+                                <svg class="w-4 h-4 {{ $subCategoryId ? 'text-white' : 'text-[#3E9B90]' }}" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z">
+                                    </path>
+                                </svg>
+                                <span>{{ $subCategoryId ? $subCategories->firstWhere('id', $subCategoryId)?->name : 'Sous-catégorie' }}</span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute z-10 mt-2 w-56 origin-top-left rounded-xl bg-white dark:bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-zinc-700 overflow-hidden">
+                                <div class="py-1 max-h-60 overflow-y-auto">
+                                    <a href="{{ route('brochures.category', $currentCategory->slug ?? $categories->firstWhere('id', $categoryId)?->slug) }}"
+                                        class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ !$subCategoryId ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                        <span
+                                            class="w-2 h-2 rounded-full {{ !$subCategoryId ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                        Toutes les sous-catégories
+                                    </a>
+                                    @foreach ($subCategories as $subCategory)
+                                        <a href="{{ route('brochures.subcategory', [$currentCategory->slug ?? $categories->firstWhere('id', $categoryId)?->slug, $subCategory->slug]) }}"
+                                            class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 {{ $subCategoryId == $subCategory->id ? 'bg-[#3E9B90]/10 text-[#3E9B90] font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700' }}">
+                                            <span
+                                                class="w-2 h-2 rounded-full {{ $subCategoryId == $subCategory->id ? 'bg-[#3E9B90]' : 'bg-transparent' }}"></span>
+                                            {{ $subCategory->name }}
+                                        </a>
                                     @endforeach
                                 </div>
                             </div>
@@ -190,7 +266,7 @@
                     @endif
 
                     {{-- Bouton Réinitialiser --}}
-                    @if ($categoryId || $authorId || $sectorId)
+                    @if ($categoryId || $subCategoryId || $authorId || $sectorId)
                         <button wire:click="resetFilters" type="button"
                             class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

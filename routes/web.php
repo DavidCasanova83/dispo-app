@@ -30,9 +30,13 @@ Route::get('/commander-images', \App\Livewire\PublicImageOrderForm::class)
     ->middleware(['auth', 'throttle:order-form'])
     ->name('order.images');
 
-// Route publique pour voir la liste des brochures disponibles
+// Routes publiques pour les brochures
 Route::get('/brochures', \App\Livewire\PublicBrochuresList::class)
      ->name('brochures');
+Route::get('/brochures/{categorySlug}', \App\Livewire\PublicBrochuresList::class)
+     ->name('brochures.category');
+Route::get('/brochures/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresList::class)
+     ->name('brochures.subcategory');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])
