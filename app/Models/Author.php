@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Author extends Model
 {
@@ -12,8 +13,29 @@ class Author extends Model
 
     protected $fillable = [
         'name',
+        'slug',
         'default_image_path',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Author $author) {
+            if (empty($author->slug)) {
+                $author->slug = Str::slug($author->name);
+            }
+        });
+
+        static::updating(function (Author $author) {
+            if ($author->isDirty('name')) {
+                $author->slug = Str::slug($author->name);
+            }
+        });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
 
     /**
      * Les images de cet auteur

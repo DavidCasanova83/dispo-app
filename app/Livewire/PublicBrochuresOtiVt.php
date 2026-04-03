@@ -1,0 +1,367 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\Agenda;
+use App\Models\Author;
+use App\Models\BrochureClick;
+use App\Models\BrochureMenuItem;
+use App\Models\BrochureReport;
+use App\Models\Category;
+use App\Models\Image;
+use App\Models\Sector;
+use App\Models\SubCategory;
+use App\Services\MailjetService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Livewire\Attributes\Rule;
+use Livewire\Component;
+
+class PublicBrochuresOtiVt extends Component
+{
+    // Filtres
+    public ?int $categoryId = null;
+    public ?int $subCategoryId = null;
+    public ?int $authorId = null;
+    public ?int $sectorId = null;
+
+    // Slug depuis l'URL (pour les pages dédiées)
+    public ?string $categorySlug = null;
+    public ?string $subCategorySlug = null;
+    public ?string $sectorSlug = null;
+    public ?string $authorSlug = null;
+
+    // Recherche
+    public string $search = '';
+
+    // Modal de signalement
+    public bool $showReportModal = false;
+    public ?int $selectedBrochureId = null;
+    public ?string $selectedBrochureTitle = null;
+
+    #[Rule('required|string|min:10|max:1000')]
+    public string $reportComment = '';
+
+    public function mount(?string $categorySlug = null, ?string $subCategorySlug = null): void
+    {
+        // Gérer le paramètre secteur depuis l'URL (?secteur=slug)
+        $sectorParam = request()->query('secteur');
+        if ($sectorParam) {
+            $sector = Sector::where('slug', $sectorParam)->first();
+            if ($sector) {
+                $this->sectorSlug = $sectorParam;
+                $this->sectorId = $sector->id;
+            } else {
+                abort(404);
+            }
+        }
+
+        // Gérer le paramètre auteur depuis l'URL (?auteur=slug)
+        $authorParam = request()->query('auteur');
+        if ($authorParam) {
+            $author = Author::where('slug', $authorParam)->first();
+            if ($author) {
+                $this->authorSlug = $authorParam;
+                $this->authorId = $author->id;
+            } else {
+                abort(404);
+            }
+        }
+
+        // Si on arrive via une URL de catégorie/sous-catégorie
+        if ($categorySlug) {
+            $this->categorySlug = $categorySlug;
+            $category = Category::where('slug', $categorySlug)->first();
+            if ($category) {
+                $this->categoryId = $category->id;
+
+                if ($subCategorySlug) {
+                    $this->subCategorySlug = $subCategorySlug;
+                    $subCategory = SubCategory::where('slug', $subCategorySlug)
+                        ->where('category_id', $category->id)
+                        ->first();
+                    if ($subCategory) {
+                        $this->subCategoryId = $subCategory->id;
+                    } else {
+                        abort(404);
+                    }
+                }
+            } else {
+                abort(404);
+            }
+        }
+
+        // Auteur par défaut uniquement si aucun filtre URL n'est actif
+        if (!$categorySlug && !$sectorParam && !$authorParam) {
+            $defaultAuthor = Author::where('name', 'Verdon Tourisme')->first();
+            if ($defaultAuthor) {
+                $this->authorId = $defaultAuthor->id;
+            }
+        }
+    }
+
+    public function openReportModal(int $brochureId): void
+    {
+        $brochure = Image::find($brochureId);
+        if (!$brochure) {
+            return;
+        }
+
+        $this->selectedBrochureId = $brochureId;
+        $this->selectedBrochureTitle = $brochure->title ?? $brochure->name;
+        $this->reportComment = '';
+        $this->resetValidation();
+        $this->showReportModal = true;
+    }
+
+    public function closeReportModal(): void
+    {
+        $this->showReportModal = false;
+        $this->selectedBrochureId = null;
+        $this->selectedBrochureTitle = null;
+        $this->reportComment = '';
+        $this->resetValidation();
+    }
+
+    public function submitReport(): void
+    {
+        if (!Auth::check()) {
+            session()->flash('error', 'Vous devez être connecté pour signaler un problème.');
+            $this->closeReportModal();
+            return;
+        }
+
+        // Rate limiting : max 5 signalements par utilisateur par heure
+        $rateLimitKey = 'report-brochure:' . Auth::id();
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            session()->flash('error', 'Vous avez envoyé trop de signalements. Veuillez réessayer plus tard.');
+            $this->closeReportModal();
+            return;
+        }
+
+        $this->validate();
+
+        // Vérifier que la brochure existe encore
+        if (!Image::find($this->selectedBrochureId)) {
+            session()->flash('error', 'Cette brochure n\'existe plus.');
+            $this->closeReportModal();
+            return;
+        }
+
+        // Vérifier qu'il n'y a pas déjà un signalement non résolu de cet utilisateur pour cette brochure
+        $existingReport = BrochureReport::where('image_id', $this->selectedBrochureId)
+            ->where('user_id', Auth::id())
+            ->unresolved()
+            ->exists();
+
+        if ($existingReport) {
+            session()->flash('error', 'Vous avez déjà un signalement en cours pour cette brochure.');
+            $this->closeReportModal();
+            return;
+        }
+
+        RateLimiter::hit($rateLimitKey, 3600);
+
+        $report = BrochureReport::create([
+            'image_id' => $this->selectedBrochureId,
+            'user_id' => Auth::id(),
+            'comment' => $this->reportComment,
+        ]);
+
+        // Envoyer l'email de notification
+        try {
+            $mailjetService = app(MailjetService::class);
+            $mailjetService->sendBrochureReportNotification($report);
+        } catch (\Exception $e) {
+            // On log l'erreur mais on ne bloque pas l'utilisateur
+            \Log::error('Failed to send brochure report email: ' . $e->getMessage());
+        }
+
+        $this->closeReportModal();
+        session()->flash('success', 'Votre signalement a été envoyé. Merci pour votre contribution !');
+    }
+
+    /**
+     * Enregistre un clic sur un bouton de brochure
+     */
+    public function trackClick(int $brochureId, string $buttonType): void
+    {
+        // Valider le type de bouton
+        if (!in_array($buttonType, BrochureClick::BUTTON_TYPES)) {
+            return;
+        }
+
+        // Valider que la brochure existe
+        if (!Image::where('id', $brochureId)->exists()) {
+            return;
+        }
+
+        BrochureClick::create([
+            'image_id' => $brochureId,
+            'user_id' => Auth::id(),
+            'button_type' => $buttonType,
+            'ip_address' => request()->ip(),
+            'user_agent' => substr(request()->userAgent() ?? '', 0, 500),
+        ]);
+    }
+
+    /**
+     * Enregistre un clic sur un bouton de l'agenda
+     */
+    public function trackAgendaClick(string $buttonType): void
+    {
+        // Valider le type de bouton
+        if (!in_array($buttonType, BrochureClick::BUTTON_TYPES)) {
+            return;
+        }
+
+        // Valider que l'agenda existe
+        $agenda = Agenda::current()->first();
+        if (!$agenda) {
+            return;
+        }
+
+        BrochureClick::create([
+            'agenda_id' => $agenda->id,
+            'user_id' => Auth::id(),
+            'button_type' => $buttonType,
+            'ip_address' => request()->ip(),
+            'user_agent' => substr(request()->userAgent() ?? '', 0, 500),
+        ]);
+    }
+
+    public function resetFilters(): void
+    {
+        $this->categoryId = null;
+        $this->subCategoryId = null;
+        $this->authorId = null;
+        $this->sectorId = null;
+    }
+
+    /**
+     * Quand la catégorie change, réinitialiser la sous-catégorie
+     */
+    public function updatedCategoryId(): void
+    {
+        $this->subCategoryId = null;
+    }
+
+    /**
+     * Vérifie si l'agenda doit être affiché en fonction des filtres actifs
+     */
+    public function shouldShowAgenda(?Agenda $agenda): bool
+    {
+        if (!$agenda) {
+            return false;
+        }
+
+        // Pas de filtre actif = afficher l'agenda
+        if (!$this->categoryId && !$this->subCategoryId && !$this->authorId && !$this->sectorId) {
+            return true;
+        }
+
+        // Vérifier si l'agenda correspond aux filtres
+        if ($this->categoryId && $agenda->category_id !== $this->categoryId) {
+            return false;
+        }
+
+        if ($this->authorId && $agenda->author_id !== $this->authorId) {
+            return false;
+        }
+
+        // L'agenda n'a pas de secteur, donc si un filtre secteur est actif, on ne l'affiche pas
+        if ($this->sectorId) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function render()
+    {
+        // Récupérer l'agenda en cours
+        $currentAgenda = Agenda::current()
+            ->with(['category', 'author'])
+            ->first();
+
+        // Récupérer les brochures
+        if ($this->search) {
+            // Mode recherche : ignorer les filtres, rechercher dans tous les champs avec priorité
+            $searchTerm = '%' . $this->search . '%';
+
+            $brochures = Image::query()
+                ->where(function ($q) use ($searchTerm) {
+                    $q->where('title', 'like', $searchTerm)
+                      ->orWhere('name', 'like', $searchTerm)
+                      ->orWhere('description', 'like', $searchTerm)
+                      ->orWhere('alt_text', 'like', $searchTerm)
+                      ->orWhere('link_text', 'like', $searchTerm)
+                      ->orWhere('calameo_link_text', 'like', $searchTerm)
+                      ->orWhere('edition_year', 'like', $searchTerm);
+                })
+                ->orderByRaw("
+                    CASE
+                        WHEN title LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN description LIKE ? THEN 3
+                        ELSE 4
+                    END
+                ", [$searchTerm, $searchTerm, $searchTerm])
+                ->get();
+        } else {
+            // Mode filtres : logique actuelle
+            $brochures = Image::query()
+                ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
+                ->when($this->subCategoryId, fn($q) => $q->where('sub_category_id', $this->subCategoryId))
+                ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
+                ->when($this->sectorId, fn($q) => $q->where('sector_id', $this->sectorId))
+                ->orderByRaw('display_order IS NULL, display_order ASC')
+                ->orderBy('title')
+                ->get();
+        }
+
+        // Récupérer les IDs de toutes les brochures pour les filtres
+        $availableBrochureIds = Image::pluck('id');
+
+        // Toujours utiliser le layout app (sidebar admin pour les connectés)
+        $layout = auth()->check()
+            ? 'components.layouts.app'
+            : 'components.layouts.guest';
+
+        // Récupérer la catégorie/sous-catégorie/secteur/auteur courants pour l'affichage
+        $currentCategory = $this->categoryId ? Category::find($this->categoryId) : null;
+        $currentSubCategory = $this->subCategoryId ? SubCategory::find($this->subCategoryId) : null;
+        $currentSector = $this->sectorId ? Sector::find($this->sectorId) : null;
+        $currentAuthor = $this->authorId ? Author::find($this->authorId) : null;
+
+        // Menu configuré depuis l'admin (prioritaire) ou catégories auto-générées
+        $configuredMenu = BrochureMenuItem::getOrderedMenu();
+
+        // Fallback : catégories auto-générées si le menu configuré est vide
+        $menuCategories = $configuredMenu->isEmpty()
+            ? Category::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))
+                ->with(['subCategories' => fn($q) => $q->whereHas('images', fn($q2) => $q2->whereIn('id', $availableBrochureIds))->orderBy('name')])
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        return view('livewire.public-brochures-oti-vt', [
+            'brochures' => $brochures,
+            'currentAgenda' => $currentAgenda,
+            'showAgenda' => $this->shouldShowAgenda($currentAgenda),
+            'configuredMenu' => $configuredMenu,
+            'menuCategories' => $menuCategories,
+            'categories' => Category::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'subCategories' => $this->categoryId
+                ? SubCategory::where('category_id', $this->categoryId)->whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get()
+                : collect(),
+            'authors' => Author::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'sectors' => Sector::whereHas('images', fn($q) => $q->whereIn('id', $availableBrochureIds))->orderBy('name')->get(),
+            'currentCategory' => $currentCategory,
+            'currentSubCategory' => $currentSubCategory,
+            'currentSector' => $currentSector,
+            'currentAuthor' => $currentAuthor,
+            'isFilteredByUrl' => (bool) ($this->categorySlug || $this->sectorSlug || $this->authorSlug),
+        ])->layout($layout);
+    }
+}

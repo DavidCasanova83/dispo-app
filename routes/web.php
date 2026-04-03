@@ -38,6 +38,14 @@ Route::get('/brochures/{categorySlug}', \App\Livewire\PublicBrochuresList::class
 Route::get('/brochures/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresList::class)
      ->name('brochures.subcategory');
 
+// Routes publiques pour les brochures OTI-VT
+Route::get('/brochures-oti-vt', \App\Livewire\PublicBrochuresOtiVt::class)
+     ->name('brochures-oti-vt');
+Route::get('/brochures-oti-vt/{categorySlug}', \App\Livewire\PublicBrochuresOtiVt::class)
+     ->name('brochures-oti-vt.category');
+Route::get('/brochures-oti-vt/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresOtiVt::class)
+     ->name('brochures-oti-vt.subcategory');
+
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])
     ->name('dashboard');
@@ -93,6 +101,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::middleware(['permission:manage-images'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/images', \App\Livewire\Admin\ImageManager::class)->name('images');
         Route::get('/images/statistics', \App\Livewire\Admin\BrochureStatistics::class)->name('images.statistics');
+    });
+
+    // Route pour la gestion du menu brochures OTI-VT - requires manage-brochure-menu permission
+    Route::middleware(['permission:manage-brochure-menu'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/brochure-menu', \App\Livewire\Admin\BrochureMenuManager::class)->name('brochure-menu');
     });
 
     // Route pour la gestion des agendas - requires manage-agendas permission

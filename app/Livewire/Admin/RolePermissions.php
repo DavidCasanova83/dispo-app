@@ -64,6 +64,7 @@ class RolePermissions extends Component
             'view-disponibilites' => 'Voir les disponibilités hébergement',
             'edit-disponibilites' => 'Modifier les disponibilités',
             'fill-forms' => 'Remplir les formulaires',
+            'manage-brochure-menu' => 'Gérer le menu de la page brochures OTI-VT',
             default => $permissionName,
         };
     }
