@@ -47,6 +47,12 @@ class PublicBrochuresOtiVt extends Component
     #[Rule('required|string|min:10|max:1000')]
     public string $reportComment = '';
 
+    // Modal de mise hors ligne
+    public bool $showOfflineModal = false;
+    public ?int $offlineBrochureId = null;
+    public ?string $offlineBrochureTitle = null;
+    public string $offlineReason = '';
+
     public function mount(?string $categorySlug = null, ?string $subCategorySlug = null): void
     {
         // Gérer le paramètre secteur depuis l'URL (?secteur=slug)
@@ -187,6 +193,108 @@ class PublicBrochuresOtiVt extends Component
     }
 
     /**
+     * Vérifie si l'utilisateur courant peut basculer le statut hors ligne d'une brochure.
+     * Autorisé : Admin, Super-admin, ou le responsable de la brochure.
+     */
+    private function canToggleOffline(Image $brochure): bool
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        if ($user->hasAnyRole(['Admin', 'Super-admin'])) {
+            return true;
+        }
+
+        return $brochure->responsable_id === $user->id;
+    }
+
+    /**
+     * Ouvre le modal de mise hors ligne / remise en ligne
+     */
+    public function openOfflineModal(int $brochureId): void
+    {
+        $brochure = Image::find($brochureId);
+        if (!$brochure || !$this->canToggleOffline($brochure)) {
+            return;
+        }
+
+        $this->offlineBrochureId = $brochureId;
+        $this->offlineBrochureTitle = $brochure->title ?? $brochure->name;
+        $this->offlineReason = $brochure->offline_reason ?? '';
+        $this->resetValidation();
+        $this->showOfflineModal = true;
+    }
+
+    public function closeOfflineModal(): void
+    {
+        $this->showOfflineModal = false;
+        $this->offlineBrochureId = null;
+        $this->offlineBrochureTitle = null;
+        $this->offlineReason = '';
+        $this->resetValidation();
+    }
+
+    /**
+     * Met une brochure hors ligne avec un motif obligatoire
+     */
+    public function setOffline(): void
+    {
+        if (!$this->offlineBrochureId) {
+            return;
+        }
+
+        $brochure = Image::find($this->offlineBrochureId);
+        if (!$brochure || !$this->canToggleOffline($brochure)) {
+            session()->flash('error', "Vous n'êtes pas autorisé à effectuer cette action.");
+            $this->closeOfflineModal();
+            return;
+        }
+
+        $this->validate([
+            'offlineReason' => 'required|string|min:5|max:1000',
+        ], [
+            'offlineReason.required' => 'Le motif est obligatoire.',
+            'offlineReason.min' => 'Le motif doit contenir au moins 5 caractères.',
+        ]);
+
+        $brochure->update([
+            'is_offline' => true,
+            'offline_reason' => $this->offlineReason,
+        ]);
+
+        $this->closeOfflineModal();
+        session()->flash('success', 'La brochure a été mise hors ligne.');
+    }
+
+    /**
+     * Remet une brochure en ligne (depuis le modal)
+     */
+    public function setOnline(): void
+    {
+        if (!$this->offlineBrochureId) {
+            return;
+        }
+
+        $brochure = Image::find($this->offlineBrochureId);
+        if (!$brochure || !$this->canToggleOffline($brochure)) {
+            session()->flash('error', "Vous n'êtes pas autorisé à effectuer cette action.");
+            $this->closeOfflineModal();
+            return;
+        }
+
+        $brochure->update([
+            'is_offline' => false,
+            'offline_reason' => null,
+        ]);
+
+        $this->closeOfflineModal();
+        session()->flash('success', 'La brochure a été remise en ligne.');
+    }
+
+    /**
      * Enregistre un clic sur un bouton de brochure
      */
     public function trackClick(int $brochureId, string $buttonType): void
@@ -299,6 +407,9 @@ class PublicBrochuresOtiVt extends Component
             ? []
             : Author::whereIn('slug', self::RESTRICTED_AUTHOR_SLUGS)->pluck('id')->toArray();
 
+        // Les brochures hors ligne sont masquées aux visiteurs non connectés
+        $hideOffline = !Auth::check();
+
         // Récupérer les brochures
         if ($this->search) {
             // Mode recherche : ignorer les filtres, rechercher dans tous les champs avec priorité
@@ -306,6 +417,7 @@ class PublicBrochuresOtiVt extends Component
 
             $brochures = Image::query()
                 ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
+                ->when($hideOffline, fn($q) => $q->where('is_offline', false))
                 ->where(function ($q) use ($searchTerm) {
                     $q->where('title', 'like', $searchTerm)
                       ->orWhere('name', 'like', $searchTerm)
@@ -328,6 +440,7 @@ class PublicBrochuresOtiVt extends Component
             // Mode filtres : logique actuelle
             $brochures = Image::query()
                 ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
+                ->when($hideOffline, fn($q) => $q->where('is_offline', false))
                 ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
                 ->when($this->subCategoryId, fn($q) => $q->where('sub_category_id', $this->subCategoryId))
                 ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
@@ -340,6 +453,7 @@ class PublicBrochuresOtiVt extends Component
         // Récupérer les IDs de toutes les brochures visibles pour les filtres
         $availableBrochureIds = Image::query()
             ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
+            ->when($hideOffline, fn($q) => $q->where('is_offline', false))
             ->pluck('id');
 
         // Toujours utiliser le layout app (sidebar admin pour les connectés)

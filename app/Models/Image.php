@@ -42,6 +42,8 @@ class Image extends Model
         'author_id',
         'sector_id',
         'responsable_id',
+        'is_offline',
+        'offline_reason',
     ];
 
     protected $casts = [
@@ -53,6 +55,7 @@ class Image extends Model
         'print_available' => 'boolean',
         'edition_year' => 'integer',
         'display_order' => 'integer',
+        'is_offline' => 'boolean',
     ];
 
     /**

@@ -631,7 +631,7 @@
 
                 {{-- Grille des brochures --}}
                 @if ($brochures->count() > 0)
-                    <div class="grid grid-cols-4 gap-2 sm:gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                         @foreach ($brochures as $brochure)
                             @php
                                 $downloadUrl = $brochure->pdf_path
@@ -641,7 +641,95 @@
                                     ? asset('storage/' . $brochure->pdf_path)
                                     : $brochure->calameo_link_url ?? ($brochure->link_url ?? asset('storage/' . $brochure->path));
                             @endphp
-                            <div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 shadow-md dark:shadow-zinc-950/50 overflow-hidden hover:shadow-lg dark:hover:shadow-zinc-950/70 hover:-translate-y-0.5 transition-all duration-200">
+                            <div class="relative flex flex-col h-full bg-white dark:bg-zinc-800 rounded-lg border {{ $brochure->is_offline ? 'border-red-400 dark:border-red-600' : 'border-gray-200 dark:border-zinc-700' }} shadow-md dark:shadow-zinc-950/50 overflow-hidden hover:shadow-lg dark:hover:shadow-zinc-950/70 hover:-translate-y-0.5 transition-all duration-200">
+                                {{-- Bandeau "hors ligne" (visible uniquement aux utilisateurs connectés) --}}
+                                @auth
+                                    @if ($brochure->is_offline)
+                                        <div class="absolute inset-0 z-10 bg-red-900/60 dark:bg-red-950/70 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-2 pointer-events-none">
+                                            {{-- Icône sens interdit --}}
+                                            <svg class="w-10 h-10 sm:w-14 sm:h-14 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                                                <line x1="5" y1="12" x2="19" y2="12" stroke-width="2.5" stroke-linecap="round"></line>
+                                            </svg>
+                                            <span class="mt-1 inline-block bg-white text-red-700 text-[10px] sm:text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded">
+                                                Hors ligne
+                                            </span>
+                                            @if ($brochure->offline_reason)
+                                                <p class="mt-1 text-[10px] sm:text-xs text-white line-clamp-3 px-1">
+                                                    {{ $brochure->offline_reason }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                    @endif
+                                @endauth
+
+                                {{-- Coin haut-droit : tag année + actions admin/responsable empilées verticalement --}}
+                                @php
+                                    $hasYear = (bool) $brochure->edition_year;
+                                    if ($hasYear) {
+                                        $currentYear = (int) date('Y');
+                                        $editionYear = (int) $brochure->edition_year;
+                                        $yearDiff = $currentYear - $editionYear;
+                                        if ($yearDiff <= 1) {
+                                            $colorClasses = 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
+                                        } elseif ($yearDiff === 2) {
+                                            $colorClasses = 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30';
+                                        } else {
+                                            $colorClasses = 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
+                                        }
+                                    }
+                                @endphp
+                                <div class="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
+                                    @if ($hasYear)
+                                        <span class="text-xs font-medium {{ $colorClasses }} px-2 py-0.5 rounded shadow-sm">
+                                            {{ $brochure->edition_year }}
+                                        </span>
+                                    @endif
+
+                                    @auth
+                                        @if ($isAdmin || auth()->id() === $brochure->responsable_id)
+                                            <button type="button" wire:click="openOfflineModal({{ $brochure->id }})"
+                                                class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg {{ $brochure->is_offline ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50' }} shadow-sm transition-colors cursor-pointer"
+                                                title="{{ $brochure->is_offline ? 'Remettre en ligne' : 'Mettre hors ligne' }}">
+                                                @if ($brochure->is_offline)
+                                                    <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                @else
+                                                    <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                                                        <line x1="5" y1="12" x2="19" y2="12" stroke-width="2.5" stroke-linecap="round"></line>
+                                                    </svg>
+                                                @endif
+                                            </button>
+                                        @endif
+                                        @if ($isAdmin)
+                                            <button type="button" wire:click="openEditModal({{ $brochure->id }})"
+                                                class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-[#3E9B90] text-white hover:bg-[#347d74] shadow-sm transition-colors cursor-pointer"
+                                                title="Modifier (admin)">
+                                                <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                            </button>
+                                        @elseif (auth()->id() === $brochure->responsable_id)
+                                            <a href="{{ route('mes-brochures') }}"
+                                                class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/50 shadow-sm transition-colors cursor-pointer"
+                                                title="Modifier cette brochure">
+                                                <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                            </a>
+                                        @endif
+                                        <button type="button" wire:click="openReportModal({{ $brochure->id }})"
+                                            class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 shadow-sm transition-colors cursor-pointer"
+                                            title="Signaler un problème">
+                                            <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                            </svg>
+                                        </button>
+                                    @endauth
+                                </div>
+
                                 {{-- Image de couverture --}}
                                 <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
                                     wire:click="trackClick({{ $brochure->id }}, 'consulter')" class="block" style="max-height: 180px; overflow: hidden;">
@@ -651,35 +739,15 @@
                                 </a>
 
                                 {{-- Contenu --}}
-                                <div class="p-2 sm:p-3">
+                                <div class="p-2 sm:p-3 flex flex-col flex-1">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight">
                                         {{ $brochure->title ?? $brochure->name }}
                                     </h3>
                                     <p class="hidden sm:block mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ $brochure->description ?? '' }}</p>
 
-                                    <div class="mt-1.5 sm:mt-2 flex items-center justify-between">
-                                        @if ($brochure->edition_year)
-                                            @php
-                                                $currentYear = (int) date('Y');
-                                                $editionYear = (int) $brochure->edition_year;
-                                                $yearDiff = $currentYear - $editionYear;
-                                                if ($yearDiff <= 1) {
-                                                    $colorClasses = 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
-                                                } elseif ($yearDiff === 2) {
-                                                    $colorClasses = 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30';
-                                                } else {
-                                                    $colorClasses = 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
-                                                }
-                                            @endphp
-                                            <span class="text-xs font-medium {{ $colorClasses }} px-2 py-0.5 rounded">
-                                                {{ $brochure->edition_year }}
-                                            </span>
-                                        @else
-                                            <span></span>
-                                        @endif
-
+                                    <div class="relative z-20 mt-auto pt-1.5 sm:pt-2">
                                         {{-- Boutons d'action --}}
-                                        <div class="flex items-center gap-0.5 sm:gap-1">
+                                        <div class="flex items-center justify-between w-full">
                                             <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
                                                 wire:click="trackClick({{ $brochure->id }}, 'consulter')"
                                                 class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
@@ -709,32 +777,6 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                                 </svg>
                                             </button>
-                                            @auth
-                                                @if ($isAdmin)
-                                                    <button type="button" wire:click="openEditModal({{ $brochure->id }})"
-                                                        class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-[#3E9B90]/15 dark:bg-[#3E9B90]/25 text-[#3E9B90] dark:text-[#3E9B90] hover:bg-[#3E9B90]/25 dark:hover:bg-[#3E9B90]/40 transition-colors cursor-pointer"
-                                                        title="Modifier (admin)">
-                                                        <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                        </svg>
-                                                    </button>
-                                                @elseif (auth()->id() === $brochure->responsable_id)
-                                                    <a href="{{ route('mes-brochures') }}"
-                                                        class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors cursor-pointer"
-                                                        title="Modifier cette brochure">
-                                                        <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                        </svg>
-                                                    </a>
-                                                @endif
-                                                <button wire:click="openReportModal({{ $brochure->id }})"
-                                                    class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-                                                    title="Signaler un problème">
-                                                    <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                                    </svg>
-                                                </button>
-                                            @endauth
                                         </div>
                                     </div>
                                 </div>
@@ -808,6 +850,76 @@
             </div>
         </div>
     @endif
+
+    {{-- Modal de mise hors ligne / remise en ligne --}}
+    @auth
+        @if ($showOfflineModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="offline-modal-title" role="dialog" aria-modal="true">
+                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 bg-black/50 dark:bg-black/70 transition-opacity" wire:click="closeOfflineModal"></div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                    <div class="inline-block align-bottom bg-white dark:bg-zinc-800 rounded-lg text-left overflow-hidden shadow-xl dark:shadow-zinc-950/50 transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-zinc-700">
+                        <form wire:submit="setOffline">
+                            <div class="bg-white dark:bg-zinc-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div class="sm:flex sm:items-start">
+                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                        {{-- Icône sens interdit --}}
+                                        <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                                            <line x1="5" y1="12" x2="19" y2="12" stroke-width="2.5" stroke-linecap="round"></line>
+                                        </svg>
+                                    </div>
+                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="offline-modal-title">
+                                            Mettre hors ligne / remettre en ligne
+                                        </h3>
+                                        <div class="mt-2">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                Brochure : <strong class="text-gray-700 dark:text-gray-300">{{ $offlineBrochureTitle }}</strong>
+                                            </p>
+                                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                                Une brochure hors ligne reste enregistrée mais n'est plus visible des visiteurs non connectés. Les utilisateurs connectés voient un panneau « sens interdit » avec le motif.
+                                            </p>
+                                        </div>
+                                        <div class="mt-4">
+                                            <label for="offlineReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Motif de la mise hors ligne
+                                            </label>
+                                            <textarea id="offlineReason" wire:model="offlineReason" rows="4"
+                                                class="w-full rounded-md border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm focus:border-red-500 focus:ring-red-500"
+                                                placeholder="Expliquez pourquoi cette brochure est mise hors ligne (minimum 5 caractères)..."></textarea>
+                                            @error('offlineReason')
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-zinc-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200 dark:border-zinc-700">
+                                <button type="submit"
+                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Mettre hors ligne
+                                </button>
+                                @php
+                                    $editingOffline = $offlineBrochureId ? \App\Models\Image::find($offlineBrochureId) : null;
+                                @endphp
+                                @if ($editingOffline && $editingOffline->is_offline)
+                                    <button type="button" wire:click="setOnline"
+                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                        Remettre en ligne
+                                    </button>
+                                @endif
+                                <button type="button" wire:click="closeOfflineModal"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-zinc-600 shadow-sm px-4 py-2 bg-white dark:bg-zinc-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Annuler
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endauth
 
     {{-- Modal d'édition admin (visible uniquement pour Admin / Super-admin) --}}
     @auth
