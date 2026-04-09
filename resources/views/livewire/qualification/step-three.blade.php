@@ -128,6 +128,7 @@
                     @if (count($this->filteredOtherSpecificOptions) > 0)
                         @foreach ($this->filteredOtherSpecificOptions as $option)
                             <button type="button" wire:click="toggleOtherSpecificRequest('{{ addslashes($option) }}')"
+                                @click="show = false; $wire.closeOtherSpecificDropdown()"
                                 class="w-full px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between text-sm">
                                 <span class="text-gray-900 dark:text-white">{{ $option }}</span>
                                 @if (in_array($option, $otherSpecificRequests))
@@ -213,6 +214,7 @@
                 <div class="max-h-60 overflow-y-auto">
                     @foreach (['Patou', 'Pluies', 'Enfant en bas age'] as $option)
                         <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($option) }})"
+                            @click="showGeneralOther = false"
                             class="w-full px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between text-sm">
                             <span class="text-gray-900 dark:text-white">{{ $option }}</span>
                             @if (in_array($option, $otherGeneralRequests))

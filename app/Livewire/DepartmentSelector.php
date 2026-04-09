@@ -104,6 +104,9 @@ class DepartmentSelector extends Component
             $this->searchQuery = '';
             $this->highlightedIndex = -1;
 
+            // Close dropdown after selection
+            $this->showDropdown = false;
+
             // Emit event to parent component with updated array
             $this->dispatch('departmentsSelected', $this->selectedDepartments);
         }
