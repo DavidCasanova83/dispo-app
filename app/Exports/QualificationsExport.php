@@ -153,7 +153,9 @@ class QualificationsExport implements FromQuery, WithHeadings, WithMapping, With
             $qualification->user->name ?? '',
             $qualification->user->email ?? '',
             $formData['visitorType'] ?? 'Touriste',
-            $formData['country'] ?? '',
+            isset($formData['countries']) && is_array($formData['countries'])
+                ? implode(', ', $formData['countries'])
+                : ($formData['country'] ?? ''),
             $departments,
             ($formData['departmentUnknown'] ?? false) ? 'Oui' : 'Non',
             $formData['email'] ?? '',

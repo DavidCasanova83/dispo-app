@@ -275,7 +275,7 @@
     @if ($showEditModal && $editingImage)
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center px-4 py-6">
-                <div class="fixed inset-0 bg-black/50 dark:bg-black/70 transition-opacity" wire:click="closeEditModal"></div>
+                <div class="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm transition-opacity" wire:click="closeEditModal"></div>
                 <div class="relative bg-white dark:bg-zinc-800 rounded-lg shadow-xl dark:shadow-zinc-950/50 max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-zinc-700">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Modifier la brochure</h3>
                     <form wire:submit.prevent="updateBrochure">
@@ -416,7 +416,7 @@
     @if ($showReportModal && $selectedReport)
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center px-4 py-6">
-                <div class="fixed inset-0 bg-black/50 dark:bg-black/70 transition-opacity" wire:click="closeReportModal"></div>
+                <div class="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm transition-opacity" wire:click="closeReportModal"></div>
                 <div class="relative bg-white dark:bg-zinc-800 rounded-lg shadow-xl dark:shadow-zinc-950/50 max-w-lg w-full p-6 border border-gray-200 dark:border-zinc-700">
                     <div class="flex items-start gap-4 mb-4">
                         <div class="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">

@@ -604,6 +604,7 @@ return [
         'Espagne',
         'Estonie',
         'Finlande',
+        'France',
         'Grèce',
         'Hongrie',
         'Irlande',

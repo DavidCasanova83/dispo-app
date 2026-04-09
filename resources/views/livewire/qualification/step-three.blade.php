@@ -1,45 +1,41 @@
 <div x-show="$wire.currentStep === 3" x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0 transform translate-x-4"
     x-transition:enter-end="opacity-100 transform translate-x-0">
-    <h2 class="text-2xl font-bold mb-8 text-gray-900 dark:text-white">Étape 3 : Demandes</h2>
+    <h2 class="text-lg font-bold mb-3 text-gray-900 dark:text-white">Étape 3 : Demandes</h2>
 
-    <!-- Date d'ajout du formulaire -->
-    <div class="mb-8" x-data>
-        <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
-            Date
-        </label>
-        <div class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg w-fit">
-            <!-- Hidden native date input -->
-            <input type="date" wire:model.live="addedDate" x-ref="dateInput" class="sr-only">
-
-            <!-- Displayed date + clickable icon -->
-            <span class="text-gray-900 dark:text-white text-sm font-medium">
-                {{ $addedDate ? \Carbon\Carbon::parse($addedDate)->format('d/m/Y') : 'Sélectionner une date' }}
-            </span>
-
-            <button type="button" @click="$refs.dateInput.showPicker()"
-                class="text-[#3E9B90] hover:text-[#2d7a72] transition-colors">
-                <flux:icon.calendar variant="mini" />
-            </button>
+    <!-- Date d'ajout + Méthode de contact (sur la même ligne d'en-tête) -->
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-3">
+        <!-- Date -->
+        <div x-data>
+            <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
+                Date
+            </label>
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg w-fit">
+                <input type="date" wire:model.live="addedDate" x-ref="dateInput" class="sr-only">
+                <span class="text-gray-900 dark:text-white text-sm font-medium">
+                    {{ $addedDate ? \Carbon\Carbon::parse($addedDate)->format('d/m/Y') : 'Sélectionner une date' }}
+                </span>
+                <button type="button" @click="$refs.dateInput.showPicker()"
+                    class="text-[#3E9B90] hover:text-[#2d7a72] transition-colors">
+                    <flux:icon.calendar variant="mini" />
+                </button>
+            </div>
+            @error('addedDate')
+                <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
         </div>
-
-        @error('addedDate')
-            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
     </div>
 
-    <hr class="my-6 border-gray-200 dark:border-gray-700">
-
-    <!-- Méthode de contact -->
-    <div class="mb-8">
-        <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
+    <!-- Méthode de contact (pleine largeur) -->
+    <div class="mb-3">
+        <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
             Méthode de contact <span class="text-red-500">*</span>
         </label>
-        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
             @foreach (['Direct', 'Téléphone', 'Email', 'Site web', 'Réseaux sociaux'] as $method)
                 <button type="button" wire:click="setContactMethod('{{ $method }}')"
                     @class([
-                        'px-4 py-2.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
+                        'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm whitespace-nowrap',
                         'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => $contactMethod === $method,
                         'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => $contactMethod !== $method,
                     ])>
@@ -49,19 +45,19 @@
         </div>
     </div>
 
-    <hr class="my-6 border-gray-200 dark:border-gray-700">
+    <hr class="my-3 border-gray-200 dark:border-gray-700">
 
     <!-- Demandes spécifiques -->
     @if ($this->citySpecificOptions)
-        <div class="mb-8">
-            <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
+        <div class="mb-3">
+            <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
                 Demande spécifique à <span class="text-[#3E9B90]">{{ $cityName }}</span>
             </label>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 @foreach ($this->citySpecificOptions as $option)
                     <button type="button" wire:click="toggleSpecificRequest('{{ addslashes($option) }}')"
                         @class([
-                            'px-4 py-2.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
+                            'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
                             'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => in_array($option, $specificRequests),
                             'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => !in_array($option, $specificRequests),
                         ])>
@@ -73,16 +69,16 @@
     @endif
 
     <!-- Autres demandes spécifiques (des autres villes) -->
-    <div class="mb-8" x-data="{ show: @entangle('showOtherSpecificDropdown') }">
-        <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
+    <div class="mb-3" x-data="{ show: @entangle('showOtherSpecificDropdown') }">
+        <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
             Autres demandes spécifiques
         </label>
 
         <!-- Chips des demandes sélectionnées -->
         @if (count($otherSpecificRequests) > 0)
-            <div class="flex flex-wrap gap-2 mb-3">
+            <div class="flex flex-wrap gap-2 mb-2">
                 @foreach ($otherSpecificRequests as $request)
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-[#3E9B90] text-white rounded-lg text-sm font-medium">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-[#3E9B90] text-white rounded-lg text-xs font-medium">
                         {{ $request }}
                         <button type="button" wire:click="removeOtherSpecificRequest('{{ addslashes($request) }}')"
                             class="hover:bg-white/20 rounded-full p-0.5 transition-colors">
@@ -100,7 +96,7 @@
         <div class="relative">
             <button type="button" @click="show = !show" wire:click="openOtherSpecificDropdown"
                 @class([
-                    'px-4 py-2.5 rounded-lg font-medium transition-all duration-200 border text-sm inline-flex items-center gap-1',
+                    'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-sm inline-flex items-center gap-1',
                     'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => count($otherSpecificRequests) > 0,
                     'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => count($otherSpecificRequests) === 0,
                 ])>
@@ -153,18 +149,18 @@
         </div>
     </div>
 
-    <hr class="my-6 border-gray-200 dark:border-gray-700">
+    <hr class="my-3 border-gray-200 dark:border-gray-700">
 
     <!-- Demandes générales -->
-    <div class="mb-8">
-        <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
+    <div class="mb-3">
+        <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
             Demande générale <span class="text-red-500">*</span>
         </label>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
             @foreach ($generalOptions as $option)
                 <button type="button" wire:click="toggleGeneralRequest('{{ addslashes($option) }}')"
                     @class([
-                        'px-4 py-2.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
+                        'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
                         'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => in_array($option, $generalRequests),
                         'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => !in_array($option, $generalRequests),
                     ])>
@@ -175,9 +171,9 @@
 
         <!-- Chips des "Autre" sélectionnées -->
         @if (count($otherGeneralRequests) > 0)
-            <div class="flex flex-wrap gap-2 mt-3">
+            <div class="flex flex-wrap gap-2 mt-2">
                 @foreach ($otherGeneralRequests as $request)
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-[#3E9B90] text-white rounded-lg text-sm font-medium">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-[#3E9B90] text-white rounded-lg text-xs font-medium">
                         {{ $request }}
                         <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($request) }})"
                             class="hover:bg-white/20 rounded-full p-0.5 transition-colors">
@@ -192,10 +188,10 @@
         @endif
 
         <!-- Bouton Autre avec dropdown -->
-        <div class="relative mt-3" x-data="{ showGeneralOther: false }">
+        <div class="relative mt-2" x-data="{ showGeneralOther: false }">
             <button type="button" @click="showGeneralOther = !showGeneralOther"
                 @class([
-                    'px-4 py-2.5 rounded-lg font-medium transition-all duration-200 border text-sm inline-flex items-center gap-1',
+                    'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-sm inline-flex items-center gap-1',
                     'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => count($otherGeneralRequests) > 0,
                     'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => count($otherGeneralRequests) === 0,
                 ])>
@@ -233,36 +229,29 @@
         </div>
 
         @error('generalRequests')
-            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>
 
-    <hr class="my-6 border-gray-200 dark:border-gray-700">
+    <hr class="my-3 border-gray-200 dark:border-gray-700">
 
     <!-- Autres demandes -->
-    <div class="mb-8">
-        <label class="block text-base font-semibold mb-3 text-gray-900 dark:text-white">
+    <div class="mb-3">
+        <label class="block text-sm font-semibold mb-1.5 text-gray-900 dark:text-white">
             Autres, à préciser
         </label>
         <div class="relative">
-            <textarea wire:model.blur="otherRequest" rows="3" maxlength="1000"
-                class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all resize-none"
+            <textarea wire:model.blur="otherRequest" rows="2" maxlength="1000"
+                class="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all resize-none"
                 placeholder="Précisez votre demande..."></textarea>
             <div class="absolute bottom-2 right-2 text-xs text-gray-500 dark:text-gray-400">
                 <span x-text="$wire.otherRequest.length"></span> / 1000
             </div>
         </div>
         @error('otherRequest')
-            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>
-
-    <!-- Message d'erreur général -->
-    @error('requests')
-        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-            <p class="text-red-600 dark:text-red-400">{{ $message }}</p>
-        </div>
-    @enderror
 
     <!-- Navigation -->
     <x-qualification.step-navigation :currentStep="$currentStep" :totalSteps="3" :showPrevious="true" nextLabel="Envoyer"

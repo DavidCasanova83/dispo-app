@@ -8,9 +8,9 @@ class="relative w-full">
 
     <!-- Selected Departments Chips -->
     @if(count($selectedDepartments) > 0 && !$departmentUnknown)
-        <div class="flex flex-wrap gap-2 mb-3">
+        <div class="flex flex-wrap gap-2 mb-2">
             @foreach($selectedDepartments as $dept)
-                <span class="inline-flex items-center gap-1 px-3 py-1 bg-[#3E9B90] text-white rounded-lg text-sm font-medium">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#3E9B90] text-white rounded-lg text-xs font-medium">
                     {{ $dept }}
                     <button
                         type="button"
@@ -18,7 +18,7 @@ class="relative w-full">
                         class="ml-1 hover:bg-[#357f76] rounded-full p-0.5 transition-colors"
                         aria-label="Retirer {{ $dept }}"
                     >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
@@ -27,43 +27,42 @@ class="relative w-full">
         </div>
     @endif
 
-    <!-- Unknown Button -->
-    <div class="flex gap-2 mb-3">
+    <!-- Search Input + Unknown Button -->
+    <div class="flex gap-2">
+        <div class="relative flex-1">
+            <input
+                type="text"
+                wire:model.live.debounce.300ms="searchQuery"
+                wire:keydown.arrow-down.prevent="handleKeydown('ArrowDown')"
+                wire:keydown.arrow-up.prevent="handleKeydown('ArrowUp')"
+                wire:keydown.enter.prevent="handleKeydown('Enter')"
+                wire:keydown.escape="handleKeydown('Escape')"
+                @focus="$wire.focusSearch()"
+                @blur="$wire.blurSearch()"
+                :disabled="$wire.departmentUnknown"
+                placeholder="Ex: 04 - Alpes-de-Haute-Provence ou rechercher..."
+                class="w-full px-3 py-1.5 pr-9 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                autocomplete="off"
+            >
+
+            <!-- Search Icon -->
+            <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+
         <button
             type="button"
             wire:click="toggleUnknown"
             :class="$wire.departmentUnknown ?
-                'bg-[#3E9B90] text-white shadow-md' :
-                'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'"
-            class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' :
+                'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]'"
+            class="px-3 py-1.5 text-sm rounded-lg font-medium transition-all duration-200 border whitespace-nowrap"
         >
             Inconnu
         </button>
-    </div>
-
-    <!-- Search Input -->
-    <div class="relative">
-        <input
-            type="text"
-            wire:model.live.debounce.300ms="searchQuery"
-            wire:keydown.arrow-down.prevent="handleKeydown('ArrowDown')"
-            wire:keydown.arrow-up.prevent="handleKeydown('ArrowUp')"
-            wire:keydown.enter.prevent="handleKeydown('Enter')"
-            wire:keydown.escape="handleKeydown('Escape')"
-            @focus="$wire.focusSearch()"
-            @blur="$wire.blurSearch()"
-            :disabled="$wire.departmentUnknown"
-            placeholder="Ex: 04 - Alpes-de-Haute-Provence ou rechercher..."
-            class="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            autocomplete="off"
-        >
-
-        <!-- Search Icon -->
-        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-        </div>
     </div>
 
     <!-- Dropdown Results -->

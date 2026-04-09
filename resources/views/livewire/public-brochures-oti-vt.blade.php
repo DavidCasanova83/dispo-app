@@ -710,7 +710,15 @@
                                                 </svg>
                                             </button>
                                             @auth
-                                                @if (auth()->id() === $brochure->responsable_id)
+                                                @if ($isAdmin)
+                                                    <button type="button" wire:click="openEditModal({{ $brochure->id }})"
+                                                        class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-[#3E9B90]/15 dark:bg-[#3E9B90]/25 text-[#3E9B90] dark:text-[#3E9B90] hover:bg-[#3E9B90]/25 dark:hover:bg-[#3E9B90]/40 transition-colors cursor-pointer"
+                                                        title="Modifier (admin)">
+                                                        <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                    </button>
+                                                @elseif (auth()->id() === $brochure->responsable_id)
                                                     <a href="{{ route('mes-brochures') }}"
                                                         class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors cursor-pointer"
                                                         title="Modifier cette brochure">
@@ -800,4 +808,18 @@
             </div>
         </div>
     @endif
+
+    {{-- Modal d'édition admin (visible uniquement pour Admin / Super-admin) --}}
+    @auth
+        @if ($isAdmin)
+            @include('partials.admin-brochure-edit-modal', [
+                'categories' => $editModalCategories,
+                'subCategories' => $editModalSubCategories,
+                'authors' => $editModalAuthors,
+                'sectors' => $editModalSectors,
+                'responsables' => $editModalResponsables,
+                'usedDisplayOrders' => $editModalUsedDisplayOrders,
+            ])
+        @endif
+    @endauth
 </div>

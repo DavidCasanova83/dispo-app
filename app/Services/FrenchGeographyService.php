@@ -5,13 +5,72 @@ namespace App\Services;
 class FrenchGeographyService
 {
     /**
-     * Get all departments from configuration.
+     * Codes prioritaires affichés en tête de liste (dans cet ordre).
+     */
+    protected const PRIORITY_DEPARTMENT_CODES = ['04', '06', '83', '13'];
+
+    /**
+     * Get all departments from configuration, sorted with priority codes first
+     * then by numeric department code (handles Corsica 2A/2B and DOM-TOM).
      *
      * @return array
      */
     public function getAllDepartments(): array
     {
-        return config('french_geography.departments', []);
+        $departments = config('french_geography.departments', []);
+        return $this->sortDepartments($departments);
+    }
+
+    /**
+     * Sort departments: priority list first (in their declared order),
+     * then the rest by numeric code.
+     *
+     * @param array $departments
+     * @return array
+     */
+    protected function sortDepartments(array $departments): array
+    {
+        $priority = self::PRIORITY_DEPARTMENT_CODES;
+
+        usort($departments, function ($a, $b) use ($priority) {
+            $aPriority = array_search($a['code'], $priority, true);
+            $bPriority = array_search($b['code'], $priority, true);
+
+            if ($aPriority !== false && $bPriority !== false) {
+                return $aPriority <=> $bPriority;
+            }
+            if ($aPriority !== false) {
+                return -1;
+            }
+            if ($bPriority !== false) {
+                return 1;
+            }
+
+            return $this->departmentCodeRank($a['code']) <=> $this->departmentCodeRank($b['code']);
+        });
+
+        return array_values($departments);
+    }
+
+    /**
+     * Numeric rank for a department code, used for natural sorting.
+     * Handles Corsica (2A/2B) and DOM-TOM (971+).
+     *
+     * @param string $code
+     * @return float
+     */
+    protected function departmentCodeRank(string $code): float
+    {
+        if ($code === '2A') {
+            return 20.1;
+        }
+        if ($code === '2B') {
+            return 20.2;
+        }
+        if (is_numeric($code)) {
+            return (float) (int) $code;
+        }
+        return 9999;
     }
 
     /**

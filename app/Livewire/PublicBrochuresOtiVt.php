@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\EditsBrochures;
 use App\Models\Agenda;
 use App\Models\Author;
 use App\Models\BrochureClick;
@@ -11,14 +12,18 @@ use App\Models\Category;
 use App\Models\Image;
 use App\Models\Sector;
 use App\Models\SubCategory;
+use App\Models\User;
 use App\Services\MailjetService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 
 class PublicBrochuresOtiVt extends Component
 {
+    use WithFileUploads, EditsBrochures;
+
     // Filtres
     public ?int $categoryId = null;
     public ?int $subCategoryId = null;
@@ -359,6 +364,17 @@ class PublicBrochuresOtiVt extends Component
                 ->get()
             : collect();
 
+        // Données nécessaires au modal d'édition admin (chargées uniquement si admin connecté)
+        $isAdmin = Auth::check() && Auth::user()->hasAnyRole(['Admin', 'Super-admin']);
+        $editModalCategories = $isAdmin ? Category::orderBy('name')->get() : collect();
+        $editModalSubCategories = $isAdmin ? SubCategory::with('category')->orderBy('name')->get() : collect();
+        $editModalAuthors = $isAdmin ? Author::orderBy('name')->get() : collect();
+        $editModalSectors = $isAdmin ? Sector::orderBy('name')->get() : collect();
+        $editModalResponsables = $isAdmin ? User::where('approved', true)->orderBy('name')->get() : collect();
+        $editModalUsedDisplayOrders = $isAdmin
+            ? Image::whereNotNull('display_order')->orderBy('display_order')->pluck('display_order')->unique()->values()->toArray()
+            : [];
+
         return view('livewire.public-brochures-oti-vt', [
             'brochures' => $brochures,
             'currentAgenda' => $currentAgenda,
@@ -378,6 +394,14 @@ class PublicBrochuresOtiVt extends Component
             'currentSector' => $currentSector,
             'currentAuthor' => $currentAuthor,
             'isFilteredByUrl' => (bool) ($this->categorySlug || $this->sectorSlug || $this->authorSlug),
+            // Données pour le modal d'édition admin
+            'isAdmin' => $isAdmin,
+            'editModalCategories' => $editModalCategories,
+            'editModalSubCategories' => $editModalSubCategories,
+            'editModalAuthors' => $editModalAuthors,
+            'editModalSectors' => $editModalSectors,
+            'editModalResponsables' => $editModalResponsables,
+            'editModalUsedDisplayOrders' => $editModalUsedDisplayOrders,
         ])->layout($layout);
     }
 }

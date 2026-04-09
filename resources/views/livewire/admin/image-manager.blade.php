@@ -1,4 +1,10 @@
-<div class="min-h-screen bg-gray-50 dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8"
+    x-data="{
+        openStats: false,
+        openUpload: false,
+        openLists: false,
+        openBrochures: false,
+    }">
     <div class="max-w-7xl mx-auto">
         {{-- Header --}}
         <div class="text-center mb-8">
@@ -6,14 +12,6 @@
             <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
                 Uploadez et gérez les brochures de l'application
             </p>
-            <a href="{{ route('admin.images.statistics') }}" wire:navigate
-                class="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-lg shadow-md transition-all duration-300">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                Voir les statistiques
-            </a>
         </div>
 
         {{-- Flash Messages --}}
@@ -97,69 +95,24 @@
             </div>
         @endif
 
-        {{-- Statistics Cards --}}
-        <div class="grid gap-6 md:grid-cols-3 mb-6">
-            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Brochures</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
-                    </div>
-                    <div class="rounded-lg bg-[#3E9B90]/10 dark:bg-[#3E9B90]/20 p-3">
-                        <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Taille Totale</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                            @php
-                                $totalMB = $stats['total_size'] / 1048576;
-                                echo number_format($totalMB, 2) . ' MB';
-                            @endphp
-                        </p>
-                    </div>
-                    <div class="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-3">
-                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4">
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Aujourd'hui</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['today'] }}</p>
-                    </div>
-                    <div class="rounded-lg bg-green-100 dark:bg-green-900/30 p-3">
-                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
-                            </path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Upload Section --}}
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8 mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Uploader des brochures</h2>
-
-            <form wire:submit.prevent="uploadImages">
+        {{-- Section: Téléchargement --}}
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg mb-6 overflow-hidden">
+            <button type="button" @click="openUpload = !openUpload"
+                class="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Téléchargement
+                </h2>
+                <svg class="w-5 h-5 text-gray-500 transition-transform duration-200" :class="openUpload ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div x-show="openUpload" x-collapse>
+                <div class="px-8 pb-8">
+                    <form wire:submit.prevent="uploadImages">
                 <div class="space-y-4">
                     <div>
                         <label class="block text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
@@ -214,15 +167,95 @@
                                         {{ $contentFile->getClientOriginalName() }}
                                     </p>
                                     <div class="space-y-2">
+                                        {{-- Auteur (obligatoire, en premier) --}}
                                         <div>
-                                            <label
-                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Titre
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Auteur <span class="text-red-500">*</span>
                                             </label>
-                                            <input type="text" wire:model="titles.{{ $index }}"
-                                                placeholder="Titre de la brochure"
-                                                class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                            <select wire:model.live="authorIds.{{ $index }}"
+                                                class="w-full px-4 py-2 text-sm rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent {{ empty($authorIds[$index] ?? null) ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600' }}">
+                                                <option value="">-- Sélectionner un auteur --</option>
+                                                @foreach ($authors as $author)
+                                                    <option value="{{ $author->id }}">{{ $author->name }}{{ $author->hasDefaultImage() ? ' ★' : '' }}</option>
+                                                @endforeach
+                                            </select>
                                         </div>
+
+                                        {{-- Catégorie / Sous-catégorie / Secteur --}}
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Catégorie
+                                                </label>
+                                                <select wire:model.live="categoryIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                    <option value="">-- Aucune --</option>
+                                                    @foreach ($categories as $category)
+                                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Sous-catégorie
+                                                </label>
+                                                <select wire:model="subCategoryIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent disabled:opacity-50"
+                                                    {{ empty($categoryIds[$index] ?? null) ? 'disabled' : '' }}>
+                                                    <option value="">-- Aucune --</option>
+                                                    @foreach ($subCategories->where('category_id', (int) ($categoryIds[$index] ?? 0)) as $subCategory)
+                                                        <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Secteur
+                                                </label>
+                                                <select wire:model="sectorIds.{{ $index }}"
+                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                                    <option value="">-- Aucun --</option>
+                                                    @foreach ($sectors as $sector)
+                                                        <option value="{{ $sector->id }}">{{ $sector->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {{-- Responsable (obligatoire) --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Responsable <span class="text-red-500">*</span>
+                                            </label>
+                                            <select wire:model.live="responsableIds.{{ $index }}"
+                                                class="w-full px-4 py-2 text-sm rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent {{ empty($responsableIds[$index] ?? null) ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600' }}">
+                                                <option value="">-- Sélectionner un responsable --</option>
+                                                @foreach ($responsables as $responsable)
+                                                    <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        {{-- Titre (obligatoire) --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Titre <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="text" wire:model.live.debounce.500ms="titles.{{ $index }}"
+                                                placeholder="Titre de la brochure"
+                                                class="w-full px-4 py-2 text-sm rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent {{ empty($titles[$index] ?? null) ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600' }}">
+                                        </div>
+
+                                        {{-- Année d'édition (obligatoire) --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Année d'édition <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="number" wire:model.live.debounce.500ms="editionYears.{{ $index }}"
+                                                min="1900" max="2100" placeholder="2025"
+                                                class="w-full px-4 py-2 text-sm rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent {{ empty($editionYears[$index] ?? null) ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600' }}">
+                                        </div>
+
                                         <div>
                                             <label
                                                 class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -302,16 +335,8 @@
                                                     class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
                                             </div>
                                         </div>
-                                        <div class="grid grid-cols-3 gap-2">
-                                            <div>
-                                                <label
-                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Année d'édition
-                                                </label>
-                                                <input type="number" wire:model="editionYears.{{ $index }}"
-                                                    min="1900" max="2100" placeholder="2025"
-                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                            </div>
+                                        {{-- Ordre d'affichage et print disponible --}}
+                                        <div class="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label
                                                     class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -335,76 +360,6 @@
                                                     Print disponible
                                                 </label>
                                             </div>
-                                        </div>
-                                        {{-- Catégorie, Auteur, Secteur --}}
-                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                            <div>
-                                                <label
-                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Catégorie
-                                                </label>
-                                                <select wire:model.live="categoryIds.{{ $index }}"
-                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                                    <option value="">-- Aucune --</option>
-                                                    @foreach ($categories as $category)
-                                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label
-                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Sous-catégorie
-                                                </label>
-                                                <select wire:model="subCategoryIds.{{ $index }}"
-                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
-                                                    {{ empty($categoryIds[$index] ?? null) ? 'disabled' : '' }}>
-                                                    <option value="">-- Aucune --</option>
-                                                    @foreach ($subCategories->where('category_id', (int) ($categoryIds[$index] ?? 0)) as $subCategory)
-                                                        <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label
-                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Auteur
-                                                </label>
-                                                <select wire:model.live="authorIds.{{ $index }}"
-                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                                    <option value="">-- Aucun --</option>
-                                                    @foreach ($authors as $author)
-                                                        <option value="{{ $author->id }}">{{ $author->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label
-                                                    class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Secteur
-                                                </label>
-                                                <select wire:model="sectorIds.{{ $index }}"
-                                                    class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                                    <option value="">-- Aucun --</option>
-                                                    @foreach ($sectors as $sector)
-                                                        <option value="{{ $sector->id }}">{{ $sector->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        {{-- Responsable --}}
-                                        <div>
-                                            <label
-                                                class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Responsable
-                                            </label>
-                                            <select wire:model="responsableIds.{{ $index }}"
-                                                class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                                <option value="">-- Aucun --</option>
-                                                @foreach ($responsables as $responsable)
-                                                    <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
-                                                @endforeach
-                                            </select>
                                         </div>
                                         {{-- Image de présentation --}}
                                         <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
@@ -447,7 +402,7 @@
                                                     @else
                                                         <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
                                                             Aucune image par défaut configurée.
-                                                            <button type="button" wire:click="toggleDefaultImageConfig" class="underline">Configurer</button>
+                                                            <button type="button" @click="openLists = true; $nextTick(() => { document.getElementById('section-lists')?.scrollIntoView({ behavior: 'smooth' }) })" class="underline">Configurer</button>
                                                         </p>
                                                     @endif
                                                 </div>
@@ -491,9 +446,34 @@
                         </div>
                     @endif
 
+                    {{-- Récapitulatif des champs manquants --}}
+                    @if ($contentFiles && !$this->canUpload)
+                        @php $missing = $this->missingRequiredFields; @endphp
+                        @if (count($missing) > 0)
+                            <div class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                                            Champs obligatoires manquants
+                                        </p>
+                                        <ul class="text-xs text-amber-700 dark:text-amber-300 list-disc list-inside space-y-0.5">
+                                            @foreach ($missing as $field)
+                                                <li>{{ $field }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     <div class="flex gap-3">
                         <button type="submit"
-                            class="px-8 py-3 bg-[#3E9B90] text-white text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            @disabled(!$this->canUpload)
+                            class="px-8 py-3 bg-[#3E9B90] text-white text-lg font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:bg-gray-400 dark:disabled:bg-gray-600"
                             wire:loading.attr="disabled" wire:target="contentFiles, presentationImages, uploadImages">
                             <span wire:loading.remove wire:target="uploadImages">Uploader</span>
                             <span wire:loading wire:target="uploadImages">Upload en cours...</span>
@@ -512,27 +492,378 @@
                         Chargement des previews...
                     </div>
                 </div>
-            </form>
+                    </form>
+                </div>
+            </div>
         </div>
 
-        {{-- Configuration des images par défaut --}}
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
-            <button wire:click="toggleDefaultImageConfig" class="w-full flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">
-                    <span class="flex items-center gap-2">
-                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Images par défaut
+        {{-- Section: Gestion des Brochures --}}
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg mb-6 overflow-hidden">
+            <button type="button" @click="openBrochures = !openBrochures"
+                class="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Gestion des Brochures
+                    <span class="ml-2 px-2.5 py-0.5 text-sm font-semibold rounded-full bg-[#3E9B90]/10 text-[#3E9B90]">
+                        {{ $imagesList->total() }}
                     </span>
                 </h2>
-                <svg class="w-5 h-5 text-gray-500 transition-transform {{ $showDefaultImageConfig ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-gray-500 transition-transform duration-200" :class="openBrochures ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
             </button>
+            <div x-show="openBrochures" x-collapse>
+                <div class="px-6 pb-8 space-y-6">
 
-            @if ($showDefaultImageConfig)
-                <div class="mt-4 space-y-4">
+                {{-- Barre de filtres et tri --}}
+                <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                    {{-- Recherche + tri --}}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Recherche</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"></path>
+                                    </svg>
+                                </span>
+                                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Titre, nom de fichier..."
+                                    class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Trier par</label>
+                            <select wire:model.live="sortField"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="display_order">Ordre d'affichage</option>
+                                <option value="created_at">Date d'ajout</option>
+                                <option value="title">Titre</option>
+                                <option value="size">Taille</option>
+                                <option value="edition_year">Année d'édition</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sens</label>
+                            <select wire:model.live="sortDirection"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="asc">Croissant</option>
+                                <option value="desc">Décroissant</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Filtres --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Catégorie</label>
+                            <select wire:model.live="filterCategoryId"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Toutes</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sous-catégorie</label>
+                            <select wire:model.live="filterSubCategoryId" {{ !$filterCategoryId ? 'disabled' : '' }}
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent disabled:opacity-50">
+                                <option value="">Toutes</option>
+                                @foreach ($subCategories->where('category_id', (int) $filterCategoryId) as $subCategory)
+                                    <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Auteur</label>
+                            <select wire:model.live="filterAuthorId"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Tous</option>
+                                @foreach ($authors as $author)
+                                    <option value="{{ $author->id }}">{{ $author->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Secteur</label>
+                            <select wire:model.live="filterSectorId"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Tous</option>
+                                @foreach ($sectors as $sector)
+                                    <option value="{{ $sector->id }}">{{ $sector->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsable</label>
+                            <select wire:model.live="filterResponsableId"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Tous</option>
+                                @foreach ($responsables as $responsable)
+                                    <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Année d'édition</label>
+                            <select wire:model.live="filterEditionYear"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Toutes</option>
+                                @foreach ($editionYears as $year)
+                                    <option value="{{ $year }}">{{ $year }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Disponibilité print</label>
+                            <select wire:model.live="filterPrintAvailable"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
+                                <option value="">Tous</option>
+                                <option value="1">Disponible</option>
+                                <option value="0">Indisponible</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" wire:click="resetBrochureFilters"
+                                class="w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Compteur résultats --}}
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ $imagesList->total() }} brochure(s) trouvée(s)
+                    </div>
+                </div>
+
+                {{-- Liste des brochures --}}
+                <div>
+
+            @if ($imagesList->count() > 0)
+                <div class="space-y-3">
+                    @foreach ($imagesList as $image)
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                            {{-- Miniature et infos --}}
+                            <div class="flex items-start gap-4 flex-1 min-w-0">
+                                <a href="{{ asset('storage/' . $image->path) }}" target="_blank" class="flex-shrink-0">
+                                    <img src="{{ $image->thumbnail_path ? asset('storage/' . $image->thumbnail_path) : asset('storage/' . $image->path) }}"
+                                        alt="{{ $image->alt_text ?? $image->name }}"
+                                        class="w-14 h-[79px] object-cover rounded-lg border border-gray-200 dark:border-gray-600 hover:opacity-80 transition-opacity">
+                                </a>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">
+                                        {{ $image->title ?? $image->name }}
+                                    </h3>
+                                    @if ($image->description)
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                            {{ $image->description }}
+                                        </p>
+                                    @endif
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                                        <span>{{ $image->formattedSize() }}</span>
+                                        <span>{{ $image->created_at->format('d/m/Y') }}</span>
+                                        <span>Par {{ $image->uploader->name }}</span>
+                                        @if ($image->quantity_available !== null)
+                                            <span class="text-[#3E9B90] font-medium">Stock: {{ $image->quantity_available }}</span>
+                                        @endif
+                                        @if ($image->display_order !== null)
+                                            <span class="text-purple-600 dark:text-purple-400 font-medium">Ordre: {{ $image->display_order }}</span>
+                                        @endif
+                                        @if ($image->category)
+                                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{{ $image->category->name }}</span>
+                                        @endif
+                                        @if ($image->subCategory)
+                                            <span class="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded text-xs">{{ $image->subCategory->name }}</span>
+                                        @endif
+                                        @if ($image->author)
+                                            <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs">{{ $image->author->name }}</span>
+                                        @endif
+                                        @if ($image->sector)
+                                            <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs">{{ $image->sector->name }}</span>
+                                        @endif
+                                        @if ($image->responsable)
+                                            <span class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-xs">Resp: {{ $image->responsable->name }}</span>
+                                        @endif
+                                    </div>
+                                    {{-- Liens --}}
+                                    <div class="flex flex-wrap gap-3 mt-2">
+                                        @if ($image->link_url)
+                                            <a href="{{ $image->link_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-1 text-xs text-[#3E9B90] hover:text-[#2d7a72] font-medium">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                                </svg>
+                                                {{ $image->link_text ?? 'Voir le lien' }}
+                                            </a>
+                                        @endif
+                                        @if ($image->calameo_link_url)
+                                            <a href="{{ $image->calameo_link_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                                </svg>
+                                                {{ $image->calameo_link_text ?? 'Voir sur Calameo' }}
+                                            </a>
+                                        @endif
+                                        @if ($image->pdf_path)
+                                            @php
+                                                $downloadExtension = strtolower(pathinfo($image->pdf_path, PATHINFO_EXTENSION));
+                                                $isDownloadPdf = $downloadExtension === 'pdf';
+                                            @endphp
+                                            <a href="{{ asset('storage/' . $image->pdf_path) }}" target="_blank" rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-1 text-xs {{ $isDownloadPdf ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700' }} font-medium">
+                                                @if ($isDownloadPdf)
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    Télécharger PDF
+                                                @else
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    Télécharger image
+                                                @endif
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Actions --}}
+                            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                                @php
+                                    // URL pour télécharger (priorité: PDF > link > image)
+                                    $downloadUrl = $image->pdf_path
+                                        ? asset('storage/' . $image->pdf_path)
+                                        : ($image->link_url ?? asset('storage/' . $image->path));
+
+                                    // URL pour consulter (priorité: PDF > calameo > link > image)
+                                    $consultUrl = $image->pdf_path
+                                        ? asset('storage/' . $image->pdf_path)
+                                        : ($image->calameo_link_url ?? $image->link_url ?? asset('storage/' . $image->path));
+                                @endphp
+
+                                {{-- Bouton Consulter (bleu) --}}
+                                <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                                    title="Consulter en ligne">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                </a>
+
+                                {{-- Bouton Télécharger (rouge) --}}
+                                <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                                    title="Télécharger" {{ $image->pdf_path ? 'download' : '' }}>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </a>
+
+                                {{-- Bouton Copier le lien (vert) --}}
+                                <button x-data="{ copied: false }"
+                                    @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                    class="p-2 rounded-lg transition-colors"
+                                    :class="copied ? 'bg-green-500 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
+                                    :title="copied ? 'Lien copié !' : 'Copier le lien'">
+                                    <svg x-show="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                                    </svg>
+                                    <svg x-show="copied" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </button>
+
+                                {{-- Edit button --}}
+                                <button wire:click="openEditModal({{ $image->id }})"
+                                    class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                                    title="Modifier">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </button>
+
+                                {{-- Delete button --}}
+                                <button wire:click="openDeleteModal({{ $image->id }})"
+                                    class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                    title="Supprimer">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Pagination --}}
+                <div class="mt-6">
+                    {{ $imagesList->links() }}
+                </div>
+            @else
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <p class="mt-4 text-sm font-medium text-gray-900 dark:text-white">Aucune brochure</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Aucun résultat ne correspond aux filtres appliqués.</p>
+                </div>
+            @endif
+                </div> {{-- /liste des brochures --}}
+                </div> {{-- /space-y-6 wrapper --}}
+            </div> {{-- /x-show openBrochures --}}
+        </div> {{-- /section Gestion des Brochures --}}
+
+        {{-- Section: Gestion des listes (images par défaut + catégories/auteurs/secteurs) --}}
+        <div id="section-lists" class="bg-white dark:bg-[#001716] shadow-lg rounded-lg mb-6 overflow-hidden">
+            <button type="button" @click="openLists = !openLists"
+                class="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                    </svg>
+                    Gestion des listes
+                </h2>
+                <svg class="w-5 h-5 text-gray-500 transition-transform duration-200" :class="openLists ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div x-show="openLists" x-collapse>
+                <div class="px-6 pb-6 space-y-6">
+
+                {{-- Sous-section: Images par défaut --}}
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Images par défaut
+                    </h3>
+                    <div class="space-y-4">
                     {{-- Image par défaut globale --}}
                     <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                         <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Image par défaut globale</h3>
@@ -577,14 +908,18 @@
                             L'image de l'auteur sera prioritaire sur l'image globale.
                         </p>
                     </div>
+                    </div>
                 </div>
-            @endif
-        </div>
 
-        {{-- Gestion des Catégories, Auteurs, Secteurs --}}
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Gérer les listes</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {{-- Sous-section: Catégories, Auteurs, Secteurs --}}
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Catégories, sous-catégories, auteurs, secteurs
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {{-- Catégories --}}
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Catégories</h3>
@@ -794,204 +1129,96 @@
                     @error('newSectorName') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                 </div>
             </div>
-        </div>
+                </div> {{-- /sous-section catégories --}}
+                </div> {{-- /space-y-6 wrapper --}}
+            </div> {{-- /x-show openLists --}}
+        </div> {{-- /section Gestion des listes --}}
 
-        {{-- Search --}}
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-6 mb-6">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher une brochure..."
-                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-        </div>
-
-        {{-- Images Grid --}}
-        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Brochures uploadées</h2>
-
-            @if ($imagesList->count() > 0)
-                <div class="space-y-3">
-                    @foreach ($imagesList as $image)
-                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                            {{-- Miniature et infos --}}
-                            <div class="flex items-start gap-4 flex-1 min-w-0">
-                                <a href="{{ asset('storage/' . $image->path) }}" target="_blank" class="flex-shrink-0">
-                                    <img src="{{ $image->thumbnail_path ? asset('storage/' . $image->thumbnail_path) : asset('storage/' . $image->path) }}"
-                                        alt="{{ $image->alt_text ?? $image->name }}"
-                                        class="w-14 h-[79px] object-cover rounded-lg border border-gray-200 dark:border-gray-600 hover:opacity-80 transition-opacity">
-                                </a>
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-semibold text-gray-900 dark:text-white">
-                                        {{ $image->title ?? $image->name }}
-                                    </h3>
-                                    @if ($image->description)
-                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                                            {{ $image->description }}
-                                        </p>
-                                    @endif
-                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 dark:text-gray-500">
-                                        <span>{{ $image->formattedSize() }}</span>
-                                        <span>{{ $image->created_at->format('d/m/Y') }}</span>
-                                        <span>Par {{ $image->uploader->name }}</span>
-                                        @if ($image->quantity_available !== null)
-                                            <span class="text-[#3E9B90] font-medium">Stock: {{ $image->quantity_available }}</span>
-                                        @endif
-                                        @if ($image->display_order !== null)
-                                            <span class="text-purple-600 dark:text-purple-400 font-medium">Ordre: {{ $image->display_order }}</span>
-                                        @endif
-                                        @if ($image->category)
-                                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs">{{ $image->category->name }}</span>
-                                        @endif
-                                        @if ($image->subCategory)
-                                            <span class="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded text-xs">{{ $image->subCategory->name }}</span>
-                                        @endif
-                                        @if ($image->author)
-                                            <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded text-xs">{{ $image->author->name }}</span>
-                                        @endif
-                                        @if ($image->sector)
-                                            <span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs">{{ $image->sector->name }}</span>
-                                        @endif
-                                        @if ($image->responsable)
-                                            <span class="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-xs">Resp: {{ $image->responsable->name }}</span>
-                                        @endif
-                                    </div>
-                                    {{-- Liens --}}
-                                    <div class="flex flex-wrap gap-3 mt-2">
-                                        @if ($image->link_url)
-                                            <a href="{{ $image->link_url }}" target="_blank" rel="noopener noreferrer"
-                                                class="inline-flex items-center gap-1 text-xs text-[#3E9B90] hover:text-[#2d7a72] font-medium">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                                </svg>
-                                                {{ $image->link_text ?? 'Voir le lien' }}
-                                            </a>
-                                        @endif
-                                        @if ($image->calameo_link_url)
-                                            <a href="{{ $image->calameo_link_url }}" target="_blank" rel="noopener noreferrer"
-                                                class="inline-flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                                </svg>
-                                                {{ $image->calameo_link_text ?? 'Voir sur Calameo' }}
-                                            </a>
-                                        @endif
-                                        @if ($image->pdf_path)
-                                            @php
-                                                $downloadExtension = strtolower(pathinfo($image->pdf_path, PATHINFO_EXTENSION));
-                                                $isDownloadPdf = $downloadExtension === 'pdf';
-                                            @endphp
-                                            <a href="{{ asset('storage/' . $image->pdf_path) }}" target="_blank" rel="noopener noreferrer"
-                                                class="inline-flex items-center gap-1 text-xs {{ $isDownloadPdf ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700' }} font-medium">
-                                                @if ($isDownloadPdf)
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                    </svg>
-                                                    Télécharger PDF
-                                                @else
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                    </svg>
-                                                    Télécharger image
-                                                @endif
-                                            </a>
-                                        @endif
-                                    </div>
+        {{-- Section: Statistiques --}}
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg mb-6 overflow-hidden">
+            <button type="button" @click="openStats = !openStats"
+                class="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Statistiques
+                </h2>
+                <svg class="w-5 h-5 text-gray-500 transition-transform duration-200" :class="openStats ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div x-show="openStats" x-collapse>
+                <div class="px-6 pb-6">
+                    <div class="grid gap-6 md:grid-cols-3">
+                        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Brochures</p>
+                                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
+                                </div>
+                                <div class="rounded-lg bg-[#3E9B90]/10 dark:bg-[#3E9B90]/20 p-3">
+                                    <svg class="w-6 h-6 text-[#3E9B90]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
                                 </div>
                             </div>
+                        </div>
 
-                            {{-- Actions --}}
-                            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                                @php
-                                    // URL pour télécharger (priorité: PDF > link > image)
-                                    $downloadUrl = $image->pdf_path
-                                        ? asset('storage/' . $image->pdf_path)
-                                        : ($image->link_url ?? asset('storage/' . $image->path));
-
-                                    // URL pour consulter (priorité: PDF > calameo > link > image)
-                                    $consultUrl = $image->pdf_path
-                                        ? asset('storage/' . $image->pdf_path)
-                                        : ($image->calameo_link_url ?? $image->link_url ?? asset('storage/' . $image->path));
-                                @endphp
-
-                                {{-- Bouton Consulter (bleu) --}}
-                                <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
-                                    class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
-                                    title="Consulter en ligne">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Taille Totale</p>
+                                    <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                                        @php
+                                            $totalMB = $stats['total_size'] / 1048576;
+                                            echo number_format($totalMB, 2) . ' MB';
+                                        @endphp
+                                    </p>
+                                </div>
+                                <div class="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-3">
+                                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4">
+                                        </path>
                                     </svg>
-                                </a>
-
-                                {{-- Bouton Télécharger (rouge) --}}
-                                <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
-                                    class="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
-                                    title="Télécharger" {{ $image->pdf_path ? 'download' : '' }}>
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                </a>
-
-                                {{-- Bouton Copier le lien (vert) --}}
-                                <button x-data="{ copied: false }"
-                                    @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                    class="p-2 rounded-lg transition-colors"
-                                    :class="copied ? 'bg-green-500 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
-                                    :title="copied ? 'Lien copié !' : 'Copier le lien'">
-                                    <svg x-show="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-                                    </svg>
-                                    <svg x-show="copied" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </button>
-
-                                {{-- Edit button --}}
-                                <button wire:click="openEditModal({{ $image->id }})"
-                                    class="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
-                                    title="Modifier">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-
-                                {{-- Delete button --}}
-                                <button wire:click="openDeleteModal({{ $image->id }})"
-                                    class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                                    title="Supprimer">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
+                                </div>
                             </div>
                         </div>
-                    @endforeach
-                </div>
 
-                {{-- Pagination --}}
-                <div class="mt-6">
-                    {{ $imagesList->links() }}
+                        <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Aujourd'hui</p>
+                                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['today'] }}</p>
+                                </div>
+                                <div class="rounded-lg bg-green-100 dark:bg-green-900/30 p-3">
+                                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <a href="{{ route('admin.images.statistics') }}" wire:navigate
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-lg shadow-md transition-all duration-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Voir les statistiques détaillées
+                        </a>
+                    </div>
                 </div>
-            @else
-                <div class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    <p class="mt-4 text-sm font-medium text-gray-900 dark:text-white">Aucune brochure</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Uploadez votre première brochure ci-dessus</p>
-                </div>
-            @endif
+            </div>
         </div>
 
         {{-- Delete Confirmation Modal --}}
@@ -1036,288 +1263,15 @@
             </div>
         @endif
 
-        {{-- Edit Modal --}}
-        @if ($showEditModal && $editingImage)
-            <div class="fixed inset-0 z-50 overflow-y-auto">
-                <div class="flex min-h-screen items-center justify-center px-4 py-6">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                        wire:click="closeEditModal"></div>
-
-                    <div class="relative bg-white dark:bg-[#001716] rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                            Modifier la brochure
-                        </h3>
-
-                        <form wire:submit.prevent="updateImage">
-                            {{-- Image preview --}}
-                            <div class="mb-4">
-                                <img src="{{ asset('storage/' . $editingImage->thumbnail_path) }}"
-                                    alt="{{ $editingImage->alt_text ?? $editingImage->name }}"
-                                    class="w-32 h-32 object-cover rounded-lg">
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ $editingImage->name }}</p>
-                            </div>
-
-                            <div class="space-y-4">
-                                {{-- Titre --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Titre
-                                    </label>
-                                    <input type="text" wire:model="editTitle"
-                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                    @error('editTitle') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                </div>
-
-                                {{-- Texte alternatif --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Texte alternatif
-                                    </label>
-                                    <input type="text" wire:model="editAltText"
-                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                    @error('editAltText') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                </div>
-
-                                {{-- Description --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Description
-                                    </label>
-                                    <textarea wire:model="editDescription" rows="3"
-                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"></textarea>
-                                    @error('editDescription') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                </div>
-
-                                {{-- Liens --}}
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Texte du lien
-                                        </label>
-                                        <input type="text" wire:model="editLinkText"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            URL du lien
-                                        </label>
-                                        <input type="url" wire:model="editLinkUrl"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @error('editLinkUrl') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                {{-- Liens Calameo --}}
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Texte du lien Calameo
-                                        </label>
-                                        <input type="text" wire:model="editCalameoLinkText"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            URL du lien Calameo
-                                        </label>
-                                        <input type="url" wire:model="editCalameoLinkUrl"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @error('editCalameoLinkUrl') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                {{-- Quantités --}}
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Quantité disponible
-                                        </label>
-                                        <input type="number" wire:model="editQuantityAvailable" min="0"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @error('editQuantityAvailable') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Quantité max par commande
-                                        </label>
-                                        <input type="number" wire:model="editMaxOrderQuantity" min="0"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @error('editMaxOrderQuantity') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                {{-- Année, Ordre et Print --}}
-                                <div class="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Année d'édition
-                                        </label>
-                                        <input type="number" wire:model="editEditionYear" min="1900" max="2100"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @error('editEditionYear') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Ordre d'affichage
-                                        </label>
-                                        <input type="number" wire:model="editDisplayOrder" min="0" placeholder="Ex: 1, 2, 3..."
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        @if(count($usedDisplayOrders) > 0)
-                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                Ordres utilisés : {{ implode(', ', $usedDisplayOrders) }}
-                                            </p>
-                                        @endif
-                                        @error('editDisplayOrder') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="flex items-end pb-2">
-                                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            <input type="checkbox" wire:model="editPrintAvailable"
-                                                class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-[#3E9B90] focus:ring-2 focus:ring-[#3E9B90]">
-                                            Disponible à la commande
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {{-- Catégorie, Sous-catégorie, Auteur, Secteur --}}
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Catégorie
-                                        </label>
-                                        <select wire:model.live="editCategoryId"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                            <option value="">-- Aucune --</option>
-                                            @foreach ($categories as $category)
-                                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('editCategoryId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Sous-catégorie
-                                        </label>
-                                        <select wire:model="editSubCategoryId"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent"
-                                            {{ !$editCategoryId ? 'disabled' : '' }}>
-                                            <option value="">-- Aucune --</option>
-                                            @foreach ($subCategories->where('category_id', (int) $editCategoryId) as $subCategory)
-                                                <option value="{{ $subCategory->id }}">{{ $subCategory->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('editSubCategoryId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Auteur
-                                        </label>
-                                        <select wire:model="editAuthorId"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                            <option value="">-- Aucun --</option>
-                                            @foreach ($authors as $author)
-                                                <option value="{{ $author->id }}">{{ $author->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('editAuthorId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Secteur
-                                        </label>
-                                        <select wire:model="editSectorId"
-                                            class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                            <option value="">-- Aucun --</option>
-                                            @foreach ($sectors as $sector)
-                                                <option value="{{ $sector->id }}">{{ $sector->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('editSectorId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                {{-- Responsable --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Responsable
-                                    </label>
-                                    <select wire:model="editResponsableId"
-                                        class="w-full px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent">
-                                        <option value="">-- Aucun --</option>
-                                        @foreach ($responsables as $responsable)
-                                            <option value="{{ $responsable->id }}">{{ $responsable->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('editResponsableId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-                                </div>
-
-                                {{-- Gestion du fichier téléchargeable (PDF/Image) --}}
-                                <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        PDF ou image téléchargeable
-                                    </label>
-
-                                    @if ($editingImage->pdf_path)
-                                        @php
-                                            $fileExtension = strtolower(pathinfo($editingImage->pdf_path, PATHINFO_EXTENSION));
-                                            $isPdf = $fileExtension === 'pdf';
-                                        @endphp
-                                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg mb-3">
-                                            @if ($isPdf)
-                                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                </svg>
-                                            @else
-                                                <img src="{{ asset('storage/' . $editingImage->pdf_path) }}" alt="Preview" class="w-8 h-8 object-cover rounded">
-                                            @endif
-                                            <div class="flex-1">
-                                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $isPdf ? 'PDF actuel' : 'Image actuelle' }}</p>
-                                                <a href="{{ asset('storage/' . $editingImage->pdf_path) }}" target="_blank"
-                                                    class="text-xs text-[#3E9B90] hover:underline">
-                                                    Voir le fichier
-                                                </a>
-                                            </div>
-                                            <label class="flex items-center gap-2 text-sm text-red-600 cursor-pointer">
-                                                <input type="checkbox" wire:model="removePdf"
-                                                    class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                                Supprimer
-                                            </label>
-                                        </div>
-                                    @endif
-
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {{ $editingImage->pdf_path ? 'Remplacer le fichier' : 'Ajouter un PDF ou une image' }} (max 50MB)
-                                        </label>
-                                        <input type="file" wire:model="editPdfFile" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                                            class="w-full text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none px-3 py-2"
-                                            {{ $removePdf ? 'disabled' : '' }}>
-                                        @error('editPdfFile')
-                                            <span class="text-sm text-red-500 mt-1 block">{{ $message }}</span>
-                                        @enderror
-                                        <div wire:loading wire:target="editPdfFile" class="text-xs text-gray-500 mt-1">
-                                            Chargement du fichier...
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-3 justify-end mt-6">
-                                <button type="button" wire:click="closeEditModal"
-                                    class="px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">
-                                    Annuler
-                                </button>
-
-                                <button type="submit"
-                                    class="px-6 py-3 text-sm font-medium text-white bg-[#3E9B90] hover:bg-[#2d7a72] rounded-lg transition-colors shadow-md">
-                                    Enregistrer
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        @endif
+        {{-- Edit Modal (partagé via le trait EditsBrochures) --}}
+        @include('partials.admin-brochure-edit-modal', [
+            'categories' => $categories,
+            'subCategories' => $subCategories,
+            'authors' => $authors,
+            'sectors' => $sectors,
+            'responsables' => $responsables,
+            'usedDisplayOrders' => $usedDisplayOrders,
+        ])
 
         {{-- Report Detail Modal --}}
         @if ($showReportModal && $selectedReport && $selectedReport->image)

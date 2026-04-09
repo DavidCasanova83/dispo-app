@@ -30,6 +30,48 @@ class QualificationStatisticsV3Service
     }
 
     /**
+     * Extrait la liste des pays d'une qualification, en supportant
+     * l'ancien format (string `country`) et le nouveau (array `countries`).
+     *
+     * @return array<int, string>
+     */
+    protected function extractCountries(array $formData): array
+    {
+        if (isset($formData['countries']) && is_array($formData['countries']) && !empty($formData['countries'])) {
+            return array_values($formData['countries']);
+        }
+
+        $legacy = $formData['country'] ?? null;
+        if (!$legacy) {
+            return [];
+        }
+
+        // Ancien format avec "Autre" + otherCountry
+        if ($legacy === 'Autre' && !empty($formData['otherCountry'])) {
+            return [$formData['otherCountry']];
+        }
+
+        // Une qualification migrée peut contenir plusieurs pays joints par virgule
+        if (str_contains($legacy, ',')) {
+            return array_values(array_filter(array_map('trim', explode(',', $legacy))));
+        }
+
+        return [$legacy];
+    }
+
+    /**
+     * Vrai si la qualification ne contient que la France (pas d'international).
+     */
+    protected function isFranceOnly(array $formData): bool
+    {
+        $countries = $this->extractCountries($formData);
+        if (empty($countries)) {
+            return true; // par défaut historique
+        }
+        return count(array_filter($countries, fn($c) => $c !== 'France')) === 0;
+    }
+
+    /**
      * Base query: completed qualifications, filtered by city and date range.
      */
     protected function baseQuery(?string $city, ?string $startDate, ?string $endDate)
@@ -221,7 +263,7 @@ class QualificationStatisticsV3Service
 
                 if ($cityTotal === 0) continue;
 
-                $intl = $cityQuals->filter(fn($q) => ($q->form_data['country'] ?? 'France') !== 'France')->count();
+                $intl = $cityQuals->filter(fn($q) => !$this->isFranceOnly($q->form_data ?? []))->count();
                 $percentages[] = ($intl / $cityTotal) * 100;
             }
 
@@ -231,7 +273,7 @@ class QualificationStatisticsV3Service
         $total = $qualifications->count();
         if ($total === 0) return 0;
 
-        $intl = $qualifications->filter(fn($q) => ($q->form_data['country'] ?? 'France') !== 'France')->count();
+        $intl = $qualifications->filter(fn($q) => !$this->isFranceOnly($q->form_data ?? []))->count();
         return round(($intl / $total) * 100, 1);
     }
 
@@ -541,30 +583,31 @@ class QualificationStatisticsV3Service
             $cityQuals = $qualifications->where('city', $cityKey);
             $qualCountsByCity[$cityKey] = $cityQuals->count();
 
-            $france = $cityQuals->filter(fn($q) => ($q->form_data['country'] ?? 'France') === 'France')->count();
+            $france = $cityQuals->filter(fn($q) => $this->isFranceOnly($q->form_data ?? []))->count();
             $intl = $qualCountsByCity[$cityKey] - $france;
 
             $franceByCities[$cityKey] = ['France' => $france];
             $intlByCities[$cityKey] = ['International' => $intl];
 
-            // Departments (only for French visitors)
+            // Departments (only for French-only visitors)
             $depts = $cityQuals
-                ->filter(fn($q) => ($q->form_data['country'] ?? 'France') === 'France')
+                ->filter(fn($q) => $this->isFranceOnly($q->form_data ?? []))
                 ->filter(fn($q) => !($q->form_data['departmentUnknown'] ?? false))
                 ->flatMap(fn($q) => $q->form_data['departments'] ?? [])
                 ->countBy()->toArray();
             $topDepartmentsByCity[$cityKey] = $depts;
 
-            // Countries (only for international)
+            // Countries (toutes les sélections internationales : on compte chaque
+            // pays non-France individuellement, même si la qualification en contient
+            // plusieurs).
             $countries = $cityQuals
-                ->filter(fn($q) => ($q->form_data['country'] ?? 'France') !== 'France')
-                ->map(function($q) {
-                    $country = $q->form_data['country'] ?? 'Non renseigné';
-                    if ($country === 'Autre' && isset($q->form_data['otherCountry'])) {
-                        return $q->form_data['otherCountry'];
-                    }
-                    return $country;
-                })->countBy()->toArray();
+                ->flatMap(function ($q) {
+                    return array_values(array_filter(
+                        $this->extractCountries($q->form_data ?? []),
+                        fn($c) => $c !== 'France'
+                    ));
+                })
+                ->countBy()->toArray();
             $topCountriesByCity[$cityKey] = $countries;
         }
 

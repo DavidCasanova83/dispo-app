@@ -16,10 +16,14 @@ class QualificationEdit extends Component
     public $cityName;
     public $qualificationId;
 
+    // Liste des pays prédéfinis affichés en boutons rapides
+    public const PREDEFINED_COUNTRIES = ['France', 'Belgique', 'Allemagne', 'Italie', 'Pays-Bas', 'Suisse', 'Espagne', 'Angleterre'];
+
     // Étape 1 : Informations générales
     public $visitorType = 'Touriste';
-    public $country = 'France';
-    public $otherCountry = '';
+    public $countries = ['France'];
+    public $showCountryDropdown = false;
+    public $countrySearchQuery = '';
     public $departments = [];
     public $departmentUnknown = false;
     public $email = '';
@@ -118,8 +122,27 @@ class QualificationEdit extends Component
 
         // Charger les données de l'étape 1
         $this->visitorType = $data['visitorType'] ?? 'Touriste';
-        $this->country = $data['country'] ?? 'France';
-        $this->otherCountry = $data['otherCountry'] ?? '';
+
+        // Chargement des pays — supporte le nouveau format (array `countries`)
+        // et l'ancien format (string `country` + éventuel `otherCountry`)
+        if (isset($data['countries']) && is_array($data['countries'])) {
+            $this->countries = array_values($data['countries']);
+        } else {
+            $oldCountry = $data['country'] ?? 'France';
+            $oldOther = $data['otherCountry'] ?? '';
+            if ($oldCountry === 'Autre' && !empty($oldOther)) {
+                $this->countries = [$oldOther];
+            } elseif (!empty($oldCountry)) {
+                // Cas où une qualification ancienne contient une chaîne déjà jointe ("France, Belgique")
+                if (str_contains($oldCountry, ',')) {
+                    $this->countries = array_values(array_filter(array_map('trim', explode(',', $oldCountry))));
+                } else {
+                    $this->countries = [$oldCountry];
+                }
+            } else {
+                $this->countries = [];
+            }
+        }
 
         // Handle backwards compatibility: convert string to array if needed
         $departmentData = $data['departments'] ?? $data['department'] ?? [];
@@ -164,7 +187,9 @@ class QualificationEdit extends Component
         // Préparer les données du formulaire
         $formData = [
             'visitorType' => $this->visitorType,
-            'country' => $this->country === 'Autre' ? $this->otherCountry : $this->country,
+            'countries' => $this->countries,
+            // Champ legacy maintenu pour rétro-compatibilité (export, stats…)
+            'country' => implode(', ', $this->countries),
             'departments' => $this->departmentUnknown ? [] : $this->departments,
             'email' => $this->email,
             'consentNewsletter' => $this->consentNewsletter,
@@ -206,15 +231,10 @@ class QualificationEdit extends Component
     protected function validateForm()
     {
         $rules = [
-            'country' => 'required|string',
+            'countries' => 'required|array|min:1',
             'profile' => 'required|string',
             'ageGroups' => 'required|array|min:1',
         ];
-
-        if ($this->country === 'Autre') {
-            $rules['otherCountry'] = 'required|string';
-        }
-
 
         if ($this->email) {
             $rules['email'] = 'email';
@@ -225,8 +245,8 @@ class QualificationEdit extends Component
         }
 
         $messages = [
-            'country.required' => 'Veuillez sélectionner un pays.',
-            'otherCountry.required' => 'Veuillez préciser le pays.',
+            'countries.required' => 'Veuillez sélectionner au moins un pays.',
+            'countries.min' => 'Veuillez sélectionner au moins un pays.',
             'departments.required' => 'Veuillez sélectionner au moins un département.',
             'departments.min' => 'Veuillez sélectionner au moins un département.',
             'email.email' => 'Veuillez entrer une adresse email valide.',
@@ -237,8 +257,7 @@ class QualificationEdit extends Component
         ];
 
         $validator = Validator::make([
-            'country' => $this->country,
-            'otherCountry' => $this->otherCountry,
+            'countries' => $this->countries,
             'departments' => $this->departments,
             'email' => $this->email,
             'profile' => $this->profile,
@@ -255,6 +274,18 @@ class QualificationEdit extends Component
             throw new \Illuminate\Validation\ValidationException($validator);
         }
 
+        // Vérifie que chaque pays existe dans le référentiel
+        // (les pays prédéfinis sont implicitement valides — nous contrôlons la liste)
+        foreach ($this->countries as $country) {
+            if (in_array($country, self::PREDEFINED_COUNTRIES, true)) {
+                continue;
+            }
+            if (!$this->geographyService->isValidCountry($country)) {
+                $this->addError('countries', "Le pays \"$country\" n'est pas valide.");
+                throw new \Illuminate\Validation\ValidationException($validator);
+            }
+        }
+
         // Validation supplémentaire pour chaque département
         if (!$this->departmentUnknown && !empty($this->departments)) {
             foreach ($this->departments as $department) {
@@ -262,14 +293,6 @@ class QualificationEdit extends Component
                     $this->addError('departments', "Le département \"$department\" n'est pas valide.");
                     throw new \Illuminate\Validation\ValidationException($validator);
                 }
-            }
-        }
-
-        // Validation supplémentaire pour le pays "Autre"
-        if ($this->country === 'Autre' && $this->otherCountry) {
-            if (!$this->geographyService->isValidCountry($this->otherCountry)) {
-                $this->addError('otherCountry', 'Le pays sélectionné n\'est pas valide.');
-                throw new \Illuminate\Validation\ValidationException($validator);
             }
         }
 
@@ -308,11 +331,78 @@ class QualificationEdit extends Component
         }
     }
 
-    public function updatedCountry($value)
+    /**
+     * Toggle un pays prédéfini dans la sélection.
+     */
+    public function toggleCountry($country)
     {
-        if ($value !== 'Autre') {
-            $this->otherCountry = '';
+        if (in_array($country, $this->countries, true)) {
+            $this->countries = array_values(array_diff($this->countries, [$country]));
+        } else {
+            $this->countries[] = $country;
         }
+    }
+
+    /**
+     * Retire un pays de la sélection (utilisé par les chips "Autre").
+     */
+    public function removeCountry($country)
+    {
+        $this->countries = array_values(array_diff($this->countries, [$country]));
+    }
+
+    /**
+     * Ajoute un pays libre depuis le dropdown "Autre".
+     */
+    public function addOtherCountry($country)
+    {
+        if (in_array($country, $this->countries, true)) {
+            return;
+        }
+        // Pays prédéfini : autorisé directement, sinon vérifier le référentiel
+        if (in_array($country, self::PREDEFINED_COUNTRIES, true) || $this->geographyService->isValidCountry($country)) {
+            $this->countries[] = $country;
+        }
+    }
+
+    public function openCountryDropdown()
+    {
+        $this->showCountryDropdown = true;
+        $this->countrySearchQuery = '';
+    }
+
+    public function closeCountryDropdown()
+    {
+        $this->showCountryDropdown = false;
+        $this->countrySearchQuery = '';
+    }
+
+    /**
+     * Liste filtrée des pays pour le dropdown "Autre"
+     * (exclut les pays prédéfinis qui ont déjà leur bouton dédié).
+     */
+    public function getFilteredCountryOptionsProperty()
+    {
+        $predefined = self::PREDEFINED_COUNTRIES;
+        $allCountries = $this->geographyService->getAllCountries();
+
+        $remaining = array_values(array_filter($allCountries, fn($c) => !in_array($c, $predefined, true)));
+
+        if (empty(trim($this->countrySearchQuery))) {
+            return $remaining;
+        }
+
+        $results = $this->geographyService->searchCountries($this->countrySearchQuery);
+        return array_values(array_filter($results, fn($c) => !in_array($c, $predefined, true)));
+    }
+
+    /**
+     * Pays sélectionnés "libres" (hors prédéfinis), utilisés pour l'affichage des chips.
+     */
+    public function getOtherSelectedCountriesProperty()
+    {
+        $predefined = self::PREDEFINED_COUNTRIES;
+        return array_values(array_filter($this->countries, fn($c) => !in_array($c, $predefined, true)));
     }
 
     public function updatedOtherRequest($value)
@@ -494,15 +584,6 @@ class QualificationEdit extends Component
     public function handleDepartmentUnknownChanged($unknown)
     {
         $this->departmentUnknown = $unknown;
-    }
-
-    /**
-     * Listen to countrySelected event from CountrySelector component
-     */
-    #[On('countrySelected')]
-    public function handleCountrySelected($country)
-    {
-        $this->otherCountry = $country;
     }
 
     #[Layout('components.layouts.app')]

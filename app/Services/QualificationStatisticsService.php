@@ -162,13 +162,24 @@ class QualificationStatisticsService
     {
         $qualifications = $this->baseQuery($cities, $startDate, $endDate, $status)->get();
 
-        // Pays
-        $countries = $qualifications->map(function($q) {
-            $country = $q->form_data['country'] ?? null;
-            if ($country === 'Autre' && isset($q->form_data['otherCountry'])) {
-                return $q->form_data['otherCountry'];
+        // Pays — supporte le nouveau format (array `countries`) et l'ancien (`country` + `otherCountry`).
+        // Chaque pays sélectionné dans une qualification multi-pays compte une fois.
+        $countries = $qualifications->flatMap(function ($q) {
+            $data = $q->form_data ?? [];
+            if (isset($data['countries']) && is_array($data['countries']) && !empty($data['countries'])) {
+                return $data['countries'];
             }
-            return $country;
+            $legacy = $data['country'] ?? null;
+            if (!$legacy) {
+                return [];
+            }
+            if ($legacy === 'Autre' && !empty($data['otherCountry'])) {
+                return [$data['otherCountry']];
+            }
+            if (str_contains($legacy, ',')) {
+                return array_values(array_filter(array_map('trim', explode(',', $legacy))));
+            }
+            return [$legacy];
         })->filter()->countBy()->sortDesc()->take(10);
 
         // Départements

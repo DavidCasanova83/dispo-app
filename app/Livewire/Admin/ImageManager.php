@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Livewire\Concerns\EditsBrochures;
 use App\Models\Author;
 use App\Models\BrochureReport;
 use App\Models\Category;
@@ -24,11 +25,23 @@ use Livewire\WithPagination;
 
 class ImageManager extends Component
 {
-    use WithFileUploads, WithPagination;
+    use WithFileUploads, WithPagination, EditsBrochures;
 
     public $contentFiles = [];          // Fichiers de contenu principal (PDF ou images) - OBLIGATOIRE
     public $presentationImages = [];    // Images de présentation (optionnelles)
     public $search = '';               // Recherche par nom
+
+    // Filtres et tri pour la liste des brochures
+    public $filterCategoryId = '';
+    public $filterSubCategoryId = '';
+    public $filterAuthorId = '';
+    public $filterSectorId = '';
+    public $filterResponsableId = '';
+    public $filterEditionYear = '';
+    public $filterPrintAvailable = '';   // '', '1', '0'
+    public $sortField = 'display_order'; // display_order|created_at|title|size|edition_year
+    public $sortDirection = 'asc';       // asc|desc
+
     public $showDeleteModal = false;
     public $selectedImage = null;
     public $titles = [];               // Titres pour chaque image
@@ -49,29 +62,6 @@ class ImageManager extends Component
     public $authorIds = [];            // Auteurs pour chaque image
     public $sectorIds = [];            // Secteurs pour chaque image
     public $responsableIds = [];        // Responsables pour chaque image
-
-    // Propriétés pour l'édition
-    public $showEditModal = false;
-    public $editingImage = null;
-    public $editTitle = '';
-    public $editAltText = '';
-    public $editDescription = '';
-    public $editLinkUrl = '';
-    public $editLinkText = '';
-    public $editCalameoLinkUrl = '';
-    public $editCalameoLinkText = '';
-    public $editQuantityAvailable = null;
-    public $editMaxOrderQuantity = null;
-    public $editPrintAvailable = false;
-    public $editEditionYear = null;
-    public $editDisplayOrder = null;
-    public $editCategoryId = null;
-    public $editSubCategoryId = null;
-    public $editAuthorId = null;
-    public $editSectorId = null;
-    public $editResponsableId = null;
-    public $editPdfFile = null;         // Nouveau PDF lors de l'édition
-    public $removePdf = false;          // Flag pour supprimer le PDF existant
 
     // Propriétés pour la gestion des entités (CRUD)
     public $newCategoryName = '';
@@ -110,6 +100,15 @@ class ImageManager extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
+        'filterCategoryId' => ['except' => ''],
+        'filterSubCategoryId' => ['except' => ''],
+        'filterAuthorId' => ['except' => ''],
+        'filterSectorId' => ['except' => ''],
+        'filterResponsableId' => ['except' => ''],
+        'filterEditionYear' => ['except' => ''],
+        'filterPrintAvailable' => ['except' => ''],
+        'sortField' => ['except' => 'display_order'],
+        'sortDirection' => ['except' => 'asc'],
     ];
 
     // Validation des uploads
@@ -126,8 +125,86 @@ class ImageManager extends Component
         'presentationImages.*.max' => 'L\'image de présentation ne doit pas dépasser 10 MB.',
     ];
 
+    /**
+     * Si la page est ouverte avec ?editId=X, ouvrir directement le modal d'édition
+     * de cette brochure (utilisé depuis les liens admin sur la page publique).
+     */
+    public function mount(): void
+    {
+        $editId = (int) request()->query('editId');
+        if ($editId > 0 && Image::whereKey($editId)->exists()) {
+            $this->openEditModal($editId);
+        }
+    }
+
     public function updatingSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatingFilterCategoryId()
+    {
+        $this->resetPage();
+        $this->filterSubCategoryId = '';
+    }
+
+    public function updatingFilterSubCategoryId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterAuthorId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterSectorId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterResponsableId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterEditionYear()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterPrintAvailable()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSortField()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSortDirection()
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Réinitialiser tous les filtres de la liste des brochures
+     */
+    public function resetBrochureFilters()
+    {
+        $this->reset([
+            'search',
+            'filterCategoryId',
+            'filterSubCategoryId',
+            'filterAuthorId',
+            'filterSectorId',
+            'filterResponsableId',
+            'filterEditionYear',
+            'filterPrintAvailable',
+        ]);
+        $this->sortField = 'display_order';
+        $this->sortDirection = 'asc';
         $this->resetPage();
     }
 
@@ -166,6 +243,13 @@ class ImageManager extends Component
 
         if (empty($this->contentFiles)) {
             session()->flash('error', 'Veuillez sélectionner au moins un fichier de contenu (PDF ou image).');
+            return;
+        }
+
+        // Validation des champs obligatoires (titre, année, auteur, responsable, image de présentation pour PDF)
+        if (!$this->canUpload) {
+            $missing = $this->missingRequiredFields;
+            session()->flash('error', 'Champs obligatoires manquants : ' . implode(' | ', $missing));
             return;
         }
 
@@ -450,166 +534,6 @@ class ImageManager extends Component
         $this->closeDeleteModal();
     }
 
-    /**
-     * Ouvrir le modal d'édition
-     */
-    public function openEditModal($imageId)
-    {
-        $this->editingImage = Image::findOrFail($imageId);
-
-        // Charger les valeurs actuelles
-        $this->editTitle = $this->editingImage->title ?? '';
-        $this->editAltText = $this->editingImage->alt_text ?? '';
-        $this->editDescription = $this->editingImage->description ?? '';
-        $this->editLinkUrl = $this->editingImage->link_url ?? '';
-        $this->editLinkText = $this->editingImage->link_text ?? '';
-        $this->editCalameoLinkUrl = $this->editingImage->calameo_link_url ?? '';
-        $this->editCalameoLinkText = $this->editingImage->calameo_link_text ?? '';
-        $this->editQuantityAvailable = $this->editingImage->quantity_available;
-        $this->editMaxOrderQuantity = $this->editingImage->max_order_quantity;
-        $this->editPrintAvailable = (bool) $this->editingImage->print_available;
-        $this->editEditionYear = $this->editingImage->edition_year;
-        $this->editDisplayOrder = $this->editingImage->display_order;
-        $this->editCategoryId = $this->editingImage->category_id;
-        $this->editSubCategoryId = $this->editingImage->sub_category_id;
-        $this->editAuthorId = $this->editingImage->author_id;
-        $this->editSectorId = $this->editingImage->sector_id;
-        $this->editResponsableId = $this->editingImage->responsable_id;
-        $this->editPdfFile = null;
-        $this->removePdf = false;
-
-        $this->showEditModal = true;
-    }
-
-    /**
-     * Fermer le modal d'édition
-     */
-    public function closeEditModal()
-    {
-        $this->showEditModal = false;
-        $this->editingImage = null;
-        $this->reset([
-            'editTitle', 'editAltText', 'editDescription',
-            'editLinkUrl', 'editLinkText', 'editCalameoLinkUrl', 'editCalameoLinkText',
-            'editQuantityAvailable', 'editMaxOrderQuantity', 'editPrintAvailable', 'editEditionYear', 'editDisplayOrder',
-            'editCategoryId', 'editSubCategoryId', 'editAuthorId', 'editSectorId', 'editResponsableId',
-            'editPdfFile', 'removePdf'
-        ]);
-    }
-
-    /**
-     * Mettre à jour une image
-     */
-    public function updateImage()
-    {
-        if (!$this->editingImage) {
-            return;
-        }
-
-        // Vérifier l'autorisation
-        $this->authorize('update', $this->editingImage);
-
-        // Validation
-        $this->validate([
-            'editTitle' => 'nullable|string|max:255',
-            'editAltText' => 'nullable|string|max:255',
-            'editDescription' => 'nullable|string|max:1000',
-            'editLinkUrl' => 'nullable|url|max:500',
-            'editLinkText' => 'nullable|string|max:255',
-            'editCalameoLinkUrl' => 'nullable|url|max:500',
-            'editCalameoLinkText' => 'nullable|string|max:255',
-            'editQuantityAvailable' => 'nullable|integer|min:0',
-            'editMaxOrderQuantity' => 'nullable|integer|min:0',
-            'editEditionYear' => 'nullable|integer|min:1900|max:2100',
-            'editDisplayOrder' => 'nullable|integer|min:0',
-            'editCategoryId' => 'nullable|exists:categories,id',
-            'editSubCategoryId' => 'nullable|exists:sub_categories,id',
-            'editAuthorId' => 'nullable|exists:authors,id',
-            'editSectorId' => 'nullable|exists:sectors,id',
-            'editResponsableId' => 'nullable|exists:users,id',
-            'editPdfFile' => 'nullable|mimes:pdf,jpg,jpeg,png|max:51200',
-        ]);
-
-        // Gérer la mise à jour du PDF
-        $pdfPath = $this->editingImage->pdf_path; // Garder l'existant par défaut
-
-        // Supprimer le PDF si demandé
-        if ($this->removePdf && $pdfPath) {
-            if (Storage::disk('public')->exists($pdfPath)) {
-                Storage::disk('public')->delete($pdfPath);
-            }
-            $pdfPath = null;
-        }
-
-        // Uploader un nouveau fichier (PDF ou image) si fourni
-        if ($this->editPdfFile && !$this->removePdf) {
-            // Valider le MIME type
-            if (!in_array($this->editPdfFile->getMimeType(), self::ALLOWED_DOWNLOAD_MIME_TYPES)) {
-                session()->flash('error', 'Type de fichier non autorisé.');
-                return;
-            }
-
-            $downloadExtension = strtolower($this->editPdfFile->getClientOriginalExtension());
-
-            // Si un fichier existe déjà avec la même extension, écraser avec le même nom (URL stable)
-            $existingExtension = $this->editingImage->pdf_path ? strtolower(pathinfo($this->editingImage->pdf_path, PATHINFO_EXTENSION)) : null;
-
-            if ($this->editingImage->pdf_path && $existingExtension === $downloadExtension) {
-                $pdfFilename = basename($this->editingImage->pdf_path);
-                Storage::disk('public')->putFileAs('pdfs', $this->editPdfFile, $pdfFilename);
-                $pdfPath = $this->editingImage->pdf_path; // Garder le même chemin
-            } else {
-                // Supprimer l'ancien fichier si il existe (changement de type)
-                if ($this->editingImage->pdf_path && Storage::disk('public')->exists($this->editingImage->pdf_path)) {
-                    Storage::disk('public')->delete($this->editingImage->pdf_path);
-                }
-
-                // Nouveau fichier : utiliser le titre (fallback sur le nom de l'image)
-                $imageSlug = Str::limit(Str::slug($this->editingImage->title) ?: Str::slug(pathinfo($this->editingImage->name, PATHINFO_FILENAME)), 100);
-                if (empty($imageSlug)) {
-                    $imageSlug = 'document';
-                }
-
-                // Si un fichier existe déjà avec ce nom, ajouter un suffixe numérique
-                $basePdfFilename = $imageSlug . '.' . $downloadExtension;
-                $pdfFilename = $basePdfFilename;
-                $pdfCounter = 1;
-                while (Storage::disk('public')->exists('pdfs/' . $pdfFilename)) {
-                    $pdfFilename = $imageSlug . '-' . $pdfCounter . '.' . $downloadExtension;
-                    $pdfCounter++;
-                }
-                $pdfPath = $this->editPdfFile->storeAs('pdfs', $pdfFilename, 'public');
-            }
-        }
-
-        // Mettre à jour
-        $this->editingImage->update([
-            'title' => $this->editTitle ?: null,
-            'alt_text' => $this->editAltText ?: null,
-            'description' => $this->editDescription ?: null,
-            'link_url' => $this->editLinkUrl ?: null,
-            'link_text' => $this->editLinkText ?: null,
-            'calameo_link_url' => $this->editCalameoLinkUrl ?: null,
-            'calameo_link_text' => $this->editCalameoLinkText ?: null,
-            'quantity_available' => $this->editQuantityAvailable,
-            'max_order_quantity' => $this->editMaxOrderQuantity,
-            'print_available' => $this->editPrintAvailable,
-            'edition_year' => $this->editEditionYear,
-            'display_order' => $this->editDisplayOrder,
-            'category_id' => $this->editCategoryId ?: null,
-            'sub_category_id' => $this->editSubCategoryId ?: null,
-            'author_id' => $this->editAuthorId ?: null,
-            'sector_id' => $this->editSectorId ?: null,
-            'responsable_id' => $this->editResponsableId ?: null,
-            'pdf_path' => $pdfPath,
-        ]);
-
-        // Régénérer le fichier JSON
-        Artisan::call('images:generate-json');
-
-        session()->flash('success', "La brochure a été mise à jour avec succès.");
-        $this->closeEditModal();
-    }
 
     /**
      * Ajouter une nouvelle catégorie
@@ -695,11 +619,114 @@ class ImageManager extends Component
     }
 
     /**
-     * Quand la catégorie change dans le modal d'édition, réinitialiser la sous-catégorie
+     * Quand l'auteur change dans le formulaire d'upload, cocher automatiquement
+     * "utiliser l'image par défaut" si une image par défaut est disponible (auteur ou globale).
+     * S'applique uniquement aux fichiers PDF.
      */
-    public function updatedEditCategoryId()
+    public function updatedAuthorIds($value, $key)
     {
-        $this->editSubCategoryId = null;
+        if (!isset($this->contentFiles[$key])) {
+            return;
+        }
+
+        $file = $this->contentFiles[$key];
+        $isPdf = strtolower($file->getClientOriginalExtension()) === 'pdf';
+
+        if (!$isPdf) {
+            return;
+        }
+
+        if ($value && $this->getActiveDefaultImagePath($key)) {
+            $this->useDefaultImages[$key] = true;
+        } else {
+            // Pas de défaut disponible, on décoche pour forcer l'upload manuel
+            $this->useDefaultImages[$key] = false;
+        }
+    }
+
+    /**
+     * Vérifie si tous les champs obligatoires du formulaire d'upload sont renseignés.
+     * Utilisé pour activer/désactiver le bouton "Uploader".
+     */
+    public function getCanUploadProperty(): bool
+    {
+        if (empty($this->contentFiles)) {
+            return false;
+        }
+
+        foreach ($this->contentFiles as $index => $file) {
+            // Champs texte / select obligatoires
+            if (empty($this->titles[$index] ?? null)) {
+                return false;
+            }
+            if (empty($this->editionYears[$index] ?? null)) {
+                return false;
+            }
+            if (empty($this->authorIds[$index] ?? null)) {
+                return false;
+            }
+            if (empty($this->responsableIds[$index] ?? null)) {
+                return false;
+            }
+
+            // Image de présentation : obligatoire pour les PDF (sauf si image par défaut active)
+            $isPdf = strtolower($file->getClientOriginalExtension()) === 'pdf';
+            if ($isPdf) {
+                $useDefault = !empty($this->useDefaultImages[$index] ?? null);
+                $hasPresentationImage = !empty($this->presentationImages[$index] ?? null);
+
+                if ($useDefault) {
+                    if (!$this->getActiveDefaultImagePath($index)) {
+                        return false;
+                    }
+                } elseif (!$hasPresentationImage) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Liste des champs obligatoires manquants pour affichage à l'utilisateur.
+     */
+    public function getMissingRequiredFieldsProperty(): array
+    {
+        if (empty($this->contentFiles)) {
+            return [];
+        }
+
+        $missing = [];
+        foreach ($this->contentFiles as $index => $file) {
+            $brochureNum = $index + 1;
+            if (empty($this->titles[$index] ?? null)) {
+                $missing[] = "Brochure {$brochureNum} : titre";
+            }
+            if (empty($this->editionYears[$index] ?? null)) {
+                $missing[] = "Brochure {$brochureNum} : année d'édition";
+            }
+            if (empty($this->authorIds[$index] ?? null)) {
+                $missing[] = "Brochure {$brochureNum} : auteur";
+            }
+            if (empty($this->responsableIds[$index] ?? null)) {
+                $missing[] = "Brochure {$brochureNum} : responsable";
+            }
+
+            $isPdf = strtolower($file->getClientOriginalExtension()) === 'pdf';
+            if ($isPdf) {
+                $useDefault = !empty($this->useDefaultImages[$index] ?? null);
+                $hasPresentationImage = !empty($this->presentationImages[$index] ?? null);
+
+                if ($useDefault && !$this->getActiveDefaultImagePath($index)) {
+                    $missing[] = "Brochure {$brochureNum} : image par défaut indisponible";
+                } elseif (!$useDefault && !$hasPresentationImage) {
+                    $missing[] = "Brochure {$brochureNum} : image de présentation";
+                }
+            }
+        }
+
+        return $missing;
     }
 
     /**
@@ -984,17 +1011,61 @@ class ImageManager extends Component
             ->values()
             ->toArray();
 
-        $query = Image::with(['uploader', 'category', 'subCategory', 'author', 'sector', 'responsable'])
-            ->orderByRaw('display_order IS NULL, display_order ASC')
-            ->orderBy('created_at', 'desc');
+        $query = Image::with(['uploader', 'category', 'subCategory', 'author', 'sector', 'responsable']);
 
-        // Recherche
+        // Recherche (groupée pour ne pas casser les filtres)
         if ($this->search) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('filename', 'like', '%' . $this->search . '%');
+            $query->where(function ($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                  ->orWhere('filename', 'like', '%' . $this->search . '%')
+                  ->orWhere('title', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        // Filtres
+        if ($this->filterCategoryId !== '' && $this->filterCategoryId !== null) {
+            $query->where('category_id', $this->filterCategoryId);
+        }
+        if ($this->filterSubCategoryId !== '' && $this->filterSubCategoryId !== null) {
+            $query->where('sub_category_id', $this->filterSubCategoryId);
+        }
+        if ($this->filterAuthorId !== '' && $this->filterAuthorId !== null) {
+            $query->where('author_id', $this->filterAuthorId);
+        }
+        if ($this->filterSectorId !== '' && $this->filterSectorId !== null) {
+            $query->where('sector_id', $this->filterSectorId);
+        }
+        if ($this->filterResponsableId !== '' && $this->filterResponsableId !== null) {
+            $query->where('responsable_id', $this->filterResponsableId);
+        }
+        if ($this->filterEditionYear !== '' && $this->filterEditionYear !== null) {
+            $query->where('edition_year', $this->filterEditionYear);
+        }
+        if ($this->filterPrintAvailable !== '' && $this->filterPrintAvailable !== null) {
+            $query->where('print_available', (bool) $this->filterPrintAvailable);
+        }
+
+        // Tri
+        $allowedSortFields = ['display_order', 'created_at', 'title', 'size', 'edition_year'];
+        $sortField = in_array($this->sortField, $allowedSortFields, true) ? $this->sortField : 'display_order';
+        $sortDirection = $this->sortDirection === 'desc' ? 'desc' : 'asc';
+
+        if ($sortField === 'display_order') {
+            $query->orderByRaw('display_order IS NULL, display_order ' . $sortDirection)
+                  ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy($sortField, $sortDirection);
         }
 
         $imagesList = $query->paginate(12);
+
+        // Liste des années d'édition distinctes pour le filtre
+        $editionYears = Image::whereNotNull('edition_year')
+            ->orderBy('edition_year', 'desc')
+            ->pluck('edition_year')
+            ->unique()
+            ->values()
+            ->toArray();
 
         $stats = [
             'total' => Image::count(),
@@ -1034,6 +1105,7 @@ class ImageManager extends Component
             'pendingReports' => $pendingReports,
             'unreadReportsCount' => $unreadReportsCount,
             'globalDefaultImagePath' => $globalDefaultImagePath,
+            'editionYears' => $editionYears,
         ])->layout('components.layouts.app');
     }
 }
