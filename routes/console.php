@@ -10,3 +10,9 @@ Artisan::command('inspire', function () {
 
 // Activer les agendas en attente tous les jours à 00:01
 Schedule::command('agendas:activate-pending')->dailyAt('00:01');
+
+// Repasser les pages validées depuis plus d'1 an en "à vérifier", chaque jour à 03:00
+Schedule::command('verification:revalidate-aged')->dailyAt('03:00');
+
+// Libérer 2 pages par utilisateur (plafond strict) chaque dimanche à 02:00
+Schedule::command('verification:release-weekly')->weeklyOn(0, '02:00');

@@ -122,31 +122,39 @@
             <h2>Bonjour,</h2>
 
             <p>
-                Nous souhaitons mettre à jour les informations de disponibilité pour votre établissement :
+                @if (count($accommodations) === 1)
+                    Nous souhaitons mettre à jour les informations de disponibilité pour votre établissement :
+                @else
+                    Nous souhaitons mettre à jour les informations de disponibilité pour vos {{ count($accommodations) }} établissements :
+                @endif
             </p>
 
-            <p class="accommodation-name">{{ $accommodationName }}</p>
+            <p style="font-size: 14px; color: #6b7280;">
+                Merci de nous indiquer votre situation actuelle pour
+                {{ count($accommodations) === 1 ? 'votre hébergement' : 'chacun de vos hébergements' }}
+                en cliquant sur l'un des boutons correspondants.
+            </p>
+
+            @foreach ($accommodations as $acc)
+                <div class="divider"></div>
+
+                <p class="accommodation-name">{{ $acc['name'] }}</p>
+
+                <div class="buttons-container">
+                    <a href="{{ $acc['available_url'] }}" class="button button-available" style="text-decoration: none;">
+                        ✓ Disponibilités
+                    </a>
+
+                    <a href="{{ $acc['not_available_url'] }}" class="button button-not-available" style="text-decoration: none;">
+                        ✗ Pas de disponibilités
+                    </a>
+                </div>
+            @endforeach
 
             <div class="divider"></div>
 
-            <p>
-                Merci de nous indiquer votre situation actuelle en cliquant sur l'un des boutons ci-dessous :
-            </p>
-
-            <div class="buttons-container">
-                <a href="{{ $availableUrl }}" class="button button-available" style="text-decoration: none;">
-                    ✓ Disponibilités
-                </a>
-
-                <a href="{{ $notAvailableUrl }}" class="button button-not-available" style="text-decoration: none;">
-                    ✗ Pas de disponibilités
-                </a>
-            </div>
-
             <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-                Cliquez sur le bouton correspondant à votre situation actuelle. Votre réponse nous permettra de mettre à
-                jour instantanément vos informations.<br>
-                <strong>Ces boutons sont actifs toutes la journée.</strong> Vous pouvez les utiliser
+                <strong>Ces boutons sont actifs toute la journée.</strong> Vous pouvez les utiliser
                 autant de fois que nécessaire.
             </p>
 

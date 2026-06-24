@@ -167,6 +167,24 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:fill-forms,edit-qualification'])
             ->name('save');
     });
+
+    // Module Vérification des pages
+    Route::prefix('verification')->name('verification.')->group(function () {
+        // Espace utilisateur (tout user authentifié et approved)
+        Route::get('/', \App\Livewire\Verification\MyVerifications::class)->name('index');
+        Route::get('/historique', \App\Livewire\Verification\MyVerificationsHistory::class)->name('history');
+
+        // Espace admin
+        Route::middleware(['permission:manage-page-verification'])->prefix('admin')->name('admin.')->group(function () {
+            Route::get('/pages', \App\Livewire\Verification\Admin\PagesManager::class)->name('pages');
+            Route::get('/retours', \App\Livewire\Verification\Admin\ReviewsInbox::class)->name('reviews');
+        });
+
+        // Formulaire d'une page (route paramétrée — placée après admin pour éviter le conflit)
+        Route::get('/{page}', \App\Livewire\Verification\VerificationForm::class)
+            ->whereNumber('page')
+            ->name('form');
+    });
 });
 
 

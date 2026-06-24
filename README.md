@@ -14,6 +14,7 @@ Application web de gestion touristique développée avec Laravel 12 et Livewire.
 - [Planification automatique](APIDAE_SCHEDULING.md)
 - [Configuration Mailjet](MAILJET_SETUP.md)
 - [Module Qualification](Outil-qualification.md)
+- [Queues, jobs et opérations sur fichiers](QUEUES_JOBS_ET_FICHIERS.md)
 
 ## 🚀 Quick Start
 

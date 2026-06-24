@@ -27,6 +27,7 @@ class RolePermissionSeeder extends Seeder
             'view-disponibilites',
             'edit-disponibilites',
             'fill-forms',
+            'manage-page-verification',
         ];
 
         foreach ($permissions as $permission) {
