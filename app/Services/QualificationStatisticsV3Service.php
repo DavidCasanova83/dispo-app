@@ -65,8 +65,11 @@ class QualificationStatisticsV3Service
     protected function isFranceOnly(array $formData): bool
     {
         $countries = $this->extractCountries($formData);
+        // On ignore le marqueur "Inconnu" (origine non renseignée), qui ne doit
+        // pas être compté comme international.
+        $countries = array_values(array_filter($countries, fn($c) => $c !== 'Inconnu'));
         if (empty($countries)) {
-            return true; // par défaut historique
+            return true; // par défaut historique (origine inconnue = non international)
         }
         return count(array_filter($countries, fn($c) => $c !== 'France')) === 0;
     }
@@ -604,7 +607,7 @@ class QualificationStatisticsV3Service
                 ->flatMap(function ($q) {
                     return array_values(array_filter(
                         $this->extractCountries($q->form_data ?? []),
-                        fn($c) => $c !== 'France'
+                        fn($c) => $c !== 'France' && $c !== 'Inconnu'
                     ));
                 })
                 ->countBy()->toArray();

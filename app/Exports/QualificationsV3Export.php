@@ -20,15 +20,30 @@ class QualificationsV3Export implements WithMultipleSheets
         $cityNames = Qualification::getCities();
         $sheets = [];
 
-        // 1. KPIs
+        // 1. KPIs (avec comparaison année précédente / YoY quand disponible)
         $kpis = $this->data['kpis'];
-        $sheets[] = new StatisticsSheet('KPIs', ['Indicateur', 'Valeur'], [
-            ['Total qualifications', $kpis['total']],
-            ['Moyenne par jour', $kpis['avgPerDay']],
-            ['% visiteurs internationaux', $kpis['internationalPct'] . '%'],
-            ['Profil dominant', $kpis['dominantProfile']],
-            ['Tranche d\'âge dominante', $kpis['dominantAgeRange']],
-        ]);
+        $yoy = $this->data['yoy'] ?? [];
+        $hasYoy = !empty($yoy);
+
+        $kpiHeadings = ['Indicateur', 'Valeur'];
+        if ($hasYoy) {
+            $kpiHeadings[] = 'Année précédente';
+            $kpiHeadings[] = 'Évolution';
+        }
+
+        $kpiRows = [
+            $this->kpiRow('Total qualifications', $kpis['total'], $yoy['total'] ?? null, $hasYoy),
+            $this->kpiRow('Moyenne par jour', $kpis['avgPerDay'], $yoy['avgPerDay'] ?? null, $hasYoy),
+            $this->kpiRow('% visiteurs internationaux', $kpis['internationalPct'] . '%', $yoy['internationalPct'] ?? null, $hasYoy, '%'),
+            $this->kpiRow('Profil dominant', $kpis['dominantProfile'], null, $hasYoy),
+            $this->kpiRow('Tranche d\'âge dominante', $kpis['dominantAgeRange'], null, $hasYoy),
+        ];
+        $sheets[] = new StatisticsSheet('KPIs', $kpiHeadings, $kpiRows);
+
+        // 2. Évolution temporelle (G1) : total + une colonne par ville
+        if (isset($this->data['temporalEvolution'])) {
+            $sheets[] = $this->buildTemporalSheet($this->data['temporalEvolution'], $cityNames);
+        }
 
         // 2. City Distribution
         $cd = $this->data['cityDistribution'];
@@ -130,7 +145,117 @@ class QualificationsV3Export implements WithMultipleSheets
         }
         $sheets[] = new StatisticsSheet('Agents', ['Agent', 'Qualifications'], $aaRows);
 
+        // 12. Demandes spécifiques ville (G9) — seulement en vue ville unique
+        if (isset($this->data['citySpecificDemands'])) {
+            $csd = $this->data['citySpecificDemands'];
+            $csdRows = [];
+            foreach (['specific' => 'Demande spécifique', 'otherSpecific' => 'Autre demande spécifique'] as $key => $section) {
+                $block = $csd[$key] ?? ['labels' => [], 'values' => []];
+                if (!empty($block['labels'])) {
+                    $csdRows[] = ['--- ' . $section . ' ---', ''];
+                    for ($i = 0; $i < count($block['labels']); $i++) {
+                        $csdRows[] = [$block['labels'][$i], $block['values'][$i]];
+                    }
+                }
+            }
+            $sheets[] = new StatisticsSheet('Demandes spécifiques', ['Demande', 'Nombre'], $csdRows);
+        }
+
+        // 13. Tableaux croisés / heatmaps
+        if (isset($this->data['crossTabs']['cityXdemand'])) {
+            $sheets[] = $this->buildCrossTabSheet(
+                'Croisé villes x demandes',
+                $this->data['crossTabs']['cityXdemand'],
+                'Ville'
+            );
+        }
+        if (isset($this->data['crossTabs']['monthXdemand'])) {
+            $sheets[] = $this->buildCrossTabSheet(
+                'Croisé mois x demandes',
+                $this->data['crossTabs']['monthXdemand'],
+                'Mois'
+            );
+        }
+
         return $sheets;
+    }
+
+    /**
+     * Construit une ligne de KPI, avec colonnes YoY (valeur N-1 + évolution %) si demandé.
+     */
+    protected function kpiRow(string $label, $value, ?array $yoy, bool $hasYoy, string $suffix = ''): array
+    {
+        $row = [$label, $value];
+
+        if (!$hasYoy) {
+            return $row;
+        }
+
+        if ($yoy === null) {
+            $row[] = '';
+            $row[] = '';
+            return $row;
+        }
+
+        $previous = $yoy['previous'] ?? null;
+        $row[] = $previous !== null ? $previous . $suffix : '';
+
+        if (isset($yoy['pct']) && $yoy['pct'] !== null) {
+            $sign = $yoy['pct'] > 0 ? '+' : '';
+            $row[] = $sign . $yoy['pct'] . '%';
+        } else {
+            $row[] = '';
+        }
+
+        return $row;
+    }
+
+    /**
+     * Construit la feuille d'évolution temporelle : une ligne par période,
+     * colonne Total puis une colonne par ville.
+     */
+    protected function buildTemporalSheet(array $data, array $cityNames): StatisticsSheet
+    {
+        $granularityLabels = ['day' => 'Jour', 'week' => 'Semaine', 'month' => 'Mois'];
+        $periodHeader = $granularityLabels[$data['granularity'] ?? ''] ?? 'Période';
+
+        $headings = [$periodHeader, 'Total'];
+        foreach ($cityNames as $cityName) {
+            $headings[] = $cityName;
+        }
+
+        $rows = [];
+        $labels = $data['labels'] ?? [];
+        foreach ($labels as $i => $period) {
+            $row = [$period, $data['total'][$i] ?? 0];
+            foreach (array_keys($cityNames) as $cityKey) {
+                $row[] = $data['datasets'][$cityKey][$i] ?? 0;
+            }
+            $rows[] = $row;
+        }
+
+        return new StatisticsSheet('Évolution temporelle', $headings, $rows);
+    }
+
+    /**
+     * Construit une feuille à partir d'un tableau croisé (heatmap) :
+     * en-tête = libellé de ligne + colonnes, plus une colonne Total.
+     */
+    protected function buildCrossTabSheet(string $title, array $crossTab, string $rowHeader): StatisticsSheet
+    {
+        $cols = $crossTab['cols'] ?? [];
+        $rowsData = $crossTab['rows'] ?? [];
+        $matrix = $crossTab['matrix'] ?? [];
+
+        $headings = array_merge([$rowHeader], $cols, ['Total']);
+
+        $rows = [];
+        foreach ($rowsData as $i => $rowLabel) {
+            $line = $matrix[$i] ?? [];
+            $rows[] = array_merge([$rowLabel], $line, [array_sum($line)]);
+        }
+
+        return new StatisticsSheet($title, $headings, $rows);
     }
 
     /**
