@@ -83,10 +83,10 @@ class QualificationEdit extends Component
         // Options spécifiques par ville
         $this->specificOptions = [
             'annot' => ['Sport de falaise', 'Train à Vapeur', 'Grès d\'Annot'],
-            'colmars-les-alpes' => ['Lac d\'Allos', 'Cascade de la Lance', 'Maison Musée'],
-            'entrevaux' => ['Nice', 'Côte d\'azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à Vapeur'],
-            'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Sport de falaise'],
-            'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train des Pignes']
+            'colmars-les-alpes' => ['Lac d\'Allos', 'Cascade de la Lance', 'Maison Musée', 'Fête Médiévale', 'Fort de Savoie'],
+            'entrevaux' => ['Côte d\'Azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à Vapeur'],
+            'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Sport de falaise', 'Couloir Samson', 'Lac de Sainte-Croix'],
+            'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train à vapeur']
         ];
 
         // Options générales
@@ -277,7 +277,7 @@ class QualificationEdit extends Component
         // Vérifie que chaque pays existe dans le référentiel
         // (les pays prédéfinis sont implicitement valides — nous contrôlons la liste)
         foreach ($this->countries as $country) {
-            if (in_array($country, self::PREDEFINED_COUNTRIES, true)) {
+            if ($country === 'Inconnu' || in_array($country, self::PREDEFINED_COUNTRIES, true)) {
                 continue;
             }
             if (!$this->geographyService->isValidCountry($country)) {
@@ -336,10 +336,25 @@ class QualificationEdit extends Component
      */
     public function toggleCountry($country)
     {
+        // Sélectionner un vrai pays retire l'état "Inconnu".
+        $this->countries = array_values(array_diff($this->countries, ['Inconnu']));
+
         if (in_array($country, $this->countries, true)) {
             $this->countries = array_values(array_diff($this->countries, [$country]));
         } else {
             $this->countries[] = $country;
+        }
+    }
+
+    /**
+     * Toggle l'état "Inconnu" pour les pays (exclusif : vide la sélection).
+     */
+    public function toggleCountryUnknown()
+    {
+        if (in_array('Inconnu', $this->countries, true)) {
+            $this->countries = [];
+        } else {
+            $this->countries = ['Inconnu'];
         }
     }
 
@@ -361,6 +376,8 @@ class QualificationEdit extends Component
         }
         // Pays prédéfini : autorisé directement, sinon vérifier le référentiel
         if (in_array($country, self::PREDEFINED_COUNTRIES, true) || $this->geographyService->isValidCountry($country)) {
+            // Sélectionner un vrai pays retire l'état "Inconnu".
+            $this->countries = array_values(array_diff($this->countries, ['Inconnu']));
             $this->countries[] = $country;
         }
     }

@@ -163,6 +163,8 @@ class QualificationStatisticsV3 extends Component
 
         $data = [
             'kpis' => $service->getKPIs($city, $startDate, $endDate, $effectiveMode),
+            'yoy' => $service->getYoYComparison($city, $startDate, $endDate, $effectiveMode),
+            'temporalEvolution' => $service->getTemporalEvolution($city, $startDate, $endDate, $this->granularity),
             'generalDemands' => $service->getGeneralDemands($city, $startDate, $endDate, 'absolute'),
             'generalDemandsNorm' => $service->getGeneralDemands($city, $startDate, $endDate, 'normalized'),
             'profiles' => $service->getProfileDistribution($city, $startDate, $endDate, 'absolute'),
@@ -173,7 +175,13 @@ class QualificationStatisticsV3 extends Component
             'contactMethods' => $service->getContactMethods($city, $startDate, $endDate, 'absolute'),
             'agentActivity' => $service->getAgentActivity($city, $startDate, $endDate),
             'cityDistribution' => $service->getCityDistribution($startDate, $endDate),
+            'crossTabs' => $service->getCrossTabulations($city, $startDate, $endDate),
         ];
+
+        // G9 : demandes spécifiques, uniquement pour une ville unique
+        if ($city !== 'all') {
+            $data['citySpecificDemands'] = $service->getCitySpecificDemands($city, $startDate, $endDate);
+        }
 
         $filename = 'statistiques-v3_' . $start->format('d-m-Y') . '_au_' . $end->format('d-m-Y') . '.xlsx';
 

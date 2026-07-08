@@ -15,7 +15,7 @@
                 <p class="text-gray-600 dark:text-gray-400 mt-2">Cliquez sur une destination pour accéder au formulaire
                 </p>
             </div>
-            <a href="{{ route('qualification.statistics') }}"
+            <a href="{{ route('qualification.statistics.v3') }}"
                 class="px-6 py-3 bg-gradient-to-r from-[#3E9B90] to-[#2E7B70] hover:from-[#2E7B70] hover:to-[#1E6B60] text-white font-semibold rounded-lg shadow-md transition-all duration-300 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
