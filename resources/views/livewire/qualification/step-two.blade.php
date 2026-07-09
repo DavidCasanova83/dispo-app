@@ -9,7 +9,7 @@
             Définir le profil <span class="text-red-500">*</span>
         </label>
         <div class="grid grid-cols-4 sm:grid-cols-4 gap-2">
-            @foreach (['Seul', 'Couple', 'Famille', 'Groupe d\'amis', 'Groupe Scolaire', 'Groupe de voyages', 'Groupe famille'] as $profileOption)
+            @foreach (['Seul', 'Couple', 'Famille', 'Groupe d\'amis', 'Groupe Scolaire', 'Groupe de voyages'] as $profileOption)
                 <button type="button" wire:click="$set('profile', {{ json_encode($profileOption) }})"
                     :disabled="$wire.profileUnknown"
                     :class="$wire.profile === {{ json_encode($profileOption) }} ?

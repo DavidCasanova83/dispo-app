@@ -89,6 +89,16 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Bouton "Inconnu" : exclusif, vide la sélection --}}
+            <button type="button" wire:click="toggleCountryUnknown"
+                @class([
+                    'px-3 py-1.5 rounded-lg font-medium transition-all duration-200 border text-center text-sm',
+                    'bg-[#3E9B90] text-white shadow-md border-[#3E9B90]' => in_array('Inconnu', $countries),
+                    'bg-white text-gray-700 border-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90] dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:border-[#3E9B90]' => !in_array('Inconnu', $countries),
+                ])>
+                Inconnu
+            </button>
         </div>
 
         {{-- Chips des pays "Autre" sélectionnés --}}

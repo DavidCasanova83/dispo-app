@@ -52,7 +52,7 @@
 
             @can('view-qualification')
                 <flux:navlist.group :heading="__('Qualification')" class="grid">
-                    <flux:navlist.item icon="chart-bar" :href="route('qualification.statistics')" :current="request() -> routeIs('qualification.statistics')"
+                    <flux:navlist.item icon="chart-bar" :href="route('qualification.statistics.v3')" :current="request() -> routeIs('qualification.statistics.v3')"
                         wire:navigate>{{ __('Statistiques') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan

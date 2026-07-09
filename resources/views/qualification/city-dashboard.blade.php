@@ -64,7 +64,7 @@
 
             <div
                 class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-purple-600 to-fuchsia-800 hover:from-purple-700 hover:to-fuchsia-900 transition-all duration-300">
-                <a href="{{ route('qualification.statistics') }}"
+                <a href="{{ route('qualification.statistics.v3') }}"
                     class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
                     <!-- Cadre intérieur animé -->
                     <div

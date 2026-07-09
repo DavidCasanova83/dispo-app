@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgendaPdfController;
+use App\Http\Controllers\NewsletterTranslateController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
@@ -42,6 +43,11 @@ Route::get('/brochures-oti-vt/{categorySlug}', \App\Livewire\PublicBrochuresOtiV
      ->name('brochures-oti-vt.category');
 Route::get('/brochures-oti-vt/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresOtiVt::class)
      ->name('brochures-oti-vt.subcategory');
+
+// Redirection publique vers la version traduite (Google Translate) d'une newsletter.
+// Le permalien Mailjet est passé via ?url=[[PERMALINK]]. Langues : en, it, de.
+Route::get('/newsletter/traduction/{lang}', NewsletterTranslateController::class)
+     ->name('newsletter.translate');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'approved'])
@@ -123,9 +129,10 @@ Route::middleware(['auth', 'approved'])->group(function () {
             ->middleware(['permission:view-qualification'])
             ->name('index');
 
-        // Page de statistiques (Chart.js) - requires view-qualification permission
-        Route::get('/statistiques', \App\Livewire\QualificationStatisticsV2::class)
-            ->middleware(['permission:view-qualification'])
+        // Ancienne page de statistiques (V2, Chart.js) — conservée mais redirigée
+        // vers la V3, qui est désormais la page de référence. Les anciens liens et
+        // favoris pointant sur /statistiques restent donc fonctionnels.
+        Route::redirect('/statistiques', '/qualification/statistiques-v3')
             ->name('statistics');
 
         // Page de statistiques V3 (normalisée) - requires view-qualification permission

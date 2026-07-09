@@ -512,6 +512,61 @@
             </div>
         </div>
 
+        {{-- Section 6: Liens de traduction de la newsletter --}}
+        @php
+            $translateLinks = [
+                'en' => ['label' => 'Anglais', 'flag' => '🇬🇧'],
+                'it' => ['label' => 'Italien', 'flag' => '🇮🇹'],
+                'de' => ['label' => 'Allemand', 'flag' => '🇩🇪'],
+            ];
+        @endphp
+        <div class="bg-white dark:bg-[#001716] shadow-lg rounded-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Traduction de la newsletter</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Liens fixes à insérer dans la newsletter Mailjet pour proposer une version traduite
+                (Google Traduction) générée automatiquement à chaque envoi.
+            </p>
+
+            <div class="mb-6 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p class="text-sm text-amber-800 dark:text-amber-300">
+                    <span class="font-semibold">Important :</span>
+                    conservez le paramètre
+                    <code class="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 rounded text-xs">[[PERMALINK]]</code>
+                    tel quel dans Mailjet. Il est remplacé par le lien réel de la newsletter au moment de la publication,
+                    et la redirection génère alors la version traduite « à l'instant T ».
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                @foreach ($translateLinks as $lang => $info)
+                    @php
+                        $fullLink = route('newsletter.translate', ['lang' => $lang]) . '?url=[[PERMALINK]]';
+                    @endphp
+                    <div x-data="{ copied: false }"
+                        class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                {{ $info['flag'] }} {{ $info['label'] }}
+                            </span>
+                            <button type="button"
+                                x-on:click="navigator.clipboard.writeText('{{ $fullLink }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 bg-[#3E9B90] text-white hover:bg-[#2d7a72]">
+                                <svg x-show="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                                <svg x-show="copied" style="display: none;" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span x-text="copied ? 'Copié !' : 'Copier'"></span>
+                            </button>
+                        </div>
+                        <code class="block w-full px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-800 dark:text-gray-200 break-all">{{ $fullLink }}</code>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
         {{-- Edit Modal --}}
         @if ($showEditModal && $editingAgenda)
             <div class="fixed inset-0 z-50 overflow-y-auto">

@@ -113,6 +113,16 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- Bouton "Inconnu" : exclusif, vide la sélection --}}
+                            <button type="button" wire:click="toggleCountryUnknown"
+                                @class([
+                                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                    'bg-[#3E9B90] text-white shadow-md scale-105' => in_array('Inconnu', $countries),
+                                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => !in_array('Inconnu', $countries),
+                                ])>
+                                Inconnu
+                            </button>
                         </div>
 
                         {{-- Chips des pays "Autre" sélectionnés --}}
@@ -160,7 +170,7 @@
                             Définir le profil <span class="text-red-500">*</span>
                         </label>
                         <div class="flex flex-wrap gap-2 mb-3">
-                            @foreach (['Seul', 'Couple', 'Famille', 'Groupe d\'amis', 'Groupe Scolaire', 'Groupe de voyages', 'Groupe famille'] as $profileOption)
+                            @foreach (['Seul', 'Couple', 'Famille', 'Groupe d\'amis', 'Groupe Scolaire', 'Groupe de voyages'] as $profileOption)
                                 <button type="button" wire:click="$set('profile', {{ json_encode($profileOption) }})"
                                     {{ $profileUnknown ? 'disabled' : '' }} @class([
                                         'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
@@ -454,7 +464,7 @@
                     <!-- Demandes générales -->
                     <div class="mb-6">
                         <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-                            Demande générale <span class="text-red-500">*</span>
+                            Demande générale
                         </label>
                         <div class="flex flex-wrap gap-2">
                             @foreach ($generalOptions as $option)
@@ -472,88 +482,21 @@
                                 </button>
                             @endforeach
                         </div>
-                        <!-- Chips des "Autre" sélectionnées -->
-                        @if (count($otherGeneralRequests) > 0)
-                            <div class="flex flex-wrap gap-2 mt-3">
-                                @foreach ($otherGeneralRequests as $request)
-                                    <span class="inline-flex items-center gap-1 px-3 py-1 bg-[#3E9B90] text-white rounded-lg text-sm">
-                                        {{ $request }}
-                                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($request) }})"
-                                            class="hover:bg-white/20 rounded-full p-0.5 transition-colors">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </span>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        <!-- Bouton Autre avec dropdown -->
-                        <div class="relative mt-3" x-data="{ showGeneralOther: false }">
-                            <button type="button" @click="showGeneralOther = !showGeneralOther"
-                                @class([
-                                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
-                                    'bg-[#3E9B90] text-white shadow-md scale-105' =>
-                                        count($otherGeneralRequests) > 0,
-                                    'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' =>
-                                        count($otherGeneralRequests) === 0,
-                                ])>
-                                Autre
-                                <svg class="inline-block w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            <div x-show="showGeneralOther" @click.away="showGeneralOther = false"
-                                x-transition:enter="transition ease-out duration-200"
-                                x-transition:enter-start="opacity-0 transform scale-95"
-                                x-transition:enter-end="opacity-100 transform scale-100"
-                                x-transition:leave="transition ease-in duration-150"
-                                x-transition:leave-start="opacity-100 transform scale-100"
-                                x-transition:leave-end="opacity-0 transform scale-95"
-                                class="absolute z-10 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
-                                style="display: none;">
-                                <div class="max-h-60 overflow-y-auto">
-                                    @foreach (['Patou', 'Pluies', 'Enfant en bas age'] as $option)
-                                        <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($option) }})"
-                                            class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between">
-                                            <span class="text-gray-900 dark:text-white">{{ $option }}</span>
-                                            @if (in_array($option, $otherGeneralRequests))
-                                                <svg class="w-5 h-5 text-[#3E9B90]" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            @endif
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
+                        <!-- Autres catégories (boutons directs) -->
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            @foreach (['Patou', 'Pluies', 'Enfant en bas age', 'Réclamation'] as $option)
+                                <button type="button" wire:click="toggleOtherGeneralRequest({{ json_encode($option) }})"
+                                    @class([
+                                        'px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95',
+                                        'bg-[#3E9B90] text-white shadow-md scale-105' => in_array($option, $otherGeneralRequests),
+                                        'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600' => !in_array($option, $otherGeneralRequests),
+                                    ])>
+                                    {{ $option }}
+                                </button>
+                            @endforeach
                         </div>
 
                         @error('generalRequests')
-                            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <hr class="my-6 border-gray-300 dark:border-gray-600">
-
-                    <!-- Autres demandes -->
-                    <div class="mb-6">
-                        <label class="block text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-                            Autres, à préciser
-                        </label>
-                        <div class="relative">
-                            <textarea wire:model.blur="otherRequest" rows="3" maxlength="1000"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all resize-none"
-                                placeholder="Précisez votre demande..."></textarea>
-                            <div class="absolute bottom-2 right-2 text-xs text-gray-500 dark:text-gray-400">
-                                {{ strlen($otherRequest) }} / 1000
-                            </div>
-                        </div>
-                        @error('otherRequest')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
