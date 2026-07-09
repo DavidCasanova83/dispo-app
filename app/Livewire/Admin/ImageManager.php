@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\CompressBrochurePdf;
 use App\Livewire\Concerns\EditsBrochures;
 use App\Models\Author;
 use App\Models\BrochureReport;
@@ -444,7 +445,7 @@ class ImageManager extends Component
                 }
 
                 // Créer l'entrée en base
-                Image::create([
+                $image = Image::create([
                     'name' => $contentFile->getClientOriginalName(),
                     'title' => $this->titles[$index] ?? null,
                     'filename' => $displayFilename,
@@ -474,6 +475,12 @@ class ImageManager extends Component
                     'sector_id' => $this->sectorIds[$index] ?? null,
                     'responsable_id' => $this->responsableIds[$index] ?? null,
                 ]);
+
+                // Dispatch PDF compression after HTTP response — tourne sous PHP-FPM
+                // (www-panelverdon), donc peut écrire dans pdfs/. Uniquement pour les PDF.
+                if ($isPdf && $pdfPath && config('brochures.pdf_compression.enabled')) {
+                    CompressBrochurePdf::dispatchAfterResponse($image->id, $pdfPath);
+                }
 
                 $uploadedCount++;
             } catch (\Exception $e) {

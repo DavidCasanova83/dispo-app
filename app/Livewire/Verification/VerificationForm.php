@@ -1,0 +1,242 @@
+<?php
+
+namespace App\Livewire\Verification;
+
+use App\Models\VerificationPage;
+use App\Models\VerificationReview;
+use App\Services\VerificationReviewService;
+use Illuminate\Auth\Access\AuthorizationException;
+use Livewire\Component;
+
+class VerificationForm extends Component
+{
+    public VerificationPage $page;
+    public string $language = 'fr';
+
+    // Bandeau "déjà soumis" (mis à jour à mount() et lors d'un switchLanguage).
+    public ?string $existingReviewSubmittedAt = null;
+    public ?string $existingReviewStatus = null;
+
+    // Message de l'admin associé à la review précédente (visible si re-vérification demandée).
+    public ?string $adminMessage = null;
+    public ?string $adminMessageAt = null;
+
+    // Section 1 — Vérification factuelle (obligatoire)
+    public ?bool $contentOk = null;
+    public string $contentComment = '';
+    public ?bool $mediaOk = null;
+    public string $mediaComment = '';
+    public string $remarks = '';
+
+    // Section 2 — Évaluation éditoriale (optionnelle)
+    public ?string $relevance = null;
+    public array $contentToAdd = [];
+    public string $contentToAddDetails = '';
+    public ?string $contentToRemove = null;
+    public string $contentToRemoveDetails = '';
+    public ?string $visitorPerspective = null;
+    public string $visitorUnanswered = '';
+    public ?int $rating = null;
+    public string $suggestions = '';
+
+    protected VerificationReviewService $service;
+
+    public function boot(VerificationReviewService $service): void
+    {
+        $this->service = $service;
+    }
+
+    public function mount(VerificationPage $page): void
+    {
+        $user = auth()->user();
+
+        $isAssigned = $page->assignees()->where('users.id', $user->id)->exists();
+        if (! $isAssigned) {
+            throw new AuthorizationException('Cette page ne vous est pas assignée.');
+        }
+
+        $this->page = $page;
+
+        $requested = strtolower((string) request()->query('lang', 'fr'));
+        if (! in_array($requested, ['fr', 'en', 'it'], true)) {
+            $requested = 'fr';
+        }
+        // On refuse de basculer sur une langue dont l'URL n'est pas renseignée.
+        if ($requested !== 'fr' && ! $page->urlForLanguage($requested)) {
+            $requested = 'fr';
+        }
+        $this->language = $requested;
+
+        $this->loadExistingReviewIfAny();
+    }
+
+    /**
+     * Si l'utilisateur a déjà soumis une review pour cette page+langue,
+     * pré-remplir le formulaire avec les valeurs existantes et exposer
+     * la date de soumission pour afficher un bandeau d'information.
+     */
+    private function loadExistingReviewIfAny(): void
+    {
+        $existing = VerificationReview::query()
+            ->where('page_id', $this->page->id)
+            ->where('user_id', auth()->id())
+            ->where('language', $this->language)
+            ->first();
+
+        if (! $existing) {
+            $this->existingReviewSubmittedAt = null;
+            $this->existingReviewStatus = null;
+            $this->adminMessage = null;
+            $this->adminMessageAt = null;
+            return;
+        }
+
+        $this->existingReviewSubmittedAt = $existing->updated_at?->translatedFormat('d F Y à H:i');
+        $this->existingReviewStatus = $existing->status;
+        $this->adminMessage = $existing->admin_response ?: null;
+        $this->adminMessageAt = $existing->admin_response_at?->translatedFormat('d F Y à H:i');
+
+        $this->contentOk = $existing->content_ok;
+        $this->contentComment = $existing->content_comment ?? '';
+        $this->mediaOk = $existing->media_ok;
+        $this->mediaComment = $existing->media_comment ?? '';
+        $this->remarks = $existing->remarks ?? '';
+        $this->relevance = $existing->relevance;
+        $this->contentToAdd = $existing->content_to_add ?? [];
+        $this->contentToAddDetails = $existing->content_to_add_details ?? '';
+        $this->contentToRemove = $existing->content_to_remove;
+        $this->contentToRemoveDetails = $existing->content_to_remove_details ?? '';
+        $this->visitorPerspective = $existing->visitor_perspective;
+        $this->visitorUnanswered = $existing->visitor_unanswered ?? '';
+        $this->rating = $existing->rating;
+        $this->suggestions = $existing->suggestions ?? '';
+    }
+
+    public function switchLanguage(string $lang)
+    {
+        if (! in_array($lang, ['fr', 'en', 'it'], true)) {
+            return;
+        }
+        if ($lang !== 'fr' && ! $this->page->urlForLanguage($lang)) {
+            return;
+        }
+        return redirect()->route('verification.form', ['page' => $this->page->id, 'lang' => $lang]);
+    }
+
+    public function updatedContentToAdd($value, $key): void
+    {
+        // Si "none" vient d'être coché, on déselectionne les autres.
+        if (in_array('none', $this->contentToAdd, true)) {
+            $latest = end($this->contentToAdd);
+            if ($latest === 'none') {
+                $this->contentToAdd = ['none'];
+            } else {
+                // Une autre case a été cochée alors que "none" l'était : on retire "none".
+                $this->contentToAdd = array_values(array_filter($this->contentToAdd, fn ($v) => $v !== 'none'));
+            }
+        }
+    }
+
+    protected function rules(): array
+    {
+        $rules = [
+            // Section 1
+            'contentOk' => 'required|boolean',
+            'mediaOk' => 'required|boolean',
+            'contentComment' => 'nullable|string|max:5000',
+            'mediaComment' => 'nullable|string|max:5000',
+            'remarks' => 'nullable|string|max:5000',
+
+            // Section 2 — toutes optionnelles
+            'relevance' => 'nullable|in:very,rather,medium,low',
+            'contentToAdd' => 'array',
+            'contentToAdd.*' => 'in:practical_info,media,providers,context,links,none',
+            'contentToAddDetails' => 'nullable|string|max:5000',
+            'contentToRemove' => 'nullable|in:no,yes,dont_know',
+            'contentToRemoveDetails' => 'nullable|string|max:5000',
+            'visitorPerspective' => 'nullable|in:yes,partial,no',
+            'visitorUnanswered' => 'nullable|string|max:5000',
+            'rating' => 'nullable|integer|min:1|max:5',
+            'suggestions' => 'nullable|string|max:5000',
+        ];
+
+        if ($this->contentOk === false) {
+            $rules['contentComment'] = 'required|string|min:10|max:5000';
+        }
+
+        if ($this->mediaOk === false) {
+            $rules['mediaComment'] = 'required|string|min:10|max:5000';
+        }
+
+        return $rules;
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'contentOk.required' => 'Veuillez répondre à la question 1.',
+            'mediaOk.required' => 'Veuillez répondre à la question 2.',
+            'contentComment.required' => 'Vous avez signalé un problème de contenu, merci de préciser ce qui ne va pas.',
+            'contentComment.min' => 'Merci de décrire le problème de contenu en au moins 10 caractères.',
+            'contentComment.max' => 'Le commentaire ne doit pas dépasser 5000 caractères.',
+            'mediaComment.required' => 'Vous avez signalé un problème de médias/liens, merci de préciser ce qui ne va pas.',
+            'mediaComment.min' => 'Merci de décrire le problème de médias/liens en au moins 10 caractères.',
+            'mediaComment.max' => 'Le commentaire ne doit pas dépasser 5000 caractères.',
+            'remarks.max' => 'Vos remarques ne doivent pas dépasser 5000 caractères.',
+            'rating.min' => 'La note doit être entre 1 et 5.',
+            'rating.max' => 'La note doit être entre 1 et 5.',
+            'contentToAddDetails.max' => 'La précision ne doit pas dépasser 5000 caractères.',
+            'contentToRemoveDetails.max' => 'La précision ne doit pas dépasser 5000 caractères.',
+            'visitorUnanswered.max' => 'La précision ne doit pas dépasser 5000 caractères.',
+            'suggestions.max' => 'Vos suggestions ne doivent pas dépasser 5000 caractères.',
+        ];
+    }
+
+    public function setRating(int $value): void
+    {
+        $this->rating = ($this->rating === $value) ? null : $value;
+    }
+
+    public function submit()
+    {
+        $data = $this->validate();
+
+        $review = $this->service->submit($this->page, auth()->user(), [
+            'language' => $this->language,
+            'content_ok' => $data['contentOk'],
+            'content_comment' => $data['contentComment'] ?? '',
+            'media_ok' => $data['mediaOk'],
+            'media_comment' => $data['mediaComment'] ?? '',
+            'remarks' => $data['remarks'] ?? '',
+            'relevance' => $data['relevance'] ?? null,
+            'content_to_add' => $data['contentToAdd'] ?? [],
+            'content_to_add_details' => $data['contentToAddDetails'] ?? '',
+            'content_to_remove' => $data['contentToRemove'] ?? null,
+            'content_to_remove_details' => $data['contentToRemoveDetails'] ?? '',
+            'visitor_perspective' => $data['visitorPerspective'] ?? null,
+            'visitor_unanswered' => $data['visitorUnanswered'] ?? '',
+            'rating' => $data['rating'] ?? null,
+            'suggestions' => $data['suggestions'] ?? '',
+        ]);
+
+        $langLabel = strtoupper($this->language);
+
+        if ($this->language === 'fr') {
+            $message = $review->status === 'done'
+                ? "Merci ! La page \"{$this->page->title}\" est validée. Bon travail !"
+                : "Merci ! Vous avez signalé des points à corriger sur \"{$this->page->title}\". David va les examiner.";
+        } else {
+            $message = "Merci ! Votre vérification {$langLabel} de \"{$this->page->title}\" a bien été enregistrée.";
+        }
+
+        session()->flash('success', $message);
+
+        return redirect()->route('verification.index');
+    }
+
+    public function render()
+    {
+        return view('livewire.verification.verification-form')
+            ->layout('components.layouts.app');
+    }
+}

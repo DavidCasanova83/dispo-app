@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Jobs\CompressBrochurePdf;
 use App\Models\Image;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
@@ -274,6 +275,18 @@ trait EditsBrochures
             'responsable_id' => $this->editResponsableId ?: null,
             'pdf_path' => $pdfPath,
         ]);
+
+        // Dispatch PDF compression after HTTP response (Ghostscript) — runs in PHP-FPM
+        // (www-panelverdon), donc a les droits d'écrire dans storage/app/public/pdfs/.
+        // Uniquement pour les fichiers .pdf (le trait accepte aussi jpg/png).
+        if ($this->editPdfFile
+            && !$this->removePdf
+            && $pdfPath
+            && str_ends_with(strtolower($pdfPath), '.pdf')
+            && config('brochures.pdf_compression.enabled')
+        ) {
+            CompressBrochurePdf::dispatchAfterResponse($this->editingImage->id, $pdfPath);
+        }
 
         // Régénérer le fichier JSON
         Artisan::call('images:generate-json');

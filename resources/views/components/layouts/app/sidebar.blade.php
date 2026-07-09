@@ -56,6 +56,19 @@
                         wire:navigate>{{ __('Statistiques') }}</flux:navlist.item>
                 </flux:navlist.group>
             @endcan
+
+            @can('manage-page-verification')
+                <flux:navlist.group :heading="__('Vérification web')" class="grid">
+                    <flux:navlist.item icon="document-magnifying-glass"
+                        :href="route('verification.admin.pages')"
+                        :current="request()->routeIs('verification.admin.pages')"
+                        wire:navigate>{{ __('Pages à vérifier') }}</flux:navlist.item>
+                    <flux:navlist.item icon="inbox"
+                        :href="route('verification.admin.reviews')"
+                        :current="request()->routeIs('verification.admin.reviews')"
+                        wire:navigate>{{ __('Boîte de retours') }}</flux:navlist.item>
+                </flux:navlist.group>
+            @endcan
         </flux:navlist>
 
         <flux:spacer />

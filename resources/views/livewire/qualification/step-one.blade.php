@@ -19,6 +19,9 @@
                 </button>
             @endforeach
         </div>
+        @error('visitorType')
+            <p class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
     </div>
 
     <!-- Pays de résidence (sélection multiple) -->

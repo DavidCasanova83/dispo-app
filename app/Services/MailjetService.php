@@ -24,22 +24,31 @@ class MailjetService
     }
 
     /**
-     * Send an availability request email to an accommodation.
+     * Send an availability request email regrouping all accommodations sharing the same address.
      *
      * @param string $toEmail
-     * @param string $toName
-     * @param string $accommodationName
-     * @param string $availableUrl
-     * @param string $notAvailableUrl
+     * @param array<int, array{name: string, available_url: string, not_available_url: string}> $accommodations
      * @return array
      */
-    public function sendAvailabilityRequest(
-        string $toEmail,
-        string $toName,
-        string $accommodationName,
-        string $availableUrl,
-        string $notAvailableUrl
-    ): array {
+    public function sendBatchedAvailabilityRequest(string $toEmail, array $accommodations): array
+    {
+        if (empty($accommodations)) {
+            return ['success' => false, 'error' => 'No accommodations provided'];
+        }
+
+        $count = count($accommodations);
+        $subject = $count === 1
+            ? "Mise à jour de vos disponibilités - {$accommodations[0]['name']}"
+            : "Mise à jour de vos disponibilités - {$count} hébergements";
+
+        $textLines = ["Bonjour,", "", "Merci de nous indiquer vos disponibilités pour chacun de vos hébergements :", ""];
+        foreach ($accommodations as $acc) {
+            $textLines[] = "- {$acc['name']}";
+            $textLines[] = "  Disponible : {$acc['available_url']}";
+            $textLines[] = "  Pas disponible : {$acc['not_available_url']}";
+            $textLines[] = "";
+        }
+
         $body = [
             'Messages' => [
                 [
@@ -50,7 +59,7 @@ class MailjetService
                     'To' => [
                         [
                             'Email' => $toEmail,
-                            'Name' => $toName,
+                            'Name' => $accommodations[0]['name'],
                         ],
                     ],
                     'Bcc' => [
@@ -59,9 +68,9 @@ class MailjetService
                             'Name' => 'Webmaster',
                         ],
                     ],
-                    'Subject' => "Mise à jour de vos disponibilités - {$accommodationName}",
-                    'TextPart' => "Bonjour,\n\nMerci de nous indiquer vos disponibilités en cliquant sur l'un des liens suivants:\n\nDisponible: {$availableUrl}\nPas disponible: {$notAvailableUrl}",
-                    'HTMLPart' => $this->generateEmailHtml($accommodationName, $availableUrl, $notAvailableUrl),
+                    'Subject' => $subject,
+                    'TextPart' => implode("\n", $textLines),
+                    'HTMLPart' => $this->generateEmailHtml($accommodations),
                 ],
             ],
         ];
@@ -70,8 +79,8 @@ class MailjetService
             $response = $this->mailjet->post(Resources::$Email, ['body' => $body]);
 
             if ($response->success()) {
-                Log::info("Email sent successfully to {$toEmail}", [
-                    'accommodation' => $accommodationName,
+                Log::info("Batched availability email sent successfully to {$toEmail}", [
+                    'accommodations_count' => $count,
                     'response' => $response->getData(),
                 ]);
 
@@ -81,7 +90,7 @@ class MailjetService
                 ];
             }
 
-            Log::error("Failed to send email to {$toEmail}", [
+            Log::error("Failed to send batched availability email to {$toEmail}", [
                 'status' => $response->getStatus(),
                 'reason' => $response->getReasonPhrase(),
             ]);
@@ -91,7 +100,7 @@ class MailjetService
                 'error' => $response->getReasonPhrase(),
             ];
         } catch (\Exception $e) {
-            Log::error("Exception while sending email to {$toEmail}", [
+            Log::error("Exception while sending batched availability email to {$toEmail}", [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -172,22 +181,15 @@ class MailjetService
     }
 
     /**
-     * Generate the HTML content for the email.
+     * Generate the HTML content for the availability request email.
      *
-     * @param string $accommodationName
-     * @param string $availableUrl
-     * @param string $notAvailableUrl
+     * @param array<int, array{name: string, available_url: string, not_available_url: string}> $accommodations
      * @return string
      */
-    protected function generateEmailHtml(
-        string $accommodationName,
-        string $availableUrl,
-        string $notAvailableUrl
-    ): string {
+    protected function generateEmailHtml(array $accommodations): string
+    {
         return view('emails.availability-request', [
-            'accommodationName' => $accommodationName,
-            'availableUrl' => $availableUrl,
-            'notAvailableUrl' => $notAvailableUrl,
+            'accommodations' => $accommodations,
         ])->render();
     }
 

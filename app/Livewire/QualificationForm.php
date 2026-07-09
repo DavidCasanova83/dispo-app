@@ -23,8 +23,9 @@ class QualificationForm extends Component
     public const PREDEFINED_COUNTRIES = ['France', 'Belgique', 'Allemagne', 'Italie', 'Pays-Bas', 'Suisse', 'Espagne', 'Angleterre'];
 
     // Étape 1 : Informations générales
-    public $visitorType = 'Touriste';
+    public $visitorType = '';
     public $countries = ['France'];
+    public $countriesTouched = false;
     public $showCountryDropdown = false;
     public $countrySearchQuery = '';
     public $departments = [];
@@ -148,7 +149,7 @@ class QualificationForm extends Component
             $data = $draft->form_data;
 
             // Charger les données de l'étape 1
-            $this->visitorType = $data['visitorType'] ?? 'Touriste';
+            $this->visitorType = $data['visitorType'] ?? '';
 
             // Chargement des pays — supporte le nouveau format (array `countries`)
             // et l'ancien format (string `country` + éventuel `otherCountry`)
@@ -165,6 +166,9 @@ class QualificationForm extends Component
                     $this->countries = [];
                 }
             }
+
+            // Un brouillon est déjà considéré comme "touché" par l'utilisateur
+            $this->countriesTouched = true;
 
             // Handle backwards compatibility: convert string to array if needed
             $departmentData = $data['departments'] ?? $data['department'] ?? [];
@@ -269,6 +273,7 @@ class QualificationForm extends Component
     protected function validateStep1()
     {
         $rules = [
+            'visitorType' => 'required|in:Touriste,Habitant,Socio Pro',
             'countries' => 'required|array|min:1',
         ];
 
@@ -277,6 +282,8 @@ class QualificationForm extends Component
         }
 
         $messages = [
+            'visitorType.required' => 'Veuillez sélectionner un type de visiteur.',
+            'visitorType.in' => 'Veuillez sélectionner un type de visiteur valide.',
             'countries.required' => 'Veuillez sélectionner au moins un pays.',
             'countries.min' => 'Veuillez sélectionner au moins un pays.',
             'departments.required' => 'Veuillez sélectionner au moins un département.',
@@ -285,6 +292,7 @@ class QualificationForm extends Component
         ];
 
         $validator = Validator::make([
+            'visitorType' => $this->visitorType,
             'countries' => $this->countries,
             'departments' => $this->departments,
             'email' => $this->email,
@@ -431,8 +439,9 @@ class QualificationForm extends Component
         $this->qualificationId = null;
 
         // Réinitialiser Étape 1
-        $this->visitorType = 'Touriste';
+        $this->visitorType = '';
         $this->countries = ['France'];
+        $this->countriesTouched = false;
         $this->showCountryDropdown = false;
         $this->countrySearchQuery = '';
         $this->departments = [];
@@ -499,6 +508,9 @@ class QualificationForm extends Component
 
     /**
      * Toggle un pays prédéfini dans la sélection.
+     *
+     * Si la sélection vaut uniquement la France par défaut et qu'on clique sur un autre pays,
+     * la France est remplacée par ce pays. Sinon, toggle classique (multi-pays).
      */
     public function toggleCountry($country)
     {
@@ -529,11 +541,14 @@ class QualificationForm extends Component
      */
     public function removeCountry($country)
     {
+        $this->countriesTouched = true;
         $this->countries = array_values(array_diff($this->countries, [$country]));
     }
 
     /**
      * Ajoute un pays libre depuis le dropdown "Autre".
+     *
+     * Si la sélection vaut uniquement la France par défaut, elle est remplacée par ce pays.
      */
     public function addOtherCountry($country)
     {

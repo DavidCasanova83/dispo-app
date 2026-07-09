@@ -46,7 +46,10 @@ class SendAvailabilityEmails extends Command
             return self::FAILURE;
         }
 
-        $this->info("📊 {$accommodations->count()} hébergement(s) avec email trouvé(s)");
+        // Regroupe par email (insensible casse/espaces) pour n'envoyer qu'un message par destinataire.
+        $groups = $accommodations->groupBy(fn ($a) => strtolower(trim($a->email)));
+
+        $this->info("📊 {$accommodations->count()} hébergement(s) regroupés en {$groups->count()} email(s)");
         $this->newLine();
 
         // Mode dry-run : afficher sans envoyer
@@ -54,32 +57,40 @@ class SendAvailabilityEmails extends Command
             $this->warn('🔍 Mode DRY-RUN activé - Aucun email ne sera envoyé');
             $this->newLine();
 
-            $this->table(
-                ['ID', 'Nom', 'Email', 'Statut'],
-                $accommodations->map(fn($acc) => [
-                    $acc->id,
-                    $acc->name,
-                    $acc->email,
-                    $acc->status ?? 'N/A'
-                ])
-            );
+            $rows = [];
+            foreach ($groups as $email => $group) {
+                foreach ($group as $i => $acc) {
+                    $rows[] = [
+                        $acc->id,
+                        $acc->name,
+                        $email,
+                        $i === 0 ? $group->count() : '',
+                        $acc->status ?? 'N/A',
+                    ];
+                }
+            }
+
+            $this->table(['ID', 'Nom', 'Email', 'Group size', 'Statut'], $rows);
 
             $this->newLine();
-            $this->info("✅ {$accommodations->count()} email(s) seraient envoyé(s) en mode normal");
+            $this->info("✅ {$accommodations->count()} hébergement(s) regroupés en {$groups->count()} email(s) seraient envoyés en mode normal");
             return self::SUCCESS;
         }
 
-        // Envoi réel des emails
-        $progressBar = $this->output->createProgressBar($accommodations->count());
+        // Envoi réel des emails (un job par groupe d'email)
+        $progressBar = $this->output->createProgressBar($groups->count());
         $progressBar->start();
 
-        $sent = 0;
-        foreach ($accommodations as $accommodation) {
+        $dispatched = 0;
+        foreach ($groups as $email => $group) {
             try {
-                SendAccommodationAvailabilityEmail::dispatch($accommodation);
-                $sent++;
+                SendAccommodationAvailabilityEmail::dispatch(
+                    (string) $email,
+                    $group->pluck('id')->all()
+                );
+                $dispatched++;
             } catch (\Exception $e) {
-                $this->error("\n❌ Erreur pour {$accommodation->name} : {$e->getMessage()}");
+                $this->error("\n❌ Erreur pour le groupe {$email} : {$e->getMessage()}");
             }
             $progressBar->advance();
         }
@@ -88,14 +99,14 @@ class SendAvailabilityEmails extends Command
         $this->newLine(2);
 
         // Résumé
-        $this->info("✅ {$sent} email(s) programmé(s) pour envoi");
+        $this->info("✅ {$accommodations->count()} hébergement(s) regroupés en {$dispatched} email(s) programmé(s) pour envoi");
         $this->comment('💡 Les emails seront traités par la queue dans la minute qui suit');
         $this->newLine();
 
         // Logs
         Log::info('Envoi automatique des emails de disponibilité', [
-            'total' => $accommodations->count(),
-            'sent' => $sent,
+            'accommodations_total' => $accommodations->count(),
+            'emails_dispatched' => $dispatched,
             'timestamp' => now()->toDateTimeString(),
         ]);
 

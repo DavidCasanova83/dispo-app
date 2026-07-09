@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\SitemapScanService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(SitemapScanService::class, function () {
+            return new SitemapScanService(
+                config('verification.sitemap_url', 'https://www.verdontourisme.com/page-sitemap.xml')
+            );
+        });
     }
 
     /**

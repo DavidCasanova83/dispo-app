@@ -132,6 +132,24 @@
                 </a>
             </div>
 
+            {{-- Vérification de pages — pour les utilisateurs ayant des pages assignées --}}
+            @php
+                $pendingVerificationsCount = app(\App\Services\VerificationReviewService::class)
+                    ->pendingForUser(auth()->user())->count();
+            @endphp
+            @if ($pendingVerificationsCount > 0)
+                <div class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-rose-500 to-pink-700 hover:from-rose-600 hover:to-pink-800 transition-all duration-300">
+                    <a href="{{ route('verification.index') }}"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+                        <div class="absolute inset-3 border-2 border-white/30 rounded-lg transition-all duration-500 ease-out group-hover:inset-4 group-hover:border-white/60 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"></div>
+
+                        <div class="text-4xl mb-2 relative z-10">🔍</div>
+                        <h3 class="text-lg font-semibold mb-2 relative z-10">Vérification de pages</h3>
+                        <p class="text-sm opacity-90 relative z-10">{{ $pendingVerificationsCount }} page(s) à vérifier</p>
+                    </a>
+                </div>
+            @endif
+
             {{-- Mes Brochures - Only for users who are responsable of at least one brochure --}}
             @php
                 $userBrochuresCount = \App\Models\Image::where('responsable_id', auth()->id())->count();

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Jobs\CompressBrochurePdf;
 use App\Models\Author;
 use App\Models\BrochureMenuItem;
 use App\Models\BrochureReport;
@@ -426,6 +427,13 @@ class MyBrochuresManager extends Component
 
         // Update the brochure
         $this->editingImage->update($updateData);
+
+        // Dispatch PDF compression after HTTP response (Ghostscript) — runs in the
+        // same PHP-FPM process as the upload (www-panelverdon), so it has write
+        // access to storage/app/public/pdfs/ without needing a queue worker.
+        if ($this->editPdfFile && !$this->removePdf && $pdfPath && config('brochures.pdf_compression.enabled')) {
+            CompressBrochurePdf::dispatchAfterResponse($this->editingImage->id, $pdfPath);
+        }
 
         // Regenerate JSON file
         Artisan::call('images:generate-json');

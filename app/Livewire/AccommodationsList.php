@@ -122,12 +122,21 @@ class AccommodationsList extends Component
       return;
     }
 
-    // Dispatch un job pour chaque hébergement
-    foreach ($accommodations as $accommodation) {
-      \App\Jobs\SendAccommodationAvailabilityEmail::dispatch($accommodation);
+    // Regroupe par email (insensible à la casse / espaces) pour n'envoyer qu'un seul message
+    // par destinataire, même quand plusieurs hébergements partagent la même adresse.
+    $groups = $accommodations->groupBy(fn ($a) => strtolower(trim($a->email)));
+
+    foreach ($groups as $email => $group) {
+      \App\Jobs\SendAccommodationAvailabilityEmail::dispatch(
+        (string) $email,
+        $group->pluck('id')->all()
+      );
     }
 
-    session()->flash('success', "Envoi de {$accommodations->count()} emails en cours...");
+    session()->flash(
+      'success',
+      "Envoi de {$accommodations->count()} hébergement(s) regroupés en {$groups->count()} email(s) en cours..."
+    );
   }
 
   public function updateStatus($accommodationId, $status)
