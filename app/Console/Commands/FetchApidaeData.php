@@ -342,7 +342,10 @@ class FetchApidaeData extends Command
                     if (str_contains(strtolower($type), 'mél') || str_contains(strtolower($type), 'email')) {
                         $email = $coordonnees;
                     } elseif (str_contains(strtolower($type), 'téléphone') || str_contains(strtolower($type), 'phone')) {
-                        $phone = $coordonnees;
+                        // Apidae peut renvoyer plusieurs numéros : on conserve le premier renseigné
+                        if ($phone === null && $coordonnees !== '') {
+                            $phone = $coordonnees;
+                        }
                     } elseif (str_contains(strtolower($type), 'site web') || str_contains(strtolower($type), 'url')) {
                         $website = $coordonnees;
                     }
