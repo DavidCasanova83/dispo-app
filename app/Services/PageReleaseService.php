@@ -2,23 +2,33 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-class WeeklyReleaseService
+/**
+ * Distribution des pages assignées vers les dashboards des relecteurs.
+ *
+ * Le quota n'est pas une allocation périodique mais un PLAFOND DE PAGES ACTIVES
+ * SIMULTANÉES : un relecteur n'a jamais plus de ACTIVE_PAGES_QUOTA pages ouvertes
+ * en même temps. La fréquence d'exécution ne change donc pas cette limite, elle
+ * change seulement la vitesse à laquelle une page terminée est remplacée.
+ *
+ * Cadence courante : chaque nuit (voir routes/console.php).
+ */
+class PageReleaseService
 {
-    public const WEEKLY_QUOTA = 2;
+    /** Nombre maximal de pages actives simultanément par relecteur. */
+    public const ACTIVE_PAGES_QUOTA = 2;
 
     /**
      * Pour chaque utilisateur ayant des pages assignées en attente, libère
-     * autant de pages que nécessaire pour atteindre WEEKLY_QUOTA "actives".
+     * autant de pages que nécessaire pour atteindre ACTIVE_PAGES_QUOTA "actives".
      *
      * Une page "active" pour un user = assignation released ET review FR pas done.
-     * Si le user a déjà ≥ WEEKLY_QUOTA actives, on ne libère rien (plafond strict).
+     * Si le user a déjà ≥ ACTIVE_PAGES_QUOTA actives, on ne libère rien.
      *
      * @return array<int,int> id_user => nb pages libérées
      */
-    public function releaseWeekly(): array
+    public function replenishAll(): array
     {
         $userIds = DB::table('verification_assignments')
             ->select('user_id')
@@ -38,7 +48,7 @@ class WeeklyReleaseService
     }
 
     /**
-     * Libère pour un user jusqu'à atteindre le quota hebdomadaire.
+     * Libère pour un user jusqu'à atteindre le plafond de pages actives.
      * Sélection : priority haute → moyenne → basse, puis deadline la plus proche,
      * puis date d'assignation la plus ancienne.
      *
@@ -48,17 +58,18 @@ class WeeklyReleaseService
     {
         $activeCount = $this->countActiveForUser($userId);
 
-        if ($activeCount >= self::WEEKLY_QUOTA) {
+        if ($activeCount >= self::ACTIVE_PAGES_QUOTA) {
             return 0;
         }
 
-        $needed = self::WEEKLY_QUOTA - $activeCount;
+        $needed = self::ACTIVE_PAGES_QUOTA - $activeCount;
 
         // IDs d'assignations en attente (released_at NULL) pour cet user, triées.
         $candidateIds = DB::table('verification_assignments as va')
             ->join('verification_pages as vp', 'va.page_id', '=', 'vp.id')
             ->where('va.user_id', $userId)
             ->whereNull('va.released_at')
+            ->whereNull('vp.deleted_at')
             ->orderByRaw("FIELD(vp.priority, 'high', 'medium', 'low')")
             ->orderByRaw('vp.deadline IS NULL, vp.deadline ASC')
             ->orderBy('va.created_at')
@@ -80,7 +91,7 @@ class WeeklyReleaseService
      * Libère immédiatement la page pour TOUS les relecteurs assignés qui n'ont pas
      * encore reçu cette page. Utilisé par le bouton "Libérer maintenant" admin.
      *
-     * Comportement : ajoute (peut faire dépasser le quota de 2 pour la semaine).
+     * Comportement : ajoute (peut faire dépasser le plafond de pages actives).
      *
      * @return int Nombre de relecteurs nouvellement libérés sur cette page
      */
@@ -95,6 +106,7 @@ class WeeklyReleaseService
     /**
      * Compte les pages "actives" pour un user :
      * assignation libérée (released_at NOT NULL)
+     * ET page non supprimée
      * ET statut page != 'validated'
      * ET pas de review FR clôturée du user (done / pending_admin / in_progress).
      *
@@ -110,6 +122,7 @@ class WeeklyReleaseService
             ->join('verification_pages as vp', 'va.page_id', '=', 'vp.id')
             ->where('va.user_id', $userId)
             ->whereNotNull('va.released_at')
+            ->whereNull('vp.deleted_at')
             ->where('vp.status', '!=', 'validated')
             ->whereNotExists(function ($q) use ($userId) {
                 $q->select(DB::raw(1))

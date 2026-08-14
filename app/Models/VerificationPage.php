@@ -7,10 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VerificationPage extends Model
 {
     use HasFactory;
+    // Les FK page_id sont en ON DELETE CASCADE : sans SoftDeletes, supprimer une
+    // page effacerait aussi définitivement ses relectures et ses assignations.
+    use SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -66,6 +70,78 @@ class VerificationPage extends Model
         'agenda' => 'Agenda',
         'infos_pratiques' => 'Infos Pratiques',
     ];
+
+    /**
+     * Source unique des libellés et couleurs de statut.
+     * Les vues passent par <x-verif.status-badge> plutôt que de refaire un match().
+     */
+    public const STATUSES = [
+        'pending' => ['label' => 'À vérifier', 'tone' => 'warn'],
+        'in_progress' => ['label' => 'En cours', 'tone' => 'info'],
+        'needs_fix' => ['label' => 'À corriger', 'tone' => 'danger'],
+        'awaiting_validation' => ['label' => 'À clôturer', 'tone' => 'accent'],
+        'validated' => ['label' => 'Validée', 'tone' => 'success'],
+    ];
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status]['label'] ?? (string) $this->status;
+    }
+
+    public function statusTone(): string
+    {
+        return self::STATUSES[$this->status]['tone'] ?? 'neutral';
+    }
+
+    /**
+     * Nombre de jours avant la deadline : négatif si elle est dépassée,
+     * null si aucune deadline n'est fixée ou si la page est déjà validée.
+     */
+    public function daysToDeadline(): ?int
+    {
+        if (! $this->deadline || $this->status === 'validated') {
+            return null;
+        }
+
+        return (int) now()->startOfDay()->diffInDays($this->deadline->startOfDay(), false);
+    }
+
+    public function isOverdue(): bool
+    {
+        $days = $this->daysToDeadline();
+
+        return $days !== null && $days < 0;
+    }
+
+    /**
+     * Durée d'un cycle de vérification. Une page clôturée repasse en « à vérifier »
+     * après ce délai (commande verification:revalidate-aged, exécutée chaque nuit).
+     */
+    public const REVALIDATION_DAYS = 365;
+
+    /**
+     * Date du prochain passage en « à vérifier » pour une page clôturée.
+     * null si la page n'est pas validée (elle est déjà dans le circuit).
+     */
+    public function nextVerificationAt(): ?\Illuminate\Support\Carbon
+    {
+        if ($this->status !== 'validated' || ! $this->validated_at) {
+            return null;
+        }
+
+        return $this->validated_at->copy()->addDays(self::REVALIDATION_DAYS);
+    }
+
+    /**
+     * Nombre de jours avant la prochaine vérification. Négatif ou nul si le
+     * renouvellement est dû (le cron n'est simplement pas encore passé).
+     */
+    public function daysUntilNextVerification(): ?int
+    {
+        $next = $this->nextVerificationAt();
+
+        return $next === null ? null : (int) now()->startOfDay()->diffInDays($next->startOfDay(), false);
+    }
 
     public function categoryLabel(): ?string
     {

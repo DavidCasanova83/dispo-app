@@ -67,3 +67,9 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+/* Alpine : masque les blocs x-show tant qu'Alpine n'a pas pris la main
+   (menus déroulants du module vérification). */
+[x-cloak] {
+    display: none !important;
+}

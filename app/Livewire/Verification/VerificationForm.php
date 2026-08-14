@@ -13,6 +13,17 @@ class VerificationForm extends Component
     public VerificationPage $page;
     public string $language = 'fr';
 
+    /**
+     * 'choice'  : écran d'entrée — validation express ou questionnaire
+     * 'wizard'  : questionnaire pas-à-pas
+     */
+    public string $mode = 'choice';
+    public int $step = 1;
+
+    /** Étapes 1 à 3 = section obligatoire, 4 à 9 = section optionnelle. */
+    public const FIRST_OPTIONAL_STEP = 4;
+    public const LAST_STEP = 9;
+
     // Bandeau "déjà soumis" (mis à jour à mount() et lors d'un switchLanguage).
     public ?string $existingReviewSubmittedAt = null;
     public ?string $existingReviewStatus = null;
@@ -50,9 +61,16 @@ class VerificationForm extends Component
     {
         $user = auth()->user();
 
-        $isAssigned = $page->assignees()->where('users.id', $user->id)->exists();
-        if (! $isAssigned) {
-            throw new AuthorizationException('Cette page ne vous est pas assignée.');
+        // L'assignation ne suffit pas : elle doit avoir été libérée. Sans ce
+        // contrôle, une URL devinée donnait accès à une page encore en file
+        // d'attente, ce qui contournait le plafond de pages actives.
+        $isReleasedToUser = $page->assignees()
+            ->where('users.id', $user->id)
+            ->whereNotNull('verification_assignments.released_at')
+            ->exists();
+
+        if (! $isReleasedToUser) {
+            throw new AuthorizationException('Cette page ne vous est pas assignée, ou ne vous a pas encore été attribuée.');
         }
 
         $this->page = $page;
@@ -68,6 +86,91 @@ class VerificationForm extends Component
         $this->language = $requested;
 
         $this->loadExistingReviewIfAny();
+
+        // Une relecture déjà soumise ou une re-vérification demandée : on ouvre
+        // directement le questionnaire, l'écran de choix n'aurait pas de sens.
+        if ($this->existingReviewSubmittedAt !== null) {
+            $this->mode = 'wizard';
+        }
+    }
+
+    // ─── NAVIGATION ───────────────────────────────────────────────
+
+    public function startWizard(): void
+    {
+        $this->mode = 'wizard';
+        $this->step = 1;
+        $this->resetErrorBag();
+    }
+
+    public function backToChoice(): void
+    {
+        $this->mode = 'choice';
+        $this->resetErrorBag();
+    }
+
+    public function nextStep(): void
+    {
+        $this->validate($this->rulesForStep($this->step), $this->messages());
+
+        if ($this->step < self::LAST_STEP) {
+            $this->step++;
+        }
+    }
+
+    public function previousStep(): void
+    {
+        $this->resetErrorBag();
+
+        if ($this->step > 1) {
+            $this->step--;
+        }
+    }
+
+    public function goToOptional(): void
+    {
+        $this->validate($this->rulesForStep($this->step), $this->messages());
+        $this->step = self::FIRST_OPTIONAL_STEP;
+    }
+
+    /**
+     * Règles applicables à une seule étape : l'erreur s'affiche là où elle se
+     * produit, au lieu d'attendre l'envoi final.
+     *
+     * @return array<string, string>
+     */
+    protected function rulesForStep(int $step): array
+    {
+        $all = $this->rules();
+
+        $byStep = [
+            1 => ['contentOk', 'contentComment'],
+            2 => ['mediaOk', 'mediaComment'],
+            3 => ['remarks'],
+            4 => ['relevance'],
+            5 => ['contentToAdd', 'contentToAdd.*', 'contentToAddDetails'],
+            6 => ['contentToRemove', 'contentToRemoveDetails'],
+            7 => ['visitorPerspective', 'visitorUnanswered'],
+            8 => ['rating'],
+            9 => ['suggestions'],
+        ];
+
+        return array_intersect_key($all, array_flip($byStep[$step] ?? []));
+    }
+
+    /**
+     * Validation express : le cas courant, où la page n'appelle aucune remarque.
+     * Renseigne les deux questions obligatoires et soumet, sans faire dérouler
+     * les neuf questions.
+     */
+    public function quickValidate()
+    {
+        $this->contentOk = true;
+        $this->mediaOk = true;
+        $this->contentComment = '';
+        $this->mediaComment = '';
+
+        return $this->submit();
     }
 
     /**

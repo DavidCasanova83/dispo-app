@@ -11,8 +11,16 @@ Artisan::command('inspire', function () {
 // Activer les agendas en attente tous les jours à 00:01
 Schedule::command('agendas:activate-pending')->dailyAt('00:01');
 
-// Repasser les pages validées depuis plus d'1 an en "à vérifier", chaque jour à 03:00
+// ─── Cycle de vérification, chaque nuit ───────────────────────────────
+// L'ordre compte : le renouvellement remet des pages en file d'attente, la
+// distribution doit passer APRÈS pour les prendre en compte la nuit même.
+
+// 1. Repasser en "à vérifier" les pages validées depuis plus d'1 an,
+//    et remettre leurs assignations en file d'attente.
 Schedule::command('verification:revalidate-aged')->dailyAt('03:00');
 
-// Libérer 2 pages par utilisateur (plafond strict) chaque dimanche à 02:00
-Schedule::command('verification:release-weekly')->weeklyOn(0, '02:00');
+// 2. Compléter les pages actives de chaque relecteur jusqu'au plafond (2).
+//    Le plafond limite les pages ouvertes EN MÊME TEMPS : le rythme quotidien
+//    ne submerge personne, il remplace une page terminée dès le lendemain au
+//    lieu d'attendre la semaine suivante.
+Schedule::command('verification:release-pages')->dailyAt('03:30');

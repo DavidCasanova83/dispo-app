@@ -1,10 +1,10 @@
-<div class="flex h-full w-full flex-1 flex-col gap-6">
+<div class="flex h-full w-full flex-1 flex-col gap-4">
     {{-- Header --}}
     <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Boîte de retours</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Boîte de retours</h1>
+        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
             @if ($view === 'list')
-                Les pages avec relectures à traiter. Cliquez sur une page pour voir le détail par relecteur.
+                Les relectures à traiter et les pages déjà vérifiées, avec leur échéance de renouvellement.
             @else
                 Détail des relectures pour cette page.
             @endif
@@ -13,29 +13,25 @@
 
     {{-- Flash --}}
     @if (session('success'))
-        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-800">
             <p class="text-sm font-medium text-green-800 dark:text-green-200">{{ session('success') }}</p>
         </div>
     @endif
 
-    {{-- Stats (toujours affichées) --}}
-    <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">À traiter</p>
-            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $stats['pending_admin'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">En cours</p>
-            <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $stats['in_progress'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">À ré-vérifier</p>
-            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['revision_requested'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Validées</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['done'] }}</p>
-        </div>
+    {{-- ═══ TUILES = FILTRES SUR LE STATUT DE LA PAGE ═══ --}}
+    {{-- Chaque compteur est le nombre exact de lignes affichées par le filtre. --}}
+    <div class="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <x-verif.stat-filter label="Toutes" :count="$stats['all']"
+            :active="$filterStatus === 'all'" wire:click="applyStatusFilter('all')" />
+        @foreach (\App\Models\VerificationPage::STATUSES as $code => $def)
+            <x-verif.stat-filter
+                :label="$def['label']"
+                :tone="$def['tone']"
+                :alert="$code === 'awaiting_validation'"
+                :count="$stats[$code]"
+                :active="$filterStatus === $code"
+                wire:click="applyStatusFilter('{{ $code }}')" />
+        @endforeach
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════════ --}}
@@ -43,74 +39,147 @@
     {{-- ═══════════════════════════════════════════════════════════════ --}}
     @if ($view === 'list')
 
-        {{-- Filtres --}}
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4 flex flex-col md:flex-row gap-3">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher (titre, URL)…"
-                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-            <select wire:model.live="filterStatus"
-                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-                <option value="all">Toutes les pages avec relectures</option>
-                <option value="pending_admin">Pages avec relectures à traiter</option>
-                <option value="in_progress">Pages avec relectures en cours</option>
-                <option value="revision_requested">Pages avec relectures à ré-vérifier</option>
-                <option value="done">Pages avec uniquement des relectures validées</option>
-            </select>
+        {{-- Filtres secondaires --}}
+        <div class="flex flex-col lg:flex-row lg:items-center gap-2">
+            <div class="relative flex-1">
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher un titre, une URL…"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white">
+                <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+                </svg>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <select wire:model.live="filterReviewer"
+                    class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                    title="Filtrer sur un relecteur (ses relectures, ou ses pages assignées si elles sont déjà clôturées)">
+                    <option value="">Tous les relecteurs</option>
+                    @foreach ($reviewers as $reviewer)
+                        <option value="{{ $reviewer->id }}">{{ $reviewer->name }}</option>
+                    @endforeach
+                </select>
+                @if ($this->hasActiveFilters())
+                    <button type="button" wire:click="resetFilters"
+                        class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white underline underline-offset-2">
+                        Réinitialiser
+                    </button>
+                @endif
+            </div>
         </div>
 
-        {{-- Liste des pages --}}
-        <div class="space-y-3">
-            @forelse ($pages as $page)
-                <button type="button" wire:click="openPageDetail({{ $page->id }})"
-                    class="w-full text-left rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <span class="text-base font-semibold text-gray-900 dark:text-white">{{ $page->title }}</span>
-                                @php
-                                    $pageBadge = match ($page->status) {
-                                        'pending' => ['À vérifier', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'],
-                                        'in_progress' => ['En cours', 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'],
-                                        'needs_fix' => ['À corriger', 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'],
-                                        'awaiting_validation' => ['En attente de validation', 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'],
-                                        'validated' => ['Validée', 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'],
-                                        default => [$page->status, 'bg-gray-100 text-gray-800'],
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $pageBadge[1] }}">
-                                    {{ $pageBadge[0] }}
-                                </span>
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $page->url }}</p>
+        {{-- Tableau --}}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-900/40">
+                        <tr>
+                            <x-verif.sortable-th field="title" :active="$this->sortStateFor('title')">Page</x-verif.sortable-th>
+                            <x-verif.sortable-th field="pending" :active="$this->sortStateFor('pending')">Relectures</x-verif.sortable-th>
+                            <x-verif.sortable-th field="oldest" :active="$this->sortStateFor('oldest')">Plus ancienne</x-verif.sortable-th>
+                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Relecteurs</th>
+                            <x-verif.sortable-th field="next_check" :active="$this->sortStateFor('next_check')">Prochaine vérif.</x-verif.sortable-th>
+                            <th class="px-3 py-2 w-10"><span class="sr-only">Détail</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        @forelse ($pages as $page)
+                            <tr wire:key="inbox-page-{{ $page->id }}"
+                                wire:click="openPageDetail({{ $page->id }})"
+                                class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                {{-- Page --}}
+                                <td class="px-3 py-2 align-top max-w-sm">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $page->title }}</span>
+                                        <x-verif.status-badge size="xs" :tone="$page->statusTone()" :label="$page->statusLabel()" />
+                                    </div>
+                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[22rem]">
+                                        {{ \Illuminate\Support\Str::after($page->url, '://') }}
+                                    </p>
+                                </td>
 
-                            <div class="mt-2 flex flex-wrap gap-3 text-xs text-gray-600 dark:text-gray-400">
-                                <span><strong>{{ $page->total_count }}</strong> review(s)</span>
-                                @if ($page->pending_admin_count > 0)
-                                    <span class="text-yellow-700 dark:text-yellow-400">⏳ {{ $page->pending_admin_count }} à traiter</span>
-                                @endif
-                                @if ($page->in_progress_count > 0)
-                                    <span class="text-orange-700 dark:text-orange-400">🛠️ {{ $page->in_progress_count }} en cours</span>
-                                @endif
-                                @if ($page->revision_requested_count > 0)
-                                    <span class="text-blue-700 dark:text-blue-400">🔄 {{ $page->revision_requested_count }} à ré-vérifier</span>
-                                @endif
-                                @if ($page->done_count > 0)
-                                    <span class="text-green-700 dark:text-green-400">✅ {{ $page->done_count }} traitée(s)</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="text-sm text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
-                            Voir le détail →
-                        </div>
-                    </div>
-                </button>
-            @empty
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    Aucune page avec relecture pour le moment.
-                </div>
-            @endforelse
+                                {{-- Relectures --}}
+                                <td class="px-3 py-2 align-top">
+                                    @if ($page->total_count > 0)
+                                        <div class="flex flex-wrap gap-1">
+                                            @if ($page->pending_admin_count > 0)
+                                                <x-verif.status-badge size="xs" tone="warn" :label="$page->pending_admin_count . ' à traiter'" />
+                                            @endif
+                                            @if ($page->in_progress_count > 0)
+                                                <x-verif.status-badge size="xs" tone="info" :label="$page->in_progress_count . ' en cours'" />
+                                            @endif
+                                            @if ($page->revision_requested_count > 0)
+                                                <x-verif.status-badge size="xs" tone="accent" :label="$page->revision_requested_count . ' à ré-vérif.'" />
+                                            @endif
+                                            @if ($page->done_count > 0)
+                                                <x-verif.status-badge size="xs" tone="success" :label="$page->done_count . ' traitée(s)'" />
+                                            @endif
+                                        </div>
+                                        @if ($page->avg_rating)
+                                            <span class="mt-1 inline-block text-xs text-amber-500" title="Note moyenne des relecteurs">
+                                                ★ {{ number_format($page->avg_rating, 1, ',', '') }}/5
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-xs text-gray-400 dark:text-gray-600" title="Les relectures ont été purgées à la clôture annuelle">
+                                            Archivées
+                                        </span>
+                                    @endif
+                                </td>
+
+                                {{-- Ancienneté de la plus vieille relecture --}}
+                                <td class="px-3 py-2 align-top">
+                                    @if ($page->oldest_review_at)
+                                        <span class="text-xs text-gray-600 dark:text-gray-400"
+                                            title="{{ \Illuminate\Support\Carbon::parse($page->oldest_review_at)->format('d/m/Y à H:i') }}">
+                                            {{ \Illuminate\Support\Carbon::parse($page->oldest_review_at)->diffForHumans(short: true) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-400 dark:text-gray-600">—</span>
+                                    @endif
+                                </td>
+
+                                {{-- Relecteurs assignés --}}
+                                <td class="px-3 py-2 align-top">
+                                    @if ($page->assignees->isEmpty())
+                                        <span class="text-xs text-gray-400 dark:text-gray-600">—</span>
+                                    @else
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($page->assignees as $assignee)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300">
+                                                    {{ $assignee->name }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </td>
+
+                                {{-- Prochaine vérification --}}
+                                <td class="px-3 py-2 align-top">
+                                    <x-verif.next-check-badge :page="$page" />
+                                </td>
+
+                                <td class="px-3 py-2 align-top text-right text-sm text-gray-400">→</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    @if ($this->hasActiveFilters())
+                                        Aucune page ne correspond à ces filtres.
+                                        <button type="button" wire:click="resetFilters" class="ml-1 underline underline-offset-2 hover:text-gray-900 dark:hover:text-white">
+                                            Réinitialiser
+                                        </button>
+                                    @else
+                                        Aucune relecture pour le moment.
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if ($pages->hasPages())
+                <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">{{ $pages->links() }}</div>
+            @endif
         </div>
-
-        <div>{{ $pages->links() }}</div>
 
     @else
         {{-- ═══════════════════════════════════════════════════════════════ --}}
@@ -128,20 +197,15 @@
                 class="text-sm text-gray-600 dark:text-gray-400 hover:underline break-all">
                 {{ $page->url }} ↗
             </a>
-            @php
-                $pageBadge = match ($page->status) {
-                    'pending' => ['À vérifier', 'border-yellow-300 text-yellow-800 dark:border-yellow-700 dark:text-yellow-300'],
-                    'in_progress' => ['En cours', 'border-blue-300 text-blue-800 dark:border-blue-700 dark:text-blue-300'],
-                    'needs_fix' => ['À corriger', 'border-red-300 text-red-800 dark:border-red-700 dark:text-red-300'],
-                    'awaiting_validation' => ['En attente de validation', 'border-purple-300 text-purple-800 dark:border-purple-700 dark:text-purple-300'],
-                    'validated' => ['Validée', 'border-green-300 text-green-800 dark:border-green-700 dark:text-green-300'],
-                    default => [$page->status, 'border-gray-300 text-gray-800'],
-                };
-            @endphp
             <div class="mt-2 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border {{ $pageBadge[1] }}">
-                    Statut : {{ $pageBadge[0] }}
-                </span>
+                <x-verif.status-badge :tone="$page->statusTone()" :label="$page->statusLabel()" />
+
+                @if ($page->status === 'validated' && $page->validated_at)
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        Vérifiée le {{ $page->validated_at->translatedFormat('d F Y') }} ·
+                        prochaine vérification le {{ $page->nextVerificationAt()->format('d/m/Y') }}
+                    </span>
+                @endif
 
                 @if ($page->status === 'awaiting_validation')
                     <button type="button" wire:click="openCloseAnnualModal"
@@ -160,8 +224,31 @@
 
         {{-- Onglets relecteurs --}}
         @if ($reviewsByReviewer->isEmpty())
-            <div class="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                Aucune relecture pour cette page.
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+                @if ($page->status === 'validated')
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Cette page a été vérifiée et clôturée. Ses relectures ont été purgées lors de la clôture annuelle.
+                    </p>
+                    @if ($page->nextVerificationAt())
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            Elle repassera automatiquement en « à vérifier » le
+                            <strong>{{ $page->nextVerificationAt()->translatedFormat('d F Y') }}</strong>
+                            @if (($d = $page->daysUntilNextVerification()) > 0)
+                                (dans {{ $d }} jour{{ $d > 1 ? 's' : '' }}).
+                            @else
+                                — le renouvellement est dû, il aura lieu à la prochaine exécution nocturne.
+                            @endif
+                        </p>
+                    @endif
+                    @if ($page->assignees->isNotEmpty())
+                        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            Relecteurs conservés pour le prochain cycle :
+                            {{ $page->assignees->pluck('name')->join(', ') }}
+                        </p>
+                    @endif
+                @else
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Aucune relecture pour cette page.</p>
+                @endif
             </div>
         @else
             <div class="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
@@ -193,19 +280,27 @@
                     </div>
                 </div>
 
+                {{-- Barre d'action de l'onglet actif --}}
+                @php
+                    $ouvertes = $activeReviews->whereIn('status', ['pending_admin', 'in_progress'])->count();
+                @endphp
+                @if ($ouvertes > 0)
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            {{ $ouvertes }} relecture{{ $ouvertes > 1 ? 's' : '' }} de ce relecteur en attente de traitement.
+                        </p>
+                        <button type="button" wire:click="validateAllForReviewer({{ $activeReviewerUserId }})"
+                            wire:confirm="Marquer comme validées les {{ $ouvertes }} relecture(s) ouverte(s) de ce relecteur ?"
+                            class="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded whitespace-nowrap">
+                            Tout valider ({{ $ouvertes }})
+                        </button>
+                    </div>
+                @endif
+
                 {{-- Contenu de l'onglet actif --}}
                 <div class="p-4 sm:p-6 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse ($activeReviews as $review)
-                        @php
-                            $statusBadge = match ($review->status) {
-                                'pending_admin' => ['À traiter', 'border-yellow-300 text-yellow-800 dark:border-yellow-700 dark:text-yellow-300'],
-                                'in_progress' => ['En cours', 'border-orange-300 text-orange-800 dark:border-orange-700 dark:text-orange-300'],
-                                'revision_requested' => ['À ré-vérifier', 'border-blue-300 text-blue-800 dark:border-blue-700 dark:text-blue-300'],
-                                'done' => ['Validée', 'border-green-300 text-green-800 dark:border-green-700 dark:text-green-300'],
-                                default => [$review->status, 'border-gray-300 text-gray-800'],
-                            };
-                            $reviewedUrl = $page->urlForLanguage($review->language);
-                        @endphp
+                        @php $reviewedUrl = $page->urlForLanguage($review->language); @endphp
 
                         <div class="py-5 first:pt-0 last:pb-0">
                             {{-- En-tête review --}}
@@ -214,9 +309,7 @@
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                                         {{ $review->languageLabel() }}
                                     </span>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border {{ $statusBadge[1] }}">
-                                        {{ $statusBadge[0] }}
-                                    </span>
+                                    <x-verif.status-badge :tone="$review->statusTone()" :label="$review->statusLabel()" />
                                     @if ($review->rating)
                                         <span class="text-amber-500 text-sm">
                                             @for ($i = 1; $i <= 5; $i++){{ $i <= $review->rating ? '★' : '☆' }}@endfor
@@ -224,10 +317,17 @@
                                         </span>
                                     @endif
                                 </div>
-                                <button wire:click="openResolveModal({{ $review->id }})"
-                                    class="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded whitespace-nowrap">
-                                    Traiter
-                                </button>
+                                @if ($reviewId === $review->id)
+                                    <button wire:click="closeResolvePanel"
+                                        class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded whitespace-nowrap">
+                                        Fermer
+                                    </button>
+                                @else
+                                    <button wire:click="openResolvePanel({{ $review->id }})"
+                                        class="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded whitespace-nowrap">
+                                        Traiter
+                                    </button>
+                                @endif
                             </div>
 
                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
@@ -361,6 +461,65 @@
                                     </p>
                                 </div>
                             @endif
+
+                            {{-- ═══ PANNEAU DE TRAITEMENT INLINE ═══ --}}
+                            @if ($reviewId === $review->id)
+                                <div class="mt-4 rounded-lg border border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-900/40 p-4"
+                                    wire:key="resolve-panel-{{ $review->id }}">
+                                    <form wire:submit.prevent="resolve" class="space-y-3">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white mb-2">Que faites-vous de cette relecture ?</p>
+                                            <div class="grid gap-2 sm:grid-cols-3">
+                                                @foreach ([
+                                                    'in_progress' => ['En cours de modification', 'Vous prenez le sujet en main'],
+                                                    'done' => ['Validée', 'Le point est réglé'],
+                                                    'revision_requested' => ['Ré-vérification', 'La page repart chez le relecteur'],
+                                                ] as $code => [$label, $hint])
+                                                    <label class="flex items-start gap-2 p-2.5 rounded border cursor-pointer transition-colors
+                                                        {{ $newStatus === $code
+                                                            ? 'border-gray-900 bg-white dark:border-white dark:bg-gray-800'
+                                                            : 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' }}">
+                                                        <input type="radio" wire:model.live="newStatus" value="{{ $code }}"
+                                                            class="mt-0.5 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
+                                                        <span>
+                                                            <span class="block text-sm text-gray-900 dark:text-white">{{ $label }}</span>
+                                                            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $hint }}</span>
+                                                        </span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            @error('newStatus') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                                Réponse au relecteur
+                                                <span class="text-gray-500 font-normal">— optionnel, visible dans son historique</span>
+                                            </label>
+                                            <textarea wire:model="adminResponse" rows="3" maxlength="5000"
+                                                class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                                placeholder="Ex : Merci, j'ai mis à jour la date du marché de Riez."></textarea>
+                                            @error('adminResponse') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                            @if ($review->admin_response)
+                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    Videz ce champ pour supprimer le message existant.
+                                                </p>
+                                            @endif
+                                        </div>
+
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" wire:click="closeResolvePanel"
+                                                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700 rounded">
+                                                Annuler
+                                            </button>
+                                            <button type="submit"
+                                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
+                                                Enregistrer
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <p class="py-5 text-sm text-gray-500 dark:text-gray-400 italic">Aucune relecture de ce relecteur.</p>
@@ -368,50 +527,6 @@
                 </div>
             </div>
         @endif
-    @endif
-
-    {{-- Resolve modal (commun aux 2 vues) --}}
-    @if ($showResolveModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" wire:key="resolve-modal">
-            <div class="flex min-h-screen items-center justify-center p-4">
-                <div class="fixed inset-0 bg-black/50" wire:click="closeResolveModal"></div>
-                <div class="relative bg-white dark:bg-gray-800 rounded shadow-xl w-full max-w-lg p-6 border border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Traiter cette relecture</h2>
-                    <form wire:submit.prevent="resolve" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nouveau statut</label>
-                            <select wire:model="newStatus"
-                                class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-                                <option value="in_progress">En cours de modification</option>
-                                <option value="done">Validée (terminé)</option>
-                                <option value="revision_requested">Demander une ré-vérification</option>
-                            </select>
-                            @error('newStatus') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Réponse au relecteur
-                                <span class="text-gray-500 font-normal">— visible dans son historique</span>
-                            </label>
-                            <textarea wire:model="adminResponse" rows="4" maxlength="5000"
-                                class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                placeholder="Ex : Merci, j'ai mis à jour la date du marché de Riez."></textarea>
-                            @error('adminResponse') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <button type="button" wire:click="closeResolveModal"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
-                                Annuler
-                            </button>
-                            <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
-                                Enregistrer
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
     @endif
 
     {{-- Close annual modal --}}

@@ -1,198 +1,178 @@
-<div class="flex h-full w-full flex-1 flex-col gap-6">
-    {{-- Header --}}
+<div class="flex h-full w-full flex-1 flex-col gap-4">
+    {{-- ═══ EN-TÊTE ═══ --}}
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Pages à vérifier</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Pages à vérifier</h1>
+            <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 Créez les pages à faire relire par vos collègues et attribuez-les.
             </p>
         </div>
-        <div class="flex flex-col sm:flex-row gap-2">
-            <button
-                wire:click="scanSitemap"
-                wire:loading.attr="disabled"
-                wire:target="scanSitemap"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg transition-colors">
-                <svg class="w-5 h-5" wire:loading.remove wire:target="scanSitemap" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                <svg class="w-5 h-5 animate-spin" wire:loading wire:target="scanSitemap" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span wire:loading.remove wire:target="scanSitemap">Scanner le sitemap</span>
-                <span wire:loading wire:target="scanSitemap">Scan en cours…</span>
-            </button>
-            <button
-                wire:click="openResetModal"
-                title="Remet à zéro l'état du sitemap (aucune page supprimée)"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
-                </svg>
-                Réinitialiser
-            </button>
-            <button
-                wire:click="openHardDeleteModal"
-                title="Supprime DÉFINITIVEMENT toutes les pages, assignations et relectures"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"></path>
-                </svg>
-                Tout supprimer
-            </button>
-            <button
-                wire:click="openCreateModal"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        <div class="flex items-center gap-2">
+            <button wire:click="openCreateModal"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"></path>
                 </svg>
                 Ajouter une page
             </button>
+
+            {{-- Menu des actions rares (sitemap) : sorties de la barre principale --}}
+            <div x-data="{ open: false }" class="relative">
+                <button type="button" @click="open = !open" @click.outside="open = false"
+                    title="Autres actions"
+                    class="inline-flex items-center justify-center w-9 h-9 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM18 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak x-transition.opacity
+                    class="absolute right-0 z-40 mt-1 w-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
+                    <button type="button" wire:click="scanSitemap" @click="open = false"
+                        wire:loading.attr="disabled" wire:target="scanSitemap"
+                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="scanSitemap">Scanner le sitemap</span>
+                        <span wire:loading wire:target="scanSitemap">Scan en cours…</span>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Importe les nouvelles URLs du site</span>
+                    </button>
+                    <button type="button" wire:click="openResetModal" @click="open = false"
+                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Réinitialiser le suivi sitemap
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Aucune page n'est supprimée</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     {{-- Flash --}}
     @if (session('success'))
-        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-800">
             <p class="text-sm font-medium text-green-800 dark:text-green-200">{{ session('success') }}</p>
         </div>
     @endif
 
-    {{-- Scan result banner --}}
+    {{-- Résultat de scan --}}
     @if ($scanResult)
-        <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-4 border border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+        <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-3 border border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
             <div class="flex-1 text-sm text-emerald-900 dark:text-emerald-200">
-                <p class="font-semibold">✅ Scan terminé</p>
-                <ul class="mt-1 space-y-0.5">
-                    <li>📥 <strong>{{ $scanResult['created'] }}</strong> nouvelle(s) page(s) ajoutée(s)</li>
-                    <li>🔄 <strong>{{ $scanResult['updated'] }}</strong> page(s) déjà connue(s) et confirmée(s) dans le sitemap</li>
-                    <li>👻 <strong>{{ $scanResult['marked_obsolete'] }}</strong> page(s) absente(s) du sitemap (marquée(s) hors-sitemap)</li>
-                    <li>📊 Total dans le sitemap : <strong>{{ $scanResult['total_in_sitemap'] }}</strong></li>
-                </ul>
+                <p class="font-semibold">Scan terminé</p>
+                <p class="mt-0.5">
+                    <strong>{{ $scanResult['created'] }}</strong> ajoutée(s) ·
+                    <strong>{{ $scanResult['updated'] }}</strong> confirmée(s) ·
+                    <strong>{{ $scanResult['marked_obsolete'] }}</strong> hors sitemap ·
+                    <strong>{{ $scanResult['total_in_sitemap'] }}</strong> au total dans le sitemap
+                </p>
             </div>
             <button type="button" wire:click="dismissScanResult" class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400">×</button>
         </div>
     @endif
     @if ($scanError)
-        <div class="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800 flex items-start gap-3">
+        <div class="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 border border-red-200 dark:border-red-800 flex items-start gap-3">
             <div class="flex-1 text-sm text-red-900 dark:text-red-200">
-                <p class="font-semibold">❌ Erreur de scan</p>
-                <p class="mt-1">{{ $scanError }}</p>
+                <p class="font-semibold">Erreur de scan</p>
+                <p class="mt-0.5">{{ $scanError }}</p>
             </div>
             <button type="button" wire:click="dismissScanResult" class="text-red-600 hover:text-red-800 dark:text-red-400">×</button>
         </div>
     @endif
 
-    {{-- Stats --}}
-    <div class="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
+    {{-- ═══ TUILES = FILTRES RAPIDES ═══ --}}
+    @php $activeTile = $this->activeQuickFilter(); @endphp
+    <div class="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <x-verif.stat-filter label="Toutes" :count="$stats['total']" :active="$activeTile === 'all'"
+            wire:click="applyQuickFilter('all')" />
+        <x-verif.stat-filter label="À vérifier" tone="warn" :count="$stats['pending']" :active="$activeTile === 'pending'"
+            wire:click="applyQuickFilter('pending')" />
+        <x-verif.stat-filter label="À corriger" tone="danger" :count="$stats['needs_fix']" :active="$activeTile === 'needs_fix'"
+            wire:click="applyQuickFilter('needs_fix')" />
+        <x-verif.stat-filter label="À clôturer" tone="accent" :count="$stats['awaiting_validation']" :active="$activeTile === 'awaiting_validation'"
+            wire:click="applyQuickFilter('awaiting_validation')" />
+        <x-verif.stat-filter label="En retard" tone="danger" alert :count="$stats['overdue']" :active="$activeTile === 'overdue'"
+            wire:click="applyQuickFilter('overdue')" />
+        <x-verif.stat-filter label="Sans relecteur" tone="danger" alert :count="$stats['without_assignee']" :active="$activeTile === 'without_assignee'"
+            wire:click="applyQuickFilter('without_assignee')" />
+    </div>
+
+    {{-- ═══ FILTRES SECONDAIRES ═══ --}}
+    <div class="flex flex-col lg:flex-row lg:items-center gap-2">
+        <div class="relative flex-1">
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher un titre, une URL, un thème…"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white">
+            <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+            </svg>
         </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">À vérifier</p>
-            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $stats['pending'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">À corriger</p>
-            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $stats['needs_fix'] }}</p>
-        </div>
-        <div class="rounded-xl border {{ $stats['awaiting_validation'] > 0 ? 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20' : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800' }} p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">À clôturer</p>
-            <p class="text-2xl font-bold {{ $stats['awaiting_validation'] > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400' }}">{{ $stats['awaiting_validation'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Validées</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $stats['validated'] }}</p>
-        </div>
-        <div class="rounded-xl border-2 {{ $stats['without_assignee'] > 0 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20' : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800' }} p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Sans relecteur</p>
-            <p class="text-2xl font-bold {{ $stats['without_assignee'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">
-                {{ $stats['without_assignee'] }}
-            </p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Dans sitemap</p>
-            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['in_sitemap'] }}</p>
-        </div>
-        <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Hors sitemap</p>
-            <p class="text-2xl font-bold {{ $stats['orphan'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400' }}">
-                {{ $stats['orphan'] }}
-            </p>
+        <div class="flex flex-wrap items-center gap-2">
+            <select wire:model.live="filterPriority"
+                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                <option value="all">Toutes priorités</option>
+                <option value="high">Priorité haute</option>
+                <option value="medium">Priorité moyenne</option>
+                <option value="low">Priorité basse</option>
+            </select>
+            <select wire:model.live="filterCategory"
+                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                <option value="all">Toutes catégories</option>
+                <option value="none">Sans catégorie</option>
+                @foreach (\App\Models\VerificationPage::CATEGORIES as $code => $label)
+                    <option value="{{ $code }}">{{ $label }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="filterReviewer"
+                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                title="N'afficher que les pages assignées à ce relecteur">
+                <option value="">Tous les relecteurs</option>
+                @foreach ($availableUsers as $user)
+                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="filterSitemap"
+                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                title="Présence dans le dernier scan du sitemap">
+                <option value="all">Sitemap : tout</option>
+                <option value="in">Dans le sitemap ({{ $stats['in_sitemap'] }})</option>
+                <option value="out">Hors sitemap ({{ $stats['orphan'] }})</option>
+            </select>
+            <select wire:model.live="perPage"
+                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                @foreach (\App\Livewire\Verification\Admin\PagesManager::PER_PAGE_OPTIONS as $opt)
+                    <option value="{{ $opt }}">{{ $opt }} / page</option>
+                @endforeach
+            </select>
+            @if ($this->hasActiveFilters())
+                <button type="button" wire:click="resetFilters"
+                    class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white underline underline-offset-2">
+                    Réinitialiser
+                </button>
+            @endif
         </div>
     </div>
 
-    {{-- Filters --}}
-    <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Rechercher (titre, URL, thème)…"
-            class="lg:col-span-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-        <select wire:model.live="filterStatus"
-            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-            <option value="all">Tous les statuts</option>
-            <option value="pending">À vérifier</option>
-            <option value="in_progress">En cours</option>
-            <option value="needs_fix">À corriger</option>
-            <option value="awaiting_validation">En attente de validation</option>
-            <option value="validated">Validée</option>
-        </select>
-        <select wire:model.live="filterPriority"
-            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-            <option value="all">Toutes priorités</option>
-            <option value="high">Priorité haute</option>
-            <option value="medium">Priorité moyenne</option>
-            <option value="low">Priorité basse</option>
-        </select>
-        <select wire:model.live="filterCategory"
-            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-            <option value="all">Toutes catégories</option>
-            <option value="none">Sans catégorie</option>
-            @foreach (\App\Models\VerificationPage::CATEGORIES as $code => $label)
-                <option value="{{ $code }}">{{ $label }}</option>
-            @endforeach
-        </select>
-        <select wire:model.live="filterAssignment"
-            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
-            <option value="all">Toutes pages</option>
-            <option value="without">⚠️ Sans relecteur</option>
-            <option value="with">Avec relecteur</option>
-        </select>
-        <select wire:model.live="perPage"
-            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
-            title="Nombre de pages par page">
-            @foreach (\App\Livewire\Verification\Admin\PagesManager::PER_PAGE_OPTIONS as $opt)
-                <option value="{{ $opt }}">{{ $opt }} / page</option>
-            @endforeach
-            <option value="0">Tout afficher</option>
-        </select>
-    </div>
-
-    {{-- Bulk action bar (visible si au moins 1 page sélectionnée) --}}
+    {{-- ═══ BARRE D'ACTIONS GROUPÉES ═══ --}}
     @if (! empty($selectedPageIds))
-        <div class="sticky top-0 z-30 -mx-4 sm:mx-0 rounded-none sm:rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
-            <div class="text-sm text-indigo-900 dark:text-indigo-100">
+        <div class="sticky top-0 z-30 rounded-lg border border-gray-900 dark:border-white bg-white dark:bg-gray-800 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-sm">
+            <div class="text-sm text-gray-900 dark:text-white">
                 <strong>{{ count($selectedPageIds) }}</strong> page{{ count($selectedPageIds) > 1 ? 's' : '' }} sélectionnée{{ count($selectedPageIds) > 1 ? 's' : '' }}
             </div>
             <div class="flex flex-wrap gap-2">
                 <button type="button" wire:click="openBulkAssignModal"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                    class="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg">
                     Assigner des relecteurs
                 </button>
                 <button type="button" wire:click="openBulkPriorityModal"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                    class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
                     Changer la priorité
                 </button>
                 <button type="button" wire:click="clearSelection"
-                    class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
-                    Annuler la sélection
+                    class="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    Annuler
                 </button>
             </div>
         </div>
     @endif
 
-    {{-- Table --}}
-    <div class="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {{-- ═══ TABLEAU ═══ --}}
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 @php
@@ -201,143 +181,153 @@
                 @endphp
                 <thead class="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                        <th class="px-3 py-3 w-8">
+                        <th class="px-3 py-2 w-8">
                             <input type="checkbox"
                                 @checked($allOnPageSelected)
                                 wire:click="toggleSelectAll($event.target.checked, {{ json_encode($idsOnPage) }})"
                                 class="rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white"
                                 title="Sélectionner toutes les pages affichées">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Titre / URL</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Catégorie</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Priorité</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Deadline</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Statut</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Relecteurs</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+                        <x-verif.sortable-th field="title" :active="$this->sortStateFor('title')">Titre</x-verif.sortable-th>
+                        <x-verif.sortable-th field="priority" :active="$this->sortStateFor('priority')">Prio</x-verif.sortable-th>
+                        <x-verif.sortable-th field="deadline" :active="$this->sortStateFor('deadline')">Deadline</x-verif.sortable-th>
+                        <x-verif.sortable-th field="status" :active="$this->sortStateFor('status')">Statut</x-verif.sortable-th>
+                        <x-verif.sortable-th field="assignees" :active="$this->sortStateFor('assignees')">Relecteurs</x-verif.sortable-th>
+                        <th class="px-3 py-2 w-10"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
                     @forelse ($pages as $page)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ $page->assignees->isEmpty() ? 'bg-red-50/30 dark:bg-red-900/10' : '' }}">
-                            <td class="px-3 py-3">
-                                <input type="checkbox"
-                                    value="{{ $page->id }}"
-                                    wire:model.live="selectedPageIds"
-                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
+                        <tr wire:key="page-{{ $page->id }}"
+                            class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ $page->assignees->isEmpty() ? 'bg-red-50/40 dark:bg-red-900/10' : '' }}">
+                            <td class="px-3 py-2 align-top">
+                                <input type="checkbox" value="{{ $page->id }}" wire:model.live="selectedPageIds"
+                                    class="mt-1 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $page->title }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                    <a href="{{ $page->url }}" target="_blank" rel="noopener" class="hover:underline">{{ $page->url }}</a>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-2 mt-1">
+
+                            {{-- Titre : URL, thème, catégorie et langues regroupés ici --}}
+                            <td class="px-3 py-2 align-top max-w-md">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $page->title }}</div>
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                                    <a href="{{ $page->url }}" target="_blank" rel="noopener"
+                                        class="text-xs text-gray-500 dark:text-gray-400 hover:underline truncate max-w-[18rem]">
+                                        {{ \Illuminate\Support\Str::after($page->url, '://') }}
+                                    </a>
+                                    <span class="text-xs text-gray-400 dark:text-gray-600" title="Versions traduites renseignées">
+                                        <span class="text-gray-700 dark:text-gray-300">FR</span>{{ $page->url_en ? ' · EN' : '' }}{{ $page->url_it ? ' · IT' : '' }}
+                                    </span>
+                                    @if ($page->category)
+                                        <x-verif.status-badge size="xs" tone="neutral" :label="$page->categoryLabel()" />
+                                    @endif
                                     @if ($page->theme)
-                                        <span class="text-xs text-gray-400 dark:text-gray-500">🏷️ {{ $page->theme }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[10rem]">{{ $page->theme }}</span>
                                     @endif
-                                    {{-- Badges langues disponibles --}}
-                                    <span class="inline-flex items-center gap-1 text-xs">
-                                        <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" title="Version française (par défaut)">🇫🇷</span>
-                                        @if ($page->url_en)
-                                            <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" title="URL anglaise renseignée">🇬🇧</span>
-                                        @else
-                                            <span class="px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-600" title="URL anglaise manquante">🇬🇧</span>
-                                        @endif
-                                        @if ($page->url_it)
-                                            <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" title="URL italienne renseignée">🇮🇹</span>
-                                        @else
-                                            <span class="px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-600" title="URL italienne manquante">🇮🇹</span>
-                                        @endif
-                                    </span>
                                     @if (! $page->is_in_sitemap && $page->last_seen_in_sitemap_at)
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" title="Cette page n'apparaît plus dans le dernier scan du sitemap">
-                                            👻 Hors sitemap
-                                        </span>
-                                    @endif
-                                    @if ($page->queued_count > 0)
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" title="Cette page est assignée à {{ $page->queued_count }} relecteur(s) mais n'a pas encore été libérée pour eux. Elle le sera automatiquement le dimanche soir, ou immédiatement via le bouton « Libérer »">
-                                            En attente · {{ $page->queued_count }}
-                                        </span>
+                                        <x-verif.status-badge size="xs" tone="warn" label="Hors sitemap"
+                                            title="Cette page n'apparaît plus dans le dernier scan du sitemap" />
                                     @endif
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                @if ($page->category)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                                        {{ $page->categoryLabel() }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-400 italic text-xs">—</span>
-                                @endif
+
+                            <td class="px-3 py-2 align-top">
+                                <x-verif.priority-dot :priority="$page->priority" class="mt-1.5" />
                             </td>
-                            <td class="px-4 py-3 text-sm">
-                                {{ $page->priorityIcon() }} {{ $page->priorityLabel() }}
+
+                            <td class="px-3 py-2 align-top">
+                                <x-verif.deadline-badge :page="$page" />
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $page->deadline?->format('d/m/Y') ?? '—' }}
+
+                            <td class="px-3 py-2 align-top">
+                                <x-verif.status-badge :tone="$page->statusTone()" :label="$page->statusLabel()" />
                             </td>
-                            <td class="px-4 py-3 text-sm">
-                                @php
-                                    $badge = match ($page->status) {
-                                        'pending' => ['À vérifier', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'],
-                                        'in_progress' => ['En cours', 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'],
-                                        'needs_fix' => ['À corriger', 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'],
-                                        'awaiting_validation' => ['En attente de validation', 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'],
-                                        'validated' => ['Validée', 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'],
-                                        default => [$page->status, 'bg-gray-100 text-gray-800'],
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $badge[1] }}">
-                                    {{ $badge[0] }}
-                                </span>
+
+                            {{-- Relecteurs : la cellule entière ouvre la modale d'assignation --}}
+                            <td class="px-3 py-2 align-top">
+                                <button type="button" wire:click="openAssignModal({{ $page->id }})"
+                                    class="text-left group" title="Modifier les relecteurs">
+                                    @if ($page->assignees->isEmpty())
+                                        <x-verif.status-badge tone="danger" label="Aucun relecteur" />
+                                    @else
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($page->assignees as $assignee)
+                                                @php $isReleased = $assignee->pivot->released_at !== null; @endphp
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] group-hover:ring-1 group-hover:ring-gray-300 dark:group-hover:ring-gray-600
+                                                    {{ $isReleased
+                                                        ? 'bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300'
+                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}"
+                                                    title="{{ $isReleased
+                                                        ? 'Page libérée — visible sur le dashboard de ' . $assignee->name
+                                                        : $assignee->name . ' recevra cette page dès qu\'une place se libère (distribution chaque nuit)' }}">
+                                                    {{ $assignee->name }}@if (! $isReleased)<span class="opacity-70">⏳</span>@endif
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </button>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                @if ($page->assignees->isEmpty())
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                        ⚠️ Aucun relecteur
-                                    </span>
-                                @else
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach ($page->assignees as $assignee)
-                                            @php
-                                                $isReleased = $assignee->pivot->released_at !== null;
-                                            @endphp
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs {{ $isReleased
-                                                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
-                                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}"
-                                                title="{{ $isReleased ? 'Page libérée — visible sur le dashboard de '.$assignee->name : $assignee->name.' verra cette page le prochain dimanche' }}">
-                                                {{ $assignee->name }}@if (! $isReleased) <span class="ml-1 opacity-70">⏳</span>@endif
-                                            </span>
-                                        @endforeach
+
+                            {{-- Actions regroupées dans un menu : une seule cible par ligne --}}
+                            <td class="px-3 py-2 align-top text-right">
+                                <div x-data="{ open: false }" class="relative inline-block">
+                                    <button type="button" @click="open = !open" @click.outside="open = false"
+                                        class="inline-flex items-center justify-center w-7 h-7 rounded text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-gray-700"
+                                        title="Actions">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                                        </svg>
+                                    </button>
+                                    <div x-show="open" x-cloak x-transition.opacity
+                                        class="absolute right-0 z-40 mt-1 w-52 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1 text-left">
+                                        @if ($page->queued_count > 0)
+                                            <button type="button" wire:click="openReleaseModal({{ $page->id }})" @click="open = false"
+                                                class="w-full text-left px-3 py-2 text-sm text-amber-700 dark:text-amber-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                Libérer maintenant
+                                                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $page->queued_count }} relecteur(s) en attente</span>
+                                            </button>
+                                        @endif
+                                        <button type="button" wire:click="openAssignModal({{ $page->id }})" @click="open = false"
+                                            class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            Assigner des relecteurs
+                                        </button>
+                                        <button type="button" wire:click="openEditModal({{ $page->id }})" @click="open = false"
+                                            class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            Éditer la page
+                                        </button>
+                                        <a href="{{ $page->url }}" target="_blank" rel="noopener" @click="open = false"
+                                            class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            Ouvrir la page ↗
+                                        </a>
+                                        <div class="my-1 border-t border-gray-100 dark:border-gray-700"></div>
+                                        <button type="button" wire:click="openDeleteModal({{ $page->id }})" @click="open = false"
+                                            class="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                            Supprimer
+                                        </button>
                                     </div>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3 text-right text-sm space-x-2 whitespace-nowrap">
-                                @if ($page->queued_count > 0)
-                                    <button wire:click="openReleaseModal({{ $page->id }})"
-                                        class="text-amber-700 hover:text-amber-900 dark:text-amber-400" title="Libérer immédiatement la page pour les relecteurs en attente">Libérer</button>
-                                @endif
-                                <button wire:click="openAssignModal({{ $page->id }})"
-                                    class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400" title="Assigner des relecteurs">Assigner</button>
-                                <button wire:click="openEditModal({{ $page->id }})"
-                                    class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">Éditer</button>
-                                <button wire:click="openDeleteModal({{ $page->id }})"
-                                    class="text-red-600 hover:text-red-800 dark:text-red-400">Supprimer</button>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                Aucune page pour le moment. Cliquez sur "Scanner le sitemap" pour importer ou "Ajouter une page" pour saisir manuellement.
+                            <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                @if ($this->hasActiveFilters())
+                                    Aucune page ne correspond à ces filtres.
+                                    <button type="button" wire:click="resetFilters" class="ml-1 underline underline-offset-2 hover:text-gray-900 dark:hover:text-white">
+                                        Réinitialiser
+                                    </button>
+                                @else
+                                    Aucune page pour le moment. Utilisez « Ajouter une page », ou « Scanner le sitemap » dans le menu ⋯ pour importer les URLs du site.
+                                @endif
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="px-4 py-3">
-            {{ $pages->links() }}
-        </div>
+        @if ($pages->hasPages())
+            <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                {{ $pages->links() }}
+            </div>
+        @endif
     </div>
 
     {{-- Create/Edit modal --}}
@@ -435,7 +425,7 @@
                                 Annuler
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg">
                                 {{ $editingId ? 'Mettre à jour' : 'Créer' }}
                             </button>
                         </div>
@@ -471,7 +461,7 @@
                                 Annuler
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg">
                                 Enregistrer
                             </button>
                         </div>
@@ -491,7 +481,7 @@
                         Assigner à {{ count($selectedPageIds) }} page{{ count($selectedPageIds) > 1 ? 's' : '' }}
                     </h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Les relecteurs cochés seront <strong>ajoutés</strong> aux relecteurs déjà assignés (rien n'est écrasé). Les nouvelles assignations seront libérées dimanche prochain ou via le bouton « Libérer ».
+                        Les relecteurs cochés seront <strong>ajoutés</strong> aux relecteurs déjà assignés (rien n'est écrasé). Les nouvelles assignations seront distribuées la nuit prochaine, au fil des places disponibles, ou immédiatement via « Libérer maintenant ».
                     </p>
                     <form wire:submit.prevent="saveBulkAssignment" class="space-y-4">
                         <div class="border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-72 overflow-y-auto bg-white dark:bg-gray-700">
@@ -513,7 +503,7 @@
                             </button>
                             <button type="submit"
                                 @disabled(empty($bulkAssigneeIds))
-                                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg">
+                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg">
                                 Assigner ({{ count($bulkAssigneeIds) }})
                             </button>
                         </div>
@@ -537,21 +527,14 @@
                     </p>
                     <form wire:submit.prevent="saveBulkPriority" class="space-y-4">
                         <div class="space-y-2">
-                            <label class="flex items-start gap-3 p-3 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
-                                <input type="radio" wire:model.live="bulkPriority" value="high"
-                                    class="mt-0.5 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
-                                <span class="text-sm text-gray-900 dark:text-white">🔴 Priorité haute</span>
-                            </label>
-                            <label class="flex items-start gap-3 p-3 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
-                                <input type="radio" wire:model.live="bulkPriority" value="medium"
-                                    class="mt-0.5 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
-                                <span class="text-sm text-gray-900 dark:text-white">🟠 Priorité moyenne</span>
-                            </label>
-                            <label class="flex items-start gap-3 p-3 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
-                                <input type="radio" wire:model.live="bulkPriority" value="low"
-                                    class="mt-0.5 text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
-                                <span class="text-sm text-gray-900 dark:text-white">🟢 Priorité basse</span>
-                            </label>
+                            @foreach (['high' => 'Priorité haute', 'medium' => 'Priorité moyenne', 'low' => 'Priorité basse'] as $code => $label)
+                                <label class="flex items-center gap-3 p-3 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
+                                    <input type="radio" wire:model.live="bulkPriority" value="{{ $code }}"
+                                        class="text-gray-900 focus:ring-gray-900 dark:text-white dark:focus:ring-white">
+                                    <x-verif.priority-dot :priority="$code" />
+                                    <span class="text-sm text-gray-900 dark:text-white">{{ $label }}</span>
+                                </label>
+                            @endforeach
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" wire:click="closeBulkPriorityModal"
@@ -559,7 +542,7 @@
                                 Annuler
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                                class="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded-lg">
                                 Appliquer
                             </button>
                         </div>
@@ -574,7 +557,7 @@
         <div class="fixed inset-0 z-50 overflow-y-auto" wire:key="release-now-modal">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div class="fixed inset-0 bg-black/50" wire:click="closeReleaseModal"></div>
-                <div class="relative bg-white dark:bg-gray-800 rounded shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700">
+                <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Libérer cette page maintenant ?</h2>
                     <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
                         <p>« <strong>{{ $releasingPageTitle }}</strong> » sera <strong>immédiatement visible</strong> sur le dashboard de
@@ -588,92 +571,14 @@
                     </div>
                     <div class="flex justify-end gap-2">
                         <button type="button" wire:click="closeReleaseModal"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
                             Annuler
                         </button>
                         <button type="button" wire:click="releaseNow"
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded">
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg">
                             Libérer maintenant
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Hard delete all modal --}}
-    @if ($showHardDeleteModal)
-        @php
-            $totalPages = \App\Models\VerificationPage::count();
-            $totalReviews = \App\Models\VerificationReview::count();
-            $totalAssignments = \DB::table('verification_assignments')->count();
-            $canDelete = $hardDeleteConfirm1 && $hardDeleteConfirm2 && $totalPages > 0;
-        @endphp
-        <div class="fixed inset-0 z-50 overflow-y-auto" wire:key="hard-delete-modal">
-            <div class="flex min-h-screen items-center justify-center p-4">
-                <div class="fixed inset-0 bg-black/60" wire:click="closeHardDeleteModal"></div>
-                <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 border-2 border-red-300 dark:border-red-700">
-                    <h2 class="text-xl font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
-                        ⚠️ Suppression définitive de toutes les pages
-                    </h2>
-
-                    @if ($totalPages === 0)
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Aucune page à supprimer. La table est déjà vide.
-                        </p>
-                        <div class="flex justify-end">
-                            <button type="button" wire:click="closeHardDeleteModal"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg">
-                                Fermer
-                            </button>
-                        </div>
-                    @else
-                        <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300 mb-4">
-                            <p>Cette action supprime <strong>DÉFINITIVEMENT</strong> toutes les pages à vérifier ET leurs relectures associées.</p>
-
-                            <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-red-900 dark:text-red-200">
-                                <p class="font-semibold mb-2">Cela inclut :</p>
-                                <ul class="list-disc list-inside space-y-0.5">
-                                    <li><strong>{{ $totalPages }}</strong> page{{ $totalPages > 1 ? 's' : '' }}</li>
-                                    <li><strong>{{ $totalReviews }}</strong> relecture{{ $totalReviews > 1 ? 's' : '' }} de vos collègues</li>
-                                    <li><strong>{{ $totalAssignments }}</strong> assignation{{ $totalAssignments > 1 ? 's' : '' }}</li>
-                                </ul>
-                            </div>
-
-                            <p class="font-semibold text-red-700 dark:text-red-300">Cette action est IRRÉVERSIBLE.</p>
-
-                            <div class="space-y-2 pt-2">
-                                <label class="flex items-start gap-2 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="hardDeleteConfirm1"
-                                        class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                    <span class="text-sm">Je comprends que <strong>toutes les pages</strong> seront supprimées.</span>
-                                </label>
-                                <label class="flex items-start gap-2 cursor-pointer">
-                                    <input type="checkbox" wire:model.live="hardDeleteConfirm2"
-                                        class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                    <span class="text-sm">Je comprends que <strong>les relectures de mes collègues seront perdues</strong>.</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-2">
-                            <button type="button" wire:click="closeHardDeleteModal"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg">
-                                Annuler
-                            </button>
-                            <button type="button" wire:click="hardDeleteAll"
-                                @disabled(! $canDelete)
-                                wire:loading.attr="disabled"
-                                wire:target="hardDeleteAll"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg">
-                                <svg class="w-4 h-4 animate-spin" wire:loading wire:target="hardDeleteAll" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                Supprimer définitivement
-                            </button>
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
@@ -720,10 +625,14 @@
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div class="fixed inset-0 bg-black/50" wire:click="closeDeleteModal"></div>
                 <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Supprimer cette page ?</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Cette action est définitive. Toutes les relectures associées seront aussi supprimées.
-                    </p>
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Retirer cette page ?</h2>
+                    <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        <p>La page disparaîtra de la liste et des dashboards des relecteurs.</p>
+                        <p class="rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-2 text-green-800 dark:text-green-200">
+                            Ses relectures et ses assignations sont <strong>conservées</strong>. En cas d'erreur :
+                            <code class="text-xs">php artisan verification:restore-page {id}</code>
+                        </p>
+                    </div>
                     <div class="flex justify-end gap-2">
                         <button type="button" wire:click="closeDeleteModal"
                             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg">

@@ -81,6 +81,11 @@ class VerificationReviewService
         });
     }
 
+    /**
+     * @param  string|null  $adminResponse  null : laisse le message existant intact.
+     *                                      '' : efface le message existant.
+     *                                      texte : remplace le message et l'horodate.
+     */
     public function resolve(VerificationReview $review, string $newStatus, ?string $adminResponse = null): void
     {
         $allowed = ['in_progress', 'done', 'revision_requested'];
@@ -92,11 +97,15 @@ class VerificationReviewService
             // Verrou pessimiste sur la page liée à la review.
             $lockedPage = VerificationPage::whereKey($review->page_id)->lockForUpdate()->first();
 
-            $review->update([
-                'status' => $newStatus,
-                'admin_response' => $adminResponse ?: $review->admin_response,
-                'admin_response_at' => $adminResponse ? now() : $review->admin_response_at,
-            ]);
+            $payload = ['status' => $newStatus];
+
+            if ($adminResponse !== null) {
+                $message = trim($adminResponse);
+                $payload['admin_response'] = $message !== '' ? $message : null;
+                $payload['admin_response_at'] = $message !== '' ? now() : null;
+            }
+
+            $review->update($payload);
 
             // Recalcule le statut page selon TOUTES les reviews FR actives,
             // pas uniquement celle qui vient d'être traitée.
@@ -107,9 +116,31 @@ class VerificationReviewService
     }
 
     /**
+     * Point d'entrée public du recalcul de statut, pour les cas où la page change
+     * sans qu'une review soit soumise ou traitée — typiquement l'ajout ou le
+     * retrait d'un relecteur, qui modifie le dénominateur du calcul.
+     */
+    public function refreshPageStatus(VerificationPage $page): void
+    {
+        DB::transaction(function () use ($page) {
+            $lockedPage = VerificationPage::whereKey($page->id)->lockForUpdate()->first();
+
+            if ($lockedPage) {
+                $this->recomputePageStatus($lockedPage);
+            }
+        });
+    }
+
+    /**
      * Calcule et met à jour le statut d'une page selon la règle pessimiste :
-     * une page n'est validated que si TOUS ses relecteurs assignés ont une review FR active 'done',
-     * et qu'AUCUNE review FR active ne signale de problème.
+     * une page n'est prête à être clôturée que si TOUS ses relecteurs assignés ont
+     * une review FR active 'done'.
+     *
+     * Le calcul s'appuie sur le STATUT des reviews (l'avancement du traitement admin),
+     * et non sur les drapeaux content_ok / media_ok (les réponses du relecteur).
+     * Ces drapeaux sont figés jusqu'à une resoumission : s'y fier rendait 'in_progress'
+     * inatteignable et bloquait définitivement en 'needs_fix' toute page dont le
+     * problème avait pourtant été corrigé et la review marquée 'done'.
      *
      * Les reviews 'revision_requested' sont ignorées (l'admin a redemandé un nouveau passage).
      * Les reviews de relecteurs retirés de l'assignation ne pèsent plus dans le calcul.
@@ -135,13 +166,14 @@ class VerificationReviewService
             return;
         }
 
-        $hasIssue = $activeReviews->contains(fn ($r) => ! $r->content_ok || ! $r->media_ok);
-        $hasInProgress = $activeReviews->contains(fn ($r) => in_array($r->status, ['pending_admin', 'in_progress'], true));
+        // Un problème est « ouvert » tant que l'admin ne l'a pas pris en charge.
+        $hasUntreated = $activeReviews->contains(fn ($r) => $r->status === 'pending_admin');
+        $hasInProgress = $activeReviews->contains(fn ($r) => $r->status === 'in_progress');
         $allDone = $activeReviews->every(fn ($r) => $r->status === 'done');
         $reviewedAssignees = $activeReviews->pluck('user_id')->unique();
         $allAssigneesReviewed = $reviewedAssignees->count() === $assigneeIds->count();
 
-        if ($hasIssue) {
+        if ($hasUntreated) {
             $newStatus = 'needs_fix';
         } elseif ($hasInProgress) {
             $newStatus = 'in_progress';
