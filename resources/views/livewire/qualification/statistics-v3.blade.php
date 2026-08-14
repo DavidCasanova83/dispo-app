@@ -132,6 +132,9 @@
                 </div>
             </div>
 
+            {{-- Type de visiteur (page uniquement) --}}
+            @include('livewire.qualification.partials.v3-visitor-types')
+
             {{-- G5: Tranches d'âge --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
@@ -171,6 +174,9 @@
                 </div>
             </div>
 
+            {{-- Origine détaillée : France / Europe / Monde + PACA et 04 (page uniquement) --}}
+            @include('livewire.qualification.partials.v3-origin-breakdown')
+
             {{-- G7: Méthode de contact --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
@@ -206,19 +212,42 @@
                 </div>
             </div>
 
-            {{-- G9: Demandes spécifiques ville (conditionnel) --}}
-            @if ($isSingleCity && !empty($statistics['citySpecificDemands']))
+            {{-- G9: Demandes spécifiques --}}
+            @php
+                $specificDemands = $statistics['citySpecificDemands'] ?? [];
+                $hasSpecific = !empty($specificDemands['specific']['labels']);
+                $hasOtherSpecific = !empty($specificDemands['otherSpecific']['labels']);
+            @endphp
+            @if ($hasSpecific || $hasOtherSpecific)
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Demandes spécifiques — {{ $cities[$selectedCity] ?? $selectedCity }}</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                Demandes spécifiques{{ $isSingleCity ? ' — ' . ($cities[$selectedCity] ?? $selectedCity) : '' }}
+                            </h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                Demandes propres à ce bureau (mode absolu)
+                                {{ $isSingleCity ? 'Demandes propres à ce bureau' : 'Toutes villes confondues' }}
+                                — Nombre d'occurrences (mode absolu)
                             </p>
                         </div>
                     </div>
-                    <div wire:ignore class="relative" style="min-height: 300px;">
-                        <canvas id="g9-city-specific"></canvas>
+                    <div class="grid grid-cols-1 {{ $hasSpecific && $hasOtherSpecific ? 'lg:grid-cols-2' : '' }} gap-6">
+                        @if ($hasSpecific)
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Demandes spécifiques</p>
+                                <div wire:ignore class="relative" style="min-height: 300px;">
+                                    <canvas id="g9-city-specific"></canvas>
+                                </div>
+                            </div>
+                        @endif
+                        @if ($hasOtherSpecific)
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Autres demandes spécifiques</p>
+                                <div wire:ignore class="relative" style="min-height: 300px;">
+                                    <canvas id="g9-city-specific-other"></canvas>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -705,14 +734,20 @@
                     });
                 }
 
-                // ── G9: City-Specific Demands ──
+                // ── G9: Specific Demands ──
                 function initG9(statistics, ctx) {
-                    const el = document.getElementById('g9-city-specific');
-                    if (!el) return;
                     const d = statistics.citySpecificDemands;
+                    if (!d) return;
+                    drawSpecificDemands('g9-city-specific', 'g9', d.specific, ctx);
+                    drawSpecificDemands('g9-city-specific-other', 'g9Other', d.otherSpecific, ctx);
+                }
+
+                function drawSpecificDemands(canvasId, chartKey, d, ctx) {
+                    const el = document.getElementById(canvasId);
+                    if (!el) return;
                     if (!d || !d.labels || d.labels.length === 0) { noData(el); return; }
 
-                    v3Charts.g9 = new Chart(el, {
+                    v3Charts[chartKey] = new Chart(el, {
                         type: 'bar',
                         data: {
                             labels: d.labels,

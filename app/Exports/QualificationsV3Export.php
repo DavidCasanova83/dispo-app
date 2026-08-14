@@ -10,15 +10,21 @@ class QualificationsV3Export implements WithMultipleSheets
 {
     protected array $data;
 
-    public function __construct(array $data)
+    protected array $filters;
+
+    public function __construct(array $data, array $filters = [])
     {
         $this->data = $data;
+        $this->filters = $filters;
     }
 
     public function sheets(): array
     {
         $cityNames = Qualification::getCities();
         $sheets = [];
+
+        // 0. Listing complet des qualifications (une ligne par qualification)
+        $sheets[] = new QualificationsExport($this->filters);
 
         // 1. KPIs (avec comparaison année précédente / YoY quand disponible)
         $kpis = $this->data['kpis'];

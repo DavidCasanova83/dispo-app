@@ -16,6 +16,27 @@
     </div>
 @endif
 
+@if (!empty($selectedAgeGroups))
+    <div class="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mb-6">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span class="text-sm text-indigo-800 dark:text-indigo-300">
+                    Toutes les statistiques sont filtrées sur les tranches d'âge :
+                    <strong>{{ implode(', ', $selectedAgeGroups) }}</strong>
+                    — l'export Excel, lui, n'applique pas ce filtre.
+                </span>
+            </div>
+            <button wire:click="clearAgeGroups"
+                class="px-3 py-1.5 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors whitespace-nowrap">
+                Retirer le filtre
+            </button>
+        </div>
+    </div>
+@endif
+
 @if ($isSingleCity)
     <div class="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">

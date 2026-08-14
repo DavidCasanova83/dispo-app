@@ -1,6 +1,7 @@
 @php
     $kpis = $statistics['kpis'];
     $yoy = $statistics['yoy'] ?? [];
+    $averageAge = $statistics['averageAge'] ?? ['average' => null, 'sampleSize' => 0];
 
     $cards = [
         [
@@ -38,6 +39,16 @@
             'color' => 'rose',
             'yoyKey' => null,
         ],
+        [
+            'label' => 'Âge moyen des visiteurs',
+            'value' => $averageAge['average'] !== null ? $averageAge['average'] . ' ans' : 'Non renseigné',
+            'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+            'color' => 'indigo',
+            'yoyKey' => null,
+            'hint' => $averageAge['average'] !== null
+                ? 'Estimé sur ' . number_format($averageAge['sampleSize'], 0, ',', ' ') . ' tranches d\'âge renseignées'
+                : null,
+        ],
     ];
 
     $iconBgClasses = [
@@ -46,6 +57,7 @@
         'amber' => 'bg-amber-100 dark:bg-amber-800/50 text-amber-600 dark:text-amber-400',
         'purple' => 'bg-purple-100 dark:bg-purple-800/50 text-purple-600 dark:text-purple-400',
         'rose' => 'bg-rose-100 dark:bg-rose-800/50 text-rose-600 dark:text-rose-400',
+        'indigo' => 'bg-indigo-100 dark:bg-indigo-800/50 text-indigo-600 dark:text-indigo-400',
     ];
 
     $reliabilityColors = [
@@ -57,7 +69,7 @@
     ];
 @endphp
 
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
     @foreach ($cards as $card)
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3 mb-3">
@@ -69,6 +81,9 @@
             </div>
             <p class="text-2xl font-bold text-gray-900 dark:text-white truncate">{{ $card['value'] }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $card['label'] }}</p>
+            @if (!empty($card['hint']))
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1 leading-tight">{{ $card['hint'] }}</p>
+            @endif
 
             {{-- YoY comparison arrow --}}
             @if ($card['yoyKey'] && isset($yoy[$card['yoyKey']]) && $yoy[$card['yoyKey']]['pct'] !== null)

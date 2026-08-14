@@ -10,17 +10,26 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Carbon\Carbon;
 
-class QualificationsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents, WithChunkReading
+class QualificationsExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents, WithChunkReading, WithTitle
 {
     protected $filters;
 
     public function __construct(array $filters = [])
     {
         $this->filters = $filters;
+    }
+
+    /**
+     * Titre de la feuille (utilisé quand l'export est intégré dans un classeur multi-feuilles)
+     */
+    public function title(): string
+    {
+        return 'Listing qualifications';
     }
 
     /**

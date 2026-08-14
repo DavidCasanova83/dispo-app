@@ -20,6 +20,9 @@ class QualificationStatisticsV3 extends Component
     public string $periodPreset = 'this_quarter';
     public string $granularity = 'auto';
 
+    /** @var array<int, string> Tranches d'âge sélectionnées ; vide = toutes. */
+    public array $selectedAgeGroups = [];
+
     public function mount()
     {
         $this->applyPreset($this->periodPreset);
@@ -100,6 +103,30 @@ class QualificationStatisticsV3 extends Component
         $this->applyFilters();
     }
 
+    /**
+     * Ajoute ou retire une tranche d'âge du filtre.
+     */
+    public function toggleAgeGroup(string $ageGroup)
+    {
+        if (!in_array($ageGroup, QualificationStatisticsV3Service::AGE_GROUP_OPTIONS, true)) {
+            return;
+        }
+
+        if (in_array($ageGroup, $this->selectedAgeGroups, true)) {
+            $this->selectedAgeGroups = array_values(array_diff($this->selectedAgeGroups, [$ageGroup]));
+        } else {
+            $this->selectedAgeGroups[] = $ageGroup;
+        }
+
+        $this->applyFilters();
+    }
+
+    public function clearAgeGroups()
+    {
+        $this->selectedAgeGroups = [];
+        $this->applyFilters();
+    }
+
     public function setGranularity(string $granularity)
     {
         $this->granularity = $granularity;
@@ -114,8 +141,8 @@ class QualificationStatisticsV3 extends Component
     public function getStatisticsData(): array
     {
         $service = new QualificationStatisticsV3Service();
+        $service->setAgeGroupFilter($this->selectedAgeGroups);
         $effectiveMode = $this->selectedCity !== 'all' ? 'absolute' : $this->mode;
-        $isSingleCity = $this->selectedCity !== 'all';
 
         $data = [
             'kpis' => $service->getKPIs($this->selectedCity, $this->startDate, $this->endDate, $effectiveMode),
@@ -129,12 +156,13 @@ class QualificationStatisticsV3 extends Component
             'contactMethods' => $service->getContactMethods($this->selectedCity, $this->startDate, $this->endDate, $effectiveMode),
             'agentActivity' => $service->getAgentActivity($this->selectedCity, $this->startDate, $this->endDate),
             'crossTabs' => $service->getCrossTabulations($this->selectedCity, $this->startDate, $this->endDate),
+            // Indicateurs affichés uniquement sur la page (absents de l'export Excel)
+            'averageAge' => $service->getAverageAge($this->selectedCity, $this->startDate, $this->endDate, $effectiveMode),
+            'originBreakdown' => $service->getOriginBreakdown($this->selectedCity, $this->startDate, $this->endDate),
+            'visitorTypes' => $service->getVisitorTypes($this->selectedCity, $this->startDate, $this->endDate),
+            // G9 : ville sélectionnée, ou agrégé sur toutes les villes
+            'citySpecificDemands' => $service->getCitySpecificDemands($this->selectedCity, $this->startDate, $this->endDate),
         ];
-
-        // G9: only when single city
-        if ($isSingleCity) {
-            $data['citySpecificDemands'] = $service->getCitySpecificDemands($this->selectedCity, $this->startDate, $this->endDate);
-        }
 
         return $data;
     }
@@ -183,9 +211,20 @@ class QualificationStatisticsV3 extends Component
             $data['citySpecificDemands'] = $service->getCitySpecificDemands($city, $startDate, $endDate);
         }
 
+        // Filtres du listing complet (feuille détaillée, une ligne par qualification)
+        $filters = [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'status' => 'all',
+        ];
+
+        if ($city !== 'all') {
+            $filters['cities'] = [$city];
+        }
+
         $filename = 'statistiques-v3_' . $start->format('d-m-Y') . '_au_' . $end->format('d-m-Y') . '.xlsx';
 
-        return Excel::download(new QualificationsV3Export($data), $filename);
+        return Excel::download(new QualificationsV3Export($data, $filters), $filename);
     }
 
     #[Layout('components.layouts.app')]
@@ -199,6 +238,7 @@ class QualificationStatisticsV3 extends Component
             'statistics' => $statistics,
             'isSingleCity' => $this->selectedCity !== 'all',
             'effectiveMode' => $this->selectedCity !== 'all' ? 'absolute' : $this->mode,
+            'ageGroupOptions' => QualificationStatisticsV3Service::AGE_GROUP_OPTIONS,
         ]);
     }
 }

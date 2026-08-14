@@ -40,6 +40,33 @@
             </div>
         </div>
 
+        {{-- Filtre tranches d'âge --}}
+        <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tranches d'âge</label>
+                @if (!empty($selectedAgeGroups))
+                    <button wire:click="clearAgeGroups"
+                        class="text-xs text-teal-600 dark:text-teal-400 hover:underline">
+                        Toutes
+                    </button>
+                @endif
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($ageGroupOptions as $ageGroup)
+                    <button wire:click="toggleAgeGroup('{{ $ageGroup }}')"
+                        class="px-3 py-1.5 text-sm rounded-lg border transition-colors
+                            {{ in_array($ageGroup, $selectedAgeGroups)
+                                ? 'bg-teal-600 text-white border-teal-600'
+                                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600' }}">
+                        {{ $ageGroup === '0-18' ? '0-18 (ancien)' : $ageGroup }}
+                    </button>
+                @endforeach
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                Aucune sélection = toutes les tranches. Une qualification est retenue dès qu'elle contient une des tranches cochées.
+            </p>
+        </div>
+
         {{-- Sélecteur de ville --}}
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ville</label>
