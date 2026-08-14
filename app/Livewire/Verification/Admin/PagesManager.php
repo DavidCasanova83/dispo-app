@@ -2,22 +2,32 @@
 
 namespace App\Livewire\Verification\Admin;
 
+use App\Livewire\Concerns\WithSorting;
 use App\Models\User;
 use App\Models\VerificationPage;
 use App\Services\SitemapScanService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class PagesManager extends Component
 {
     use WithPagination;
+    use WithSorting;
 
     public string $search = '';
     public string $filterStatus = 'all';
     public string $filterPriority = 'all';
     public string $filterCategory = 'all';
     public string $filterAssignment = 'all'; // all | with | without
-    public int $perPage = 15;
+    // Non typé volontairement : la valeur est hydratée depuis le queryString, où
+    // n'importe quoi peut arriver. Un typage ?int ferait planter l'hydratation
+    // sur une valeur non numérique. La normalisation se fait dans reviewerId().
+    public $filterReviewer = null;
+    public string $filterSitemap = 'all';    // all | in | out
+    public bool $filterOverdue = false;
+    public int $perPage = 25;
 
     // Form modal (create / edit)
     public bool $showFormModal = false;
@@ -61,18 +71,16 @@ class PagesManager extends Component
     // Reset sitemap modal
     public bool $showResetModal = false;
 
-    // Hard delete all modal
-    public bool $showHardDeleteModal = false;
-    public bool $hardDeleteConfirm1 = false;
-    public bool $hardDeleteConfirm2 = false;
-
     protected $queryString = [
         'search' => ['except' => ''],
         'filterStatus' => ['except' => 'all'],
         'filterPriority' => ['except' => 'all'],
         'filterCategory' => ['except' => 'all'],
         'filterAssignment' => ['except' => 'all'],
-        'perPage' => ['except' => 15],
+        'filterReviewer' => ['as' => 'relecteur', 'except' => null],
+        'filterSitemap' => ['except' => 'all'],
+        'filterOverdue' => ['except' => false],
+        'perPage' => ['except' => 25],
     ];
 
     public const PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -108,6 +116,39 @@ class PagesManager extends Component
         'category.in' => 'Catégorie invalide.',
     ];
 
+    // ─── TRI ──────────────────────────────────────────────────────
+
+    /**
+     * @return array<string, string|callable>
+     */
+    protected function sortableFields(): array
+    {
+        return [
+            'title' => 'title',
+            'priority' => fn (Builder $q, string $dir) => $q->orderByRaw("FIELD(priority, 'high', 'medium', 'low') {$dir}"),
+            'deadline' => fn (Builder $q, string $dir) => $q->orderByRaw("deadline IS NULL, deadline {$dir}"),
+            'status' => fn (Builder $q, string $dir) => $q->orderByRaw(
+                "FIELD(status, 'pending', 'in_progress', 'needs_fix', 'awaiting_validation', 'validated') {$dir}"
+            ),
+            'assignees' => fn (Builder $q, string $dir) => $q->orderBy('assignees_count', $dir),
+            'created_at' => 'created_at',
+        ];
+    }
+
+    protected function descendingFirstFields(): array
+    {
+        return ['created_at'];
+    }
+
+    protected function applyDefaultSorting(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'needs_fix', 'awaiting_validation', 'validated')")
+            ->orderByDesc('created_at');
+    }
+
+    // ─── FILTRES ──────────────────────────────────────────────────
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -133,9 +174,97 @@ class PagesManager extends Component
         $this->resetPage();
     }
 
-    public function updatingPerPage()
+    public function updatingFilterReviewer()
     {
         $this->resetPage();
+    }
+
+    /**
+     * Identifiant du relecteur filtré, ou null si le paramètre est vide ou invalide.
+     */
+    private function reviewerId(): ?int
+    {
+        return is_numeric($this->filterReviewer) ? (int) $this->filterReviewer : null;
+    }
+
+    public function updatingFilterSitemap()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage()
+    {
+        // perPage vient du queryString : on le borne aux options proposées.
+        if (! in_array($this->perPage, self::PER_PAGE_OPTIONS, true)) {
+            $this->perPage = 25;
+        }
+        $this->resetPage();
+    }
+
+    /**
+     * Les tuiles de tête sont des filtres : un clic remplace la sélection
+     * courante plutôt que de s'ajouter aux autres critères.
+     */
+    public function applyQuickFilter(string $key): void
+    {
+        $this->filterStatus = 'all';
+        $this->filterAssignment = 'all';
+        $this->filterOverdue = false;
+
+        match ($key) {
+            'pending' => $this->filterStatus = 'pending',
+            'needs_fix' => $this->filterStatus = 'needs_fix',
+            'awaiting_validation' => $this->filterStatus = 'awaiting_validation',
+            'without_assignee' => $this->filterAssignment = 'without',
+            'overdue' => $this->filterOverdue = true,
+            default => null, // 'all' : on a déjà tout remis à zéro
+        };
+
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = 'all';
+        $this->filterPriority = 'all';
+        $this->filterCategory = 'all';
+        $this->filterAssignment = 'all';
+        $this->filterReviewer = null;
+        $this->filterSitemap = 'all';
+        $this->filterOverdue = false;
+        $this->clearSorting();
+    }
+
+    public function activeQuickFilter(): string
+    {
+        if ($this->filterOverdue) {
+            return 'overdue';
+        }
+        if ($this->filterAssignment === 'without') {
+            return 'without_assignee';
+        }
+        if (in_array($this->filterStatus, ['pending', 'needs_fix', 'awaiting_validation'], true)) {
+            return $this->filterStatus;
+        }
+        if ($this->filterStatus === 'all' && $this->filterAssignment === 'all') {
+            return 'all';
+        }
+
+        return '';
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== ''
+            || $this->filterStatus !== 'all'
+            || $this->filterPriority !== 'all'
+            || $this->filterCategory !== 'all'
+            || $this->filterAssignment !== 'all'
+            || $this->reviewerId() !== null
+            || $this->filterSitemap !== 'all'
+            || $this->filterOverdue
+            || $this->sortField !== '';
     }
 
     // ─── SCAN SITEMAP ─────────────────────────────────────────────
@@ -175,38 +304,6 @@ class PagesManager extends Component
         $this->scanResult = null;
         $this->scanError = null;
         session()->flash('success', "État du sitemap réinitialisé pour {$count} page(s). Lancez un nouveau scan pour rafraîchir.");
-    }
-
-    public function openHardDeleteModal(): void
-    {
-        $this->hardDeleteConfirm1 = false;
-        $this->hardDeleteConfirm2 = false;
-        $this->showHardDeleteModal = true;
-    }
-
-    public function closeHardDeleteModal(): void
-    {
-        $this->showHardDeleteModal = false;
-        $this->hardDeleteConfirm1 = false;
-        $this->hardDeleteConfirm2 = false;
-    }
-
-    public function hardDeleteAll(): void
-    {
-        // Garde-fou côté serveur : refuser si les 2 cases ne sont pas cochées.
-        if (! $this->hardDeleteConfirm1 || ! $this->hardDeleteConfirm2) {
-            return;
-        }
-
-        // Cascade : verification_assignments et verification_reviews ont onDelete cascade
-        // sur page_id, donc deleteAll() suffit pour tout effacer proprement.
-        $deleted = VerificationPage::query()->delete();
-
-        $this->closeHardDeleteModal();
-        $this->scanResult = null;
-        $this->scanError = null;
-
-        session()->flash('success', "Suppression définitive : {$deleted} page(s), avec leurs assignations et relectures.");
     }
 
     // ─── FORM MODAL ───────────────────────────────────────────────
@@ -305,7 +402,7 @@ class PagesManager extends Component
         $page = VerificationPage::findOrFail($pageId);
         $this->releasingPageId = $pageId;
         $this->releasingPageTitle = $page->title;
-        $this->releasingQueuedCount = \DB::table('verification_assignments')
+        $this->releasingQueuedCount = DB::table('verification_assignments')
             ->where('page_id', $pageId)
             ->whereNull('released_at')
             ->count();
@@ -320,7 +417,7 @@ class PagesManager extends Component
         $this->releasingQueuedCount = 0;
     }
 
-    public function releaseNow(\App\Services\WeeklyReleaseService $service): void
+    public function releaseNow(\App\Services\PageReleaseService $service): void
     {
         if (! $this->releasingPageId) {
             return;
@@ -381,7 +478,7 @@ class PagesManager extends Component
 
         // Récupère en une requête tous les couples (page_id, user_id) déjà existants
         // pour éviter les violations de l'unique (page_id, user_id) du pivot.
-        $existingPairs = \DB::table('verification_assignments')
+        $existingPairs = DB::table('verification_assignments')
             ->whereIn('page_id', $this->selectedPageIds)
             ->whereIn('user_id', $this->bulkAssigneeIds)
             ->select('page_id', 'user_id')
@@ -406,7 +503,7 @@ class PagesManager extends Component
         }
 
         if (! empty($rows)) {
-            \DB::table('verification_assignments')->insert($rows);
+            DB::table('verification_assignments')->insert($rows);
             $insertCount = count($rows);
         }
 
@@ -416,7 +513,7 @@ class PagesManager extends Component
         if ($insertCount === 0) {
             session()->flash('success', "Aucune nouvelle assignation : tous les relecteurs choisis étaient déjà assignés à toutes les pages sélectionnées.");
         } else {
-            session()->flash('success', "{$insertCount} nouvelle(s) assignation(s) créée(s) sur {$pageCount} page(s) pour {$userCount} relecteur(s). Les pages seront libérées dimanche prochain (ou via « Libérer »).");
+            session()->flash('success', "{$insertCount} nouvelle(s) assignation(s) créée(s) sur {$pageCount} page(s) pour {$userCount} relecteur(s). Les pages seront distribuées cette nuit, au fil des places libres chez chaque relecteur (ou tout de suite via « Libérer maintenant »).");
         }
 
         $this->clearSelection();
@@ -467,25 +564,54 @@ class PagesManager extends Component
 
     /**
      * Synchronise les assignees d'une page sans réinitialiser le released_at
-     * des relecteurs déjà associés. Les nouveaux ont released_at = NULL
-     * (en attente du prochain dimanche ou d'un release manuel).
+     * ni la date d'assignation des relecteurs déjà associés (cette date pilote
+     * l'ordre FIFO de la distribution nocturne). Les nouveaux arrivent avec
+     * released_at = NULL, en file d'attente jusqu'à la prochaine distribution
+     * ou un release manuel.
+     *
+     * Le tout dans une transaction : un échec en cours de route ne doit pas
+     * laisser la page sans relecteur.
      */
     private function syncAssigneesPreservingReleased(VerificationPage $page, array $userIds): void
     {
-        $existing = \DB::table('verification_assignments')
-            ->where('page_id', $page->id)
-            ->pluck('released_at', 'user_id'); // [user_id => released_at]
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
 
-        $page->assignees()->sync([]);  // detach all
-        foreach ($userIds as $userId) {
-            \DB::table('verification_assignments')->insert([
-                'page_id' => $page->id,
-                'user_id' => $userId,
-                'released_at' => $existing[$userId] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        DB::transaction(function () use ($page, $userIds) {
+            $existing = DB::table('verification_assignments')
+                ->where('page_id', $page->id)
+                ->pluck('user_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $toRemove = array_diff($existing, $userIds);
+            $toAdd = array_diff($userIds, $existing);
+
+            if (! empty($toRemove)) {
+                DB::table('verification_assignments')
+                    ->where('page_id', $page->id)
+                    ->whereIn('user_id', $toRemove)
+                    ->delete();
+            }
+
+            if (! empty($toAdd)) {
+                $now = now();
+                DB::table('verification_assignments')->insert(
+                    array_map(fn ($userId) => [
+                        'page_id' => $page->id,
+                        'user_id' => $userId,
+                        'released_at' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ], array_values($toAdd))
+                );
+            }
+
+            // Retirer ou ajouter un relecteur change le résultat du calcul de statut
+            // (une page peut redevenir incomplète, ou au contraire être prête).
+            if (! empty($toRemove) || ! empty($toAdd)) {
+                app(\App\Services\VerificationReviewService::class)->refreshPageStatus($page->fresh());
+            }
+        });
     }
 
     // ─── DELETE MODAL ─────────────────────────────────────────────
@@ -528,10 +654,45 @@ class PagesManager extends Component
         $this->resetErrorBag();
     }
 
+    // ─── RENDER ───────────────────────────────────────────────────
+
+    /**
+     * Toutes les tuiles en une seule requête agrégée (auparavant 8 COUNT
+     * distincts rejoués à chaque frappe dans la recherche).
+     */
+    private function stats(): array
+    {
+        $row = VerificationPage::query()
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(status = 'pending') as pending,
+                SUM(status = 'in_progress') as in_progress,
+                SUM(status = 'needs_fix') as needs_fix,
+                SUM(status = 'awaiting_validation') as awaiting_validation,
+                SUM(status = 'validated') as validated,
+                SUM(is_in_sitemap = 1) as in_sitemap,
+                SUM(is_in_sitemap = 0 AND last_seen_in_sitemap_at IS NOT NULL) as orphan,
+                SUM(status <> 'validated' AND deadline IS NOT NULL AND deadline < CURDATE()) as overdue,
+                SUM(NOT EXISTS (
+                    SELECT 1 FROM verification_assignments va WHERE va.page_id = verification_pages.id
+                )) as without_assignee
+            ")
+            ->first();
+
+        return array_map(
+            fn ($v) => (int) $v,
+            array_intersect_key((array) $row->getAttributes(), array_flip([
+                'total', 'pending', 'in_progress', 'needs_fix', 'awaiting_validation',
+                'validated', 'in_sitemap', 'orphan', 'overdue', 'without_assignee',
+            ]))
+        );
+    }
+
     public function render()
     {
         $query = VerificationPage::query()
             ->with('assignees')
+            ->withCount('assignees')
             ->withCount(['assignees as queued_count' => function ($q) {
                 $q->whereNull('verification_assignments.released_at');
             }]);
@@ -566,32 +727,34 @@ class PagesManager extends Component
             $query->whereHas('assignees');
         }
 
-        $pages = $query
-            ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'needs_fix', 'awaiting_validation', 'validated')")
-            ->orderByDesc('created_at')
-            ->paginate($this->perPage > 0 ? $this->perPage : max(1, VerificationPage::count()));
+        if ($reviewerId = $this->reviewerId()) {
+            $query->whereHas('assignees', fn ($q) => $q->where('users.id', $reviewerId));
+        }
+
+        if ($this->filterSitemap === 'in') {
+            $query->where('is_in_sitemap', true);
+        } elseif ($this->filterSitemap === 'out') {
+            $query->where('is_in_sitemap', false)->whereNotNull('last_seen_in_sitemap_at');
+        }
+
+        if ($this->filterOverdue) {
+            $query->where('status', '!=', 'validated')
+                ->whereNotNull('deadline')
+                ->whereDate('deadline', '<', now()->toDateString());
+        }
+
+        $perPage = in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : 25;
+
+        $pages = $this->applySorting($query)->paginate($perPage);
 
         $availableUsers = User::where('approved', true)
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
-        $stats = [
-            'total' => VerificationPage::count(),
-            'pending' => VerificationPage::where('status', 'pending')->count(),
-            'needs_fix' => VerificationPage::where('status', 'needs_fix')->count(),
-            'awaiting_validation' => VerificationPage::where('status', 'awaiting_validation')->count(),
-            'validated' => VerificationPage::where('status', 'validated')->count(),
-            'without_assignee' => VerificationPage::withoutAssignee()->count(),
-            'in_sitemap' => VerificationPage::where('is_in_sitemap', true)->count(),
-            'orphan' => VerificationPage::where('is_in_sitemap', false)
-                ->whereNotNull('last_seen_in_sitemap_at')
-                ->count(),
-        ];
-
         return view('livewire.verification.admin.pages-manager', [
             'pages' => $pages,
             'availableUsers' => $availableUsers,
-            'stats' => $stats,
+            'stats' => $this->stats(),
         ])->layout('components.layouts.app');
     }
 }

@@ -131,6 +131,27 @@ class VerificationReview extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Source unique des libellés et couleurs de statut côté admin.
+     * (userFacingStatus() reste la variante émoji destinée au relecteur.)
+     */
+    public const STATUSES = [
+        'pending_admin' => ['label' => 'À traiter', 'tone' => 'warn'],
+        'in_progress' => ['label' => 'En cours', 'tone' => 'info'],
+        'revision_requested' => ['label' => 'À ré-vérifier', 'tone' => 'accent'],
+        'done' => ['label' => 'Validée', 'tone' => 'success'],
+    ];
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status]['label'] ?? (string) $this->status;
+    }
+
+    public function statusTone(): string
+    {
+        return self::STATUSES[$this->status]['tone'] ?? 'neutral';
+    }
+
     public function userFacingStatus(): string
     {
         return match ($this->status) {

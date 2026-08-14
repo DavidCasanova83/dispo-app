@@ -2,26 +2,38 @@
 
 namespace App\Livewire\Verification\Admin;
 
+use App\Livewire\Concerns\WithSorting;
+use App\Models\User;
 use App\Models\VerificationPage;
 use App\Models\VerificationReview;
 use App\Services\VerificationReviewService;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class ReviewsInbox extends Component
 {
     use WithPagination;
+    use WithSorting;
 
-    // Liste (niveau 1)
+    /**
+     * Filtre sur le statut de la PAGE (VerificationPage::STATUSES), pas sur celui
+     * des relectures : chaque ligne de la liste étant une page, les compteurs des
+     * tuiles correspondent ainsi exactement au nombre de lignes affichées.
+     */
     public string $filterStatus = 'all';
+    // Non typé volontairement : la valeur est hydratée depuis le queryString, où
+    // n'importe quoi peut arriver. Un typage ?int ferait planter l'hydratation
+    // sur une valeur non numérique. La normalisation se fait dans reviewerId().
+    public $filterReviewer = null;
     public string $search = '';
 
     // Détail (niveau 2)
     public ?int $selectedPageId = null;
     public ?int $activeReviewerUserId = null;
 
-    // Modale de traitement d'une review
-    public bool $showResolveModal = false;
+    // Panneau de traitement, ouvert en ligne dans la relecture concernée : l'admin
+    // garde le problème signalé sous les yeux pendant qu'il rédige sa réponse.
     public ?int $reviewId = null;
     public string $adminResponse = '';
     public string $newStatus = 'in_progress';
@@ -33,6 +45,7 @@ class ReviewsInbox extends Component
 
     protected $queryString = [
         'filterStatus' => ['except' => 'all'],
+        'filterReviewer' => ['as' => 'relecteur', 'except' => null],
         'search' => ['except' => ''],
         'selectedPageId' => ['as' => 'page', 'except' => null],
         'activeReviewerUserId' => ['as' => 'reviewer', 'except' => null],
@@ -43,14 +56,82 @@ class ReviewsInbox extends Component
         $this->service = $service;
     }
 
+    // ─── TRI ──────────────────────────────────────────────────────
+
+    /**
+     * @return array<string, string|callable>
+     */
+    protected function sortableFields(): array
+    {
+        return [
+            'title' => 'title',
+            'pending' => fn (Builder $q, string $dir) => $q->orderBy('pending_admin_count', $dir),
+            'oldest' => fn (Builder $q, string $dir) => $q->orderByRaw("oldest_review_at IS NULL, oldest_review_at {$dir}"),
+            'activity' => 'updated_at',
+            'next_check' => fn (Builder $q, string $dir) => $q->orderByRaw("validated_at IS NULL, validated_at {$dir}"),
+        ];
+    }
+
+    protected function descendingFirstFields(): array
+    {
+        return ['pending', 'activity'];
+    }
+
+    protected function applyDefaultSorting(Builder $query): Builder
+    {
+        // Ce qui attend une action de l'admin remonte en premier.
+        return $query
+            ->orderByDesc('pending_admin_count')
+            ->orderByDesc('in_progress_count')
+            ->orderByDesc('revision_requested_count')
+            ->latest('updated_at');
+    }
+
+    // ─── FILTRES ──────────────────────────────────────────────────
+
     public function updatingFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    public function updatingFilterReviewer(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Identifiant du relecteur filtré, ou null si le paramètre est vide ou invalide.
+     */
+    private function reviewerId(): ?int
+    {
+        return is_numeric($this->filterReviewer) ? (int) $this->filterReviewer : null;
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function applyStatusFilter(string $status): void
+    {
+        $this->filterStatus = $status;
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->filterStatus = 'all';
+        $this->filterReviewer = null;
+        $this->search = '';
+        $this->clearSorting();
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->filterStatus !== 'all'
+            || $this->reviewerId() !== null
+            || $this->search !== ''
+            || $this->sortField !== '';
     }
 
     // ─── NAVIGATION LISTE / DÉTAIL ────────────────────────────────
@@ -74,22 +155,21 @@ class ReviewsInbox extends Component
 
     // ─── MODALE DE TRAITEMENT ─────────────────────────────────────
 
-    public function openResolveModal(int $reviewId): void
+    public function openResolvePanel(int $reviewId): void
     {
         $review = VerificationReview::findOrFail($reviewId);
         $this->reviewId = $review->id;
         $this->adminResponse = $review->admin_response ?? '';
         $this->newStatus = $review->status === 'pending_admin' ? 'in_progress' : $review->status;
         $this->resetErrorBag();
-        $this->showResolveModal = true;
     }
 
-    public function closeResolveModal(): void
+    public function closeResolvePanel(): void
     {
-        $this->showResolveModal = false;
         $this->reviewId = null;
         $this->adminResponse = '';
         $this->newStatus = 'in_progress';
+        $this->resetErrorBag();
     }
 
     public function resolve(): void
@@ -104,10 +184,41 @@ class ReviewsInbox extends Component
         ]);
 
         $review = VerificationReview::findOrFail($this->reviewId);
-        $this->service->resolve($review, $this->newStatus, $this->adminResponse ?: null);
+        $this->service->resolve($review, $this->newStatus, $this->adminResponse);
 
         session()->flash('success', 'Relecture traitée.');
-        $this->closeResolveModal();
+        $this->closeResolvePanel();
+    }
+
+    /**
+     * Passe en 'done' toutes les relectures encore ouvertes d'un relecteur sur la
+     * page courante. Évite d'ouvrir le panneau une fois par langue quand il n'y a
+     * rien à redire. Les relectures déjà traitées ne sont pas retouchées.
+     */
+    public function validateAllForReviewer(int $userId): void
+    {
+        if (! $this->selectedPageId) {
+            return;
+        }
+
+        $reviews = VerificationReview::where('page_id', $this->selectedPageId)
+            ->where('user_id', $userId)
+            ->whereIn('status', ['pending_admin', 'in_progress'])
+            ->get();
+
+        if ($reviews->isEmpty()) {
+            session()->flash('success', 'Aucune relecture à valider pour ce relecteur : tout est déjà traité.');
+            return;
+        }
+
+        foreach ($reviews as $review) {
+            // On passe par le service : verrou sur la page + recalcul du statut.
+            $this->service->resolve($review, 'done', null);
+        }
+
+        $count = $reviews->count();
+        session()->flash('success', "{$count} relecture(s) validée(s).");
+        $this->closeResolvePanel();
     }
 
     // ─── CLÔTURE ANNUELLE ─────────────────────────────────────────
@@ -146,72 +257,106 @@ class ReviewsInbox extends Component
 
     // ─── RENDER ───────────────────────────────────────────────────
 
-    public function render()
+    /**
+     * Périmètre de la Boîte de retours : les pages ayant au moins une relecture,
+     * PLUS les pages déjà clôturées. Ces dernières n'ont plus aucune relecture
+     * (la clôture annuelle les purge) mais doivent rester visibles pour suivre
+     * l'échéance de la prochaine vérification.
+     */
+    private function inboxScope(): Builder
     {
-        $stats = [
-            'pending_admin' => VerificationReview::where('status', 'pending_admin')->count(),
-            'in_progress' => VerificationReview::where('status', 'in_progress')->count(),
-            'revision_requested' => VerificationReview::where('status', 'revision_requested')->count(),
-            'done' => VerificationReview::where('status', 'done')->count(),
-        ];
-
-        if ($this->selectedPageId) {
-            return $this->renderDetail($stats);
-        }
-
-        return $this->renderList($stats);
+        return VerificationPage::query()
+            ->where(fn ($q) => $q->whereHas('reviews')->orWhere('status', 'validated'));
     }
 
-    private function renderList(array $stats)
+    /**
+     * Nombre de PAGES par statut dans ce périmètre, en une requête groupée.
+     * Chaque compteur est donc le nombre exact de lignes que le filtre affichera.
+     */
+    private function stats(): array
     {
-        // Pages ayant au moins une review, filtrées + paginées.
-        $pageQuery = VerificationPage::query()
-            ->whereHas('reviews', function ($q) {
-                if ($this->filterStatus !== 'all') {
-                    $q->where('status', $this->filterStatus);
-                }
-            })
-            ->with(['reviews.user']);
+        $counts = $this->inboxScope()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $stats = ['all' => (int) $counts->sum()];
+
+        foreach (array_keys(VerificationPage::STATUSES) as $code) {
+            $stats[$code] = (int) ($counts[$code] ?? 0);
+        }
+
+        return $stats;
+    }
+
+    public function render()
+    {
+        $stats = $this->stats();
+
+        $reviewers = User::where('approved', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        if ($this->selectedPageId) {
+            return $this->renderDetail($stats, $reviewers);
+        }
+
+        return $this->renderList($stats, $reviewers);
+    }
+
+    private function renderList(array $stats, $reviewers)
+    {
+        $query = $this->inboxScope()
+            ->with('assignees:id,name')
+            ->withCount([
+                'reviews as pending_admin_count' => fn ($q) => $q->where('status', 'pending_admin'),
+                'reviews as in_progress_count' => fn ($q) => $q->where('status', 'in_progress'),
+                'reviews as revision_requested_count' => fn ($q) => $q->where('status', 'revision_requested'),
+                'reviews as done_count' => fn ($q) => $q->where('status', 'done'),
+                'reviews as total_count',
+            ])
+            ->withMin('reviews as oldest_review_at', 'created_at')
+            ->withAvg('reviews as avg_rating', 'rating');
+
+        // Le filtre porte sur le statut de la page ; on ignore une valeur d'URL
+        // qui ne serait pas un statut connu plutôt que de l'injecter en SQL.
+        if ($this->filterStatus !== 'all' && array_key_exists($this->filterStatus, VerificationPage::STATUSES)) {
+            $query->where('status', $this->filterStatus);
+        }
+
+        if ($reviewerId = $this->reviewerId()) {
+            // Une page clôturée n'a plus de relecture : on retombe alors sur
+            // l'assignation, qui est conservée d'un cycle à l'autre.
+            $query->where(fn ($q) => $q
+                ->whereHas('reviews', fn ($r) => $r->where('user_id', $reviewerId))
+                ->orWhereHas('assignees', fn ($a) => $a->where('users.id', $reviewerId)));
+        }
 
         if ($this->search !== '') {
-            $pageQuery->where(function ($q) {
+            $query->where(function ($q) {
                 $q->where('title', 'like', '%' . $this->search . '%')
                     ->orWhere('url', 'like', '%' . $this->search . '%');
             });
         }
 
-        // Tri : pages avec reviews pending_admin en premier, puis in_progress, puis tout traité.
-        // On calcule un poids par page selon la review la plus "urgente".
-        $pageQuery->withCount([
-            'reviews as pending_admin_count' => fn ($q) => $q->where('status', 'pending_admin'),
-            'reviews as in_progress_count' => fn ($q) => $q->where('status', 'in_progress'),
-            'reviews as revision_requested_count' => fn ($q) => $q->where('status', 'revision_requested'),
-            'reviews as done_count' => fn ($q) => $q->where('status', 'done'),
-            'reviews as total_count',
-        ]);
-
-        $pages = $pageQuery
-            ->orderByDesc('pending_admin_count')
-            ->orderByDesc('in_progress_count')
-            ->orderByDesc('revision_requested_count')
-            ->latest('updated_at')
-            ->paginate(15);
+        $pages = $this->applySorting($query)->paginate(15);
 
         return view('livewire.verification.admin.reviews-inbox', [
             'view' => 'list',
             'pages' => $pages,
             'stats' => $stats,
+            'reviewers' => $reviewers,
         ])->layout('components.layouts.app');
     }
 
-    private function renderDetail(array $stats)
+    private function renderDetail(array $stats, $reviewers)
     {
-        $page = VerificationPage::with(['reviews.user'])->find($this->selectedPageId);
+        $page = VerificationPage::with(['reviews.user', 'assignees:id,name'])->find($this->selectedPageId);
 
         if (! $page) {
             // Page supprimée entretemps : retour liste.
             $this->closePageDetail();
-            return $this->renderList($stats);
+            return $this->renderList($stats, $reviewers);
         }
 
         // Reviews groupées par relecteur (user_id => collection de reviews FR/EN/IT).
@@ -234,6 +379,7 @@ class ReviewsInbox extends Component
             'reviewsByReviewer' => $reviewsByReviewer,
             'activeReviews' => $activeReviews,
             'stats' => $stats,
+            'reviewers' => $reviewers,
         ])->layout('components.layouts.app');
     }
 }
