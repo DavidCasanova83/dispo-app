@@ -8,22 +8,94 @@ use Carbon\Carbon;
 
 class QualificationStatisticsV3Service
 {
+    /**
+     * Départements de la région PACA (codes INSEE).
+     */
+    public const PACA_DEPARTMENTS = ['04', '05', '06', '13', '83', '84'];
+
+    /**
+     * Code du département Alpes-de-Haute-Provence.
+     */
+    public const AHP_DEPARTMENT = '04';
+
+    /**
+     * Pays considérés comme européens (hors France), pour la répartition
+     * France / Europe / Reste du monde.
+     */
+    public const EUROPEAN_COUNTRIES = [
+        'Albanie', 'Allemagne', 'Andorre', 'Angleterre', 'Autriche', 'Belgique', 'Biélorussie',
+        'Bosnie-Herzégovine', 'Bulgarie', 'Chypre', 'Croatie', 'Danemark', 'Écosse', 'Espagne',
+        'Estonie', 'Finlande', 'Grèce', 'Hongrie', 'Irlande', 'Irlande du Nord', 'Islande',
+        'Italie', 'Kosovo', 'Lettonie', 'Liechtenstein', 'Lituanie', 'Luxembourg',
+        'Macédoine du Nord', 'Malte', 'Moldavie', 'Monaco', 'Monténégro', 'Norvège',
+        'Pays de Galles', 'Pays-Bas', 'Pologne', 'Portugal', 'République tchèque', 'Roumanie',
+        'Royaume-Uni', 'Russie', 'Saint-Marin', 'Serbie', 'Slovaquie', 'Slovénie', 'Suède',
+        'Suisse', 'Ukraine', 'Vatican',
+    ];
+
+    /**
+     * Types de visiteur exposés dans la répartition.
+     */
+    public const VISITOR_TYPES = ['Habitant', 'Socio Pro', 'Touriste'];
+
+    /**
+     * Tranches d'âge proposées comme filtre. « 0-18 » n'existe plus dans le
+     * formulaire mais reste présent sur les anciennes qualifications.
+     */
+    public const AGE_GROUP_OPTIONS = ['0-6', '6-12', '12-18', '0-18', '18-25', '25-40', '40-60', '60+', 'Inconnu'];
+
     protected ?Collection $cachedQualifications = null;
     protected ?string $cacheKey = null;
+
+    /** @var array<int, string> Tranches d'âge retenues ; vide = pas de filtre. */
+    protected array $ageGroupFilter = [];
+
+    /**
+     * Restreint toutes les statistiques aux qualifications comportant au moins
+     * une des tranches d'âge données. Un tableau vide désactive le filtre.
+     */
+    public function setAgeGroupFilter(array $ageGroups): static
+    {
+        $ageGroups = array_values(array_intersect(self::AGE_GROUP_OPTIONS, $ageGroups));
+
+        if ($ageGroups !== $this->ageGroupFilter) {
+            $this->cachedQualifications = null;
+            $this->cacheKey = null;
+        }
+
+        $this->ageGroupFilter = $ageGroups;
+
+        return $this;
+    }
 
     /**
      * Load and cache qualifications for the current request.
      */
     public function getQualifications(?string $city, ?string $startDate, ?string $endDate): Collection
     {
-        $key = md5(($city ?? 'all') . ($startDate ?? '') . ($endDate ?? ''));
+        $key = md5(($city ?? 'all') . ($startDate ?? '') . ($endDate ?? '') . '|' . implode(',', $this->ageGroupFilter));
 
         if ($this->cacheKey === $key && $this->cachedQualifications !== null) {
             return $this->cachedQualifications;
         }
 
         $query = $this->baseQuery($city, $startDate, $endDate);
-        $this->cachedQualifications = $query->select(['id', 'city', 'form_data', 'user_id', 'created_at'])->get();
+        $qualifications = $query->select(['id', 'city', 'form_data', 'user_id', 'created_at'])->get();
+
+        if (!empty($this->ageGroupFilter)) {
+            $wanted = array_flip($this->ageGroupFilter);
+            $qualifications = $qualifications->filter(function ($qualification) use ($wanted) {
+                foreach ((array) ($qualification->form_data['ageGroups'] ?? []) as $ageGroup) {
+                    if (isset($wanted[$ageGroup])) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })->values();
+        }
+
+        $this->cachedQualifications = $qualifications;
         $this->cacheKey = $key;
 
         return $this->cachedQualifications;
@@ -663,6 +735,223 @@ class QualificationStatisticsV3Service
         ];
     }
 
+    // ──────────── Âge moyen (page uniquement) ────────────
+
+    /**
+     * Âge moyen estimé des visiteurs.
+     *
+     * Les tranches d'âge sont converties en âge médian (ex. « 25-40 » => 32.5,
+     * « 60+ » => 70) puis pondérées par le nombre d'occurrences. La tranche
+     * « Inconnu » et les libellés non interprétables sont ignorés.
+     * En mode normalisé multi-villes, on fait la moyenne des moyennes par ville
+     * pour ne pas laisser un bureau à fort volume écraser les autres.
+     */
+    public function getAverageAge(?string $city, ?string $startDate, ?string $endDate, string $mode = 'absolute'): array
+    {
+        $qualifications = $this->getQualifications($city, $startDate, $endDate);
+        $cities = $this->getActiveCities($city);
+
+        $perCity = [];
+        $globalSum = 0.0;
+        $globalCount = 0;
+
+        foreach ($cities as $cityKey) {
+            $sum = 0.0;
+            $count = 0;
+
+            foreach ($qualifications->where('city', $cityKey) as $qualification) {
+                foreach ((array) ($qualification->form_data['ageGroups'] ?? []) as $range) {
+                    $midpoint = $this->ageRangeMidpoint((string) $range);
+                    if ($midpoint === null) {
+                        continue;
+                    }
+                    $sum += $midpoint;
+                    $count++;
+                }
+            }
+
+            $perCity[$cityKey] = $count > 0 ? round($sum / $count, 1) : null;
+            $globalSum += $sum;
+            $globalCount += $count;
+        }
+
+        if ($globalCount === 0) {
+            return ['average' => null, 'sampleSize' => 0, 'perCity' => $perCity, 'mode' => $mode];
+        }
+
+        if ($mode === 'normalized' && count($cities) > 1) {
+            $cityAverages = array_filter($perCity, fn($avg) => $avg !== null);
+            $average = count($cityAverages) > 0
+                ? round(array_sum($cityAverages) / count($cityAverages), 1)
+                : null;
+        } else {
+            $average = round($globalSum / $globalCount, 1);
+        }
+
+        return [
+            'average' => $average,
+            'sampleSize' => $globalCount,
+            'perCity' => $perCity,
+            'mode' => $mode,
+        ];
+    }
+
+    /**
+     * Convertit un libellé de tranche d'âge en âge médian.
+     * « 25-40 » => 32.5, « 60+ » => 70, « Inconnu » => null.
+     */
+    protected function ageRangeMidpoint(string $range): ?float
+    {
+        $range = trim($range);
+
+        if (preg_match('/^(\d+)\s*-\s*(\d+)$/', $range, $m)) {
+            return ((int) $m[1] + (int) $m[2]) / 2;
+        }
+
+        // Tranche ouverte « 60+ » : on retient une espérance de 10 ans au-delà du seuil
+        if (preg_match('/^(\d+)\s*\+$/', $range, $m)) {
+            return (int) $m[1] + 10;
+        }
+
+        return null;
+    }
+
+    // ──────────── Répartition d'origine détaillée (page uniquement) ────────────
+
+    /**
+     * Répartition France / Europe (hors France) / Reste du monde, et part des
+     * visiteurs PACA et Alpes-de-Haute-Provence rapportée au total des Français.
+     *
+     * Chaque qualification est classée une seule fois : « Reste du monde » si elle
+     * contient au moins un pays hors Europe, sinon « Europe » si elle contient au
+     * moins un pays européen hors France, sinon « France ».
+     */
+    public function getOriginBreakdown(?string $city, ?string $startDate, ?string $endDate): array
+    {
+        $qualifications = $this->getQualifications($city, $startDate, $endDate);
+        $european = array_flip(self::EUROPEAN_COUNTRIES);
+        $pacaCodes = array_flip(self::PACA_DEPARTMENTS);
+
+        $france = 0;
+        $europe = 0;
+        $world = 0;
+
+        $frenchWithDepartment = 0;
+        $paca = 0;
+        $ahp = 0;
+
+        foreach ($qualifications as $qualification) {
+            $formData = $qualification->form_data ?? [];
+
+            $countries = array_values(array_filter(
+                $this->extractCountries($formData),
+                fn($c) => $c !== 'Inconnu'
+            ));
+            $foreign = array_values(array_filter($countries, fn($c) => $c !== 'France'));
+
+            if (empty($foreign)) {
+                $france++;
+
+                $departments = (array) ($formData['departments'] ?? []);
+                if (($formData['departmentUnknown'] ?? false) || empty($departments)) {
+                    continue;
+                }
+
+                $frenchWithDepartment++;
+                $codes = array_filter(array_map(fn($d) => $this->departmentCode((string) $d), $departments));
+
+                if (count(array_intersect_key($pacaCodes, array_flip($codes))) > 0) {
+                    $paca++;
+                }
+                if (in_array(self::AHP_DEPARTMENT, $codes, true)) {
+                    $ahp++;
+                }
+
+                continue;
+            }
+
+            if (count(array_filter($foreign, fn($c) => !isset($european[$c]))) > 0) {
+                $world++;
+            } else {
+                $europe++;
+            }
+        }
+
+        $total = $france + $europe + $world;
+        $pct = fn(int $value, int $base) => $base > 0 ? round(($value / $base) * 100, 1) : 0.0;
+
+        return [
+            'total' => $total,
+            'france' => ['count' => $france, 'pct' => $pct($france, $total)],
+            'europe' => ['count' => $europe, 'pct' => $pct($europe, $total)],
+            'world' => ['count' => $world, 'pct' => $pct($world, $total)],
+            'frenchWithDepartment' => $frenchWithDepartment,
+            'paca' => ['count' => $paca, 'pct' => $pct($paca, $frenchWithDepartment)],
+            'ahp' => ['count' => $ahp, 'pct' => $pct($ahp, $frenchWithDepartment)],
+        ];
+    }
+
+    /**
+     * Extrait le code d'un département stocké sous la forme « 04 - Alpes-de-Haute-Provence ».
+     */
+    protected function departmentCode(string $department): ?string
+    {
+        if (preg_match('/^\s*(\d{2,3}|2[AB])\b/i', $department, $m)) {
+            return strtoupper($m[1]);
+        }
+
+        return null;
+    }
+
+    // ──────────── Type de visiteur (page uniquement) ────────────
+
+    /**
+     * Répartition en % des types de visiteur (Habitant / Socio Pro / Touriste).
+     *
+     * Le champ `visitorType` n'existe pas sur les anciens formulaires : comme dans
+     * l'export, ces qualifications sont comptées en « Touriste » (valeur par défaut
+     * historique). Le nombre de fiches concernées est renvoyé pour affichage.
+     */
+    public function getVisitorTypes(?string $city, ?string $startDate, ?string $endDate): array
+    {
+        $qualifications = $this->getQualifications($city, $startDate, $endDate);
+
+        $counts = array_fill_keys(self::VISITOR_TYPES, 0);
+        $legacyDefaulted = 0;
+        $total = 0;
+
+        foreach ($qualifications as $qualification) {
+            $type = trim((string) ($qualification->form_data['visitorType'] ?? ''));
+
+            if ($type === '') {
+                $type = 'Touriste';
+                $legacyDefaulted++;
+            }
+
+            if (!array_key_exists($type, $counts)) {
+                $counts[$type] = 0;
+            }
+
+            $counts[$type]++;
+            $total++;
+        }
+
+        $items = [];
+        foreach ($counts as $label => $count) {
+            $items[] = [
+                'label' => $label,
+                'count' => $count,
+                'pct' => $total > 0 ? round(($count / $total) * 100, 1) : 0.0,
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'legacyDefaulted' => $legacyDefaulted,
+            'items' => $items,
+        ];
+    }
+
     // ──────────── G7: Contact Methods ────────────
 
     public function getContactMethods(?string $city, ?string $startDate, ?string $endDate, string $mode): array
@@ -734,17 +1023,25 @@ class QualificationStatisticsV3Service
 
     // ──────────── G9: City-Specific Demands ────────────
 
-    public function getCitySpecificDemands(string $city, ?string $startDate, ?string $endDate): array
+    /**
+     * Demandes spécifiques d'un bureau, ou agrégées sur toutes les villes
+     * lorsque $city vaut 'all' / null.
+     */
+    public function getCitySpecificDemands(?string $city, ?string $startDate, ?string $endDate): array
     {
         $qualifications = $this->getQualifications($city, $startDate, $endDate);
 
-        $specificRequests = $qualifications->where('city', $city)
+        if ($city && $city !== 'all') {
+            $qualifications = $qualifications->where('city', $city);
+        }
+
+        $specificRequests = $qualifications
             ->flatMap(fn($q) => $q->form_data['specificRequests'] ?? [])
             ->countBy()
             ->sortDesc()
             ->toArray();
 
-        $otherSpecific = $qualifications->where('city', $city)
+        $otherSpecific = $qualifications
             ->flatMap(fn($q) => $q->form_data['otherSpecificRequests'] ?? [])
             ->countBy()
             ->sortDesc()
