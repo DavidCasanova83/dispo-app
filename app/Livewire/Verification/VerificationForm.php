@@ -41,7 +41,15 @@ class VerificationForm extends Component
 
     // Section 2 — Évaluation éditoriale (optionnelle)
     public ?string $relevance = null;
-    public array $contentToAdd = [];
+    /**
+     * Volontairement non typée : Livewire assigne la valeur brute envoyée par
+     * le client, et une propriété `array` lève alors une TypeError (500) dès
+     * qu'autre chose qu'un tableau arrive — un brouillon localStorage périmé
+     * suffisait. La normalisation est faite dans updatedContentToAdd().
+     *
+     * @var array<int, string>
+     */
+    public $contentToAdd = [];
     public string $contentToAddDetails = '';
     public ?string $contentToRemove = null;
     public string $contentToRemoveDetails = '';
@@ -205,7 +213,7 @@ class VerificationForm extends Component
         $this->mediaComment = $existing->media_comment ?? '';
         $this->remarks = $existing->remarks ?? '';
         $this->relevance = $existing->relevance;
-        $this->contentToAdd = $existing->content_to_add ?? [];
+        $this->contentToAdd = $this->normalizeContentToAdd($existing->content_to_add);
         $this->contentToAddDetails = $existing->content_to_add_details ?? '';
         $this->contentToRemove = $existing->content_to_remove;
         $this->contentToRemoveDetails = $existing->content_to_remove_details ?? '';
@@ -228,6 +236,10 @@ class VerificationForm extends Component
 
     public function updatedContentToAdd($value, $key): void
     {
+        // Le client peut envoyer n'importe quoi (brouillon localStorage, payload
+        // forgé) : on ramène toujours la propriété à une liste de codes connus.
+        $this->contentToAdd = $this->normalizeContentToAdd($this->contentToAdd);
+
         // Si "none" vient d'être coché, on déselectionne les autres.
         if (in_array('none', $this->contentToAdd, true)) {
             $latest = end($this->contentToAdd);
@@ -238,6 +250,25 @@ class VerificationForm extends Component
                 $this->contentToAdd = array_values(array_filter($this->contentToAdd, fn ($v) => $v !== 'none'));
             }
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeContentToAdd(mixed $value): array
+    {
+        $codes = match (true) {
+            is_array($value) => $value,
+            is_string($value) && $value !== '' => [$value],
+            default => [],
+        };
+
+        $allowed = array_keys(VerificationReview::CONTENT_TO_ADD_OPTIONS);
+
+        return array_values(array_filter(
+            $codes,
+            fn ($code) => is_string($code) && in_array($code, $allowed, true),
+        ));
     }
 
     protected function rules(): array

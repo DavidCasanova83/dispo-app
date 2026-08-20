@@ -294,7 +294,7 @@
                             </label>
                         @endforeach
                     </div>
-                    @php $hasYesAdd = ! empty(array_filter($contentToAdd, fn ($c) => $c !== 'none')); @endphp
+                    @php $hasYesAdd = ! empty(array_filter((array) $contentToAdd, fn ($c) => $c !== 'none')); @endphp
                     @if ($hasYesAdd)
                         <div class="mt-4">
                             <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1.5">
@@ -464,6 +464,11 @@
 function verificationFormDraft(pageId, userId, language) {
     const key = `verification-draft-${pageId}-${userId}-${language}`;
 
+    // Incrémenter à chaque changement de forme du brouillon : les brouillons
+    // écrits par une version antérieure sont alors jetés au lieu d'être
+    // réinjectés dans Livewire, où un type inattendu provoquait une erreur 500.
+    const DRAFT_VERSION = 2;
+
     // Champs texte : conservés côté Alpine pour être sauvegardés à chaque frappe,
     // sans attendre le blur qui synchronise Livewire.
     const textFields = [
@@ -491,18 +496,28 @@ function verificationFormDraft(pageId, userId, language) {
                 saved = JSON.parse(localStorage.getItem(key) || 'null');
             } catch (e) { /* brouillon illisible : on repart de zéro */ }
 
+            if (saved && saved._v !== DRAFT_VERSION) {
+                try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+                saved = null;
+            }
+
             if (saved) {
                 this.restoring = true;
                 textFields.forEach(f => {
-                    if (saved[f]) {
+                    if (typeof saved[f] === 'string' && saved[f] !== '') {
                         this.draft[f] = saved[f];
                         this.$wire.set(f, saved[f], false);
                     }
                 });
                 wireFields.forEach(f => {
-                    if (saved[f] !== undefined && saved[f] !== null && saved[f] !== '') {
-                        this.$wire.set(f, saved[f], false);
-                    }
+                    const value = saved[f];
+                    if (value === undefined || value === null || value === '') return;
+
+                    // Le type doit correspondre à celui de la propriété Livewire :
+                    // sinon l'assignation côté PHP échoue et casse tout le formulaire.
+                    if (Array.isArray(value) !== Array.isArray(this.$wire.get(f))) return;
+
+                    this.$wire.set(f, value, false);
                 });
                 this.$nextTick(() => { this.restoring = false; });
             }
@@ -514,7 +529,7 @@ function verificationFormDraft(pageId, userId, language) {
         persist() {
             if (this.restoring) return;
             try {
-                const out = {};
+                const out = { _v: DRAFT_VERSION };
                 textFields.forEach(f => { out[f] = this.draft[f]; });
                 wireFields.forEach(f => { out[f] = this.$wire.get(f); });
                 localStorage.setItem(key, JSON.stringify(out));
