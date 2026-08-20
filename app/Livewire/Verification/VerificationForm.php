@@ -6,6 +6,7 @@ use App\Models\VerificationPage;
 use App\Models\VerificationReview;
 use App\Services\VerificationReviewService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 class VerificationForm extends Component
@@ -149,21 +150,62 @@ class VerificationForm extends Component
      */
     protected function rulesForStep(int $step): array
     {
-        $all = $this->rules();
+        return array_intersect_key($this->rules(), array_flip(self::FIELDS_BY_STEP[$step] ?? []));
+    }
 
-        $byStep = [
-            1 => ['contentOk', 'contentComment'],
-            2 => ['mediaOk', 'mediaComment'],
-            3 => ['remarks'],
-            4 => ['relevance'],
-            5 => ['contentToAdd', 'contentToAdd.*', 'contentToAddDetails'],
-            6 => ['contentToRemove', 'contentToRemoveDetails'],
-            7 => ['visitorPerspective', 'visitorUnanswered'],
-            8 => ['rating'],
-            9 => ['suggestions'],
-        ];
+    /** Champs rattachés à chaque étape : sert aux règles et au saut vers l'erreur. */
+    private const FIELDS_BY_STEP = [
+        1 => ['contentOk', 'contentComment'],
+        2 => ['mediaOk', 'mediaComment'],
+        3 => ['remarks'],
+        4 => ['relevance'],
+        5 => ['contentToAdd', 'contentToAdd.*', 'contentToAddDetails'],
+        6 => ['contentToRemove', 'contentToRemoveDetails'],
+        7 => ['visitorPerspective', 'visitorUnanswered'],
+        8 => ['rating'],
+        9 => ['suggestions'],
+    ];
 
-        return array_intersect_key($all, array_flip($byStep[$step] ?? []));
+    /**
+     * Étape où le champ fautif est affiché. Sans ce saut, une erreur sur une
+     * question précédente restait invisible : le bouton d'envoi semblait
+     * simplement ne rien faire.
+     */
+    private function stepForField(string $field): ?int
+    {
+        $field = explode('.', $field)[0];
+
+        foreach (self::FIELDS_BY_STEP as $step => $fields) {
+            foreach ($fields as $candidate) {
+                if (explode('.', $candidate)[0] === $field) {
+                    return $step;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Les réponses fermées optionnelles peuvent arriver corrompues (brouillon
+     * localStorage d'une version antérieure, payload forgé). On les remet à
+     * null plutôt que de laisser la validation échouer sur une question que
+     * l'utilisateur ne voit pas — l'envoi paraissait alors sans effet.
+     */
+    private function sanitizeOptionalAnswers(): void
+    {
+        $keep = function (mixed $value, array $allowed): ?string {
+            return is_string($value) && in_array($value, $allowed, true) ? $value : null;
+        };
+
+        $this->relevance = $keep($this->relevance, array_keys(VerificationReview::RELEVANCE_LABELS));
+        $this->contentToRemove = $keep($this->contentToRemove, array_keys(VerificationReview::CONTENT_TO_REMOVE_LABELS));
+        $this->visitorPerspective = $keep($this->visitorPerspective, array_keys(VerificationReview::VISITOR_PERSPECTIVE_LABELS));
+        $this->contentToAdd = $this->normalizeContentToAdd($this->contentToAdd);
+
+        if ($this->rating !== null && ($this->rating < 1 || $this->rating > 5)) {
+            $this->rating = null;
+        }
     }
 
     /**
@@ -333,7 +375,24 @@ class VerificationForm extends Component
 
     public function submit()
     {
-        $data = $this->validate();
+        $this->sanitizeOptionalAnswers();
+
+        try {
+            $data = $this->validate();
+        } catch (ValidationException $e) {
+            // On ramène l'utilisateur sur la question fautive : autrement le
+            // message s'affichait dans une étape non rendue, et le clic sur
+            // « Envoyer » restait sans effet visible.
+            $firstField = array_key_first($e->validator->errors()->toArray());
+            $step = $firstField ? $this->stepForField($firstField) : null;
+
+            if ($step !== null) {
+                $this->mode = 'wizard';
+                $this->step = $step;
+            }
+
+            throw $e;
+        }
 
         $review = $this->service->submit($this->page, auth()->user(), [
             'language' => $this->language,
