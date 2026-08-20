@@ -85,6 +85,21 @@
         </a>
     </div>
 
+    {{-- Récapitulatif des erreurs : garantit un retour visible même si le champ
+         fautif appartient à une question qui n'est pas affichée. --}}
+    @if ($errors->any())
+        <div class="rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3">
+            <p class="text-sm font-semibold text-red-800 dark:text-red-300">
+                Votre vérification n'a pas été envoyée :
+            </p>
+            <ul class="mt-1 list-disc list-inside text-sm text-red-800 dark:text-red-200">
+                @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- ═══════════════════════════════════════════════════════════ --}}
     {{-- ÉCRAN DE CHOIX                                              --}}
     {{-- ═══════════════════════════════════════════════════════════ --}}
@@ -170,7 +185,11 @@
         </div>
 
         <form wire:submit.prevent="submit" class="space-y-6">
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6">
+            {{-- wire:key par étape : sans lui, Livewire recycle les éléments d'une
+                 question à l'autre et les liaisons Alpine (x-model) comme les
+                 directives wire: restent celles de l'étape précédente. --}}
+            <div wire:key="question-step-{{ $step }}"
+                class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6">
 
                 {{-- ─── Q1 ─── --}}
                 @if ($step === 1)
@@ -412,14 +431,18 @@
 
             {{-- ─── Navigation ─── --}}
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                {{-- Chaque bouton porte une wire:key stable : Livewire ne peut
+                     plus recycler le bouton « Suivant » en bouton d'envoi (et
+                     inversement) en conservant l'écouteur de l'étape précédente,
+                     ce qui rendait le clic sans effet. --}}
                 <div>
                     @if ($step > 1)
-                        <button type="button" wire:click="previousStep"
+                        <button type="button" wire:click="previousStep" wire:key="nav-previous"
                             class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
                             ← Précédent
                         </button>
                     @else
-                        <button type="button" wire:click="backToChoice"
+                        <button type="button" wire:click="backToChoice" wire:key="nav-back-to-choice"
                             class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
                             ← Retour
                         </button>
@@ -428,27 +451,35 @@
 
                 <div class="flex flex-col sm:flex-row gap-2">
                     @if ($step === 3)
-                        <button type="button" wire:click="goToOptional"
-                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                        {{-- À cette étape, on met en avant la suite du questionnaire :
+                             l'envoi immédiat reste possible, mais discret. --}}
+                        <button type="submit" wire:key="nav-submit-secondary" @click="clearDraft()"
+                            wire:loading.attr="disabled" wire:target="submit"
+                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded disabled:opacity-50">
+                            <span wire:loading.remove wire:target="submit">Envoyer ma vérification</span>
+                            <span wire:loading wire:target="submit">Envoi…</span>
+                        </button>
+                        <button type="button" wire:click="goToOptional" wire:key="nav-go-optional"
+                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
                             Continuer (6 questions)
                         </button>
-                        <button type="submit" @click="clearDraft()"
-                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
-                            Envoyer ma vérification
-                        </button>
                     @elseif ($step === \App\Livewire\Verification\VerificationForm::LAST_STEP)
-                        <button type="submit" @click="clearDraft()"
-                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
-                            Envoyer ma vérification
+                        <button type="submit" wire:key="nav-submit-primary" @click="clearDraft()"
+                            wire:loading.attr="disabled" wire:target="submit"
+                            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded disabled:opacity-50">
+                            <span wire:loading.remove wire:target="submit">Envoyer ma vérification</span>
+                            <span wire:loading wire:target="submit">Envoi…</span>
                         </button>
                     @else
                         @if ($step >= \App\Livewire\Verification\VerificationForm::FIRST_OPTIONAL_STEP)
-                            <button type="submit" @click="clearDraft()"
-                                class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
-                                Envoyer maintenant
+                            <button type="submit" wire:key="nav-submit-secondary" @click="clearDraft()"
+                                wire:loading.attr="disabled" wire:target="submit"
+                                class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded disabled:opacity-50">
+                                <span wire:loading.remove wire:target="submit">Envoyer maintenant</span>
+                                <span wire:loading wire:target="submit">Envoi…</span>
                             </button>
                         @endif
-                        <button type="button" wire:click="nextStep"
+                        <button type="button" wire:click="nextStep" wire:key="nav-next"
                             class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded">
                             Suivant →
                         </button>
