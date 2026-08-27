@@ -82,9 +82,9 @@ class QualificationEdit extends Component
     {
         // Options spécifiques par ville
         $this->specificOptions = [
-            'annot' => ['Sport de falaise', 'Train à Vapeur', 'Grès d\'Annot'],
+            'annot' => ['Sport de falaise', 'Train à vapeur', 'Grès d\'Annot'],
             'colmars-les-alpes' => ['Lac d\'Allos', 'Cascade de la Lance', 'Maison Musée', 'Fête Médiévale', 'Fort de Savoie'],
-            'entrevaux' => ['Côte d\'Azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à Vapeur'],
+            'entrevaux' => ['Côte d\'Azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à vapeur'],
             'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Sport de falaise', 'Couloir Samson', 'Lac de Sainte-Croix'],
             'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train à vapeur']
         ];

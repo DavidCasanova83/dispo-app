@@ -40,7 +40,7 @@ class="relative w-full">
                 @focus="$wire.focusSearch()"
                 @blur="$wire.blurSearch()"
                 :disabled="$wire.departmentUnknown"
-                placeholder="Ex: 04 - Alpes-de-Haute-Provence ou rechercher..."
+                placeholder="Rechercher un département dans la liste..."
                 class="w-full px-3 py-1.5 pr-9 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#3E9B90] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 autocomplete="off"
             >
