@@ -141,11 +141,17 @@ class DepartmentSelector extends Component
 
     /**
      * Close dropdown
+     *
+     * La recherche n'est qu'un filtre : le texte tapé n'est jamais une valeur.
+     * On l'efface donc à la fermeture pour qu'aucune saisie libre ne subsiste
+     * à l'écran si l'utilisateur n'a rien choisi dans la liste.
      */
     public function closeDropdown()
     {
         $this->showDropdown = false;
         $this->highlightedIndex = -1;
+        $this->searchQuery = '';
+        $this->updateSearchResults();
     }
 
     /**
@@ -167,14 +173,14 @@ class DepartmentSelector extends Component
                 break;
 
             case 'Enter':
+                // Entrée ne valide jamais le texte tapé : uniquement un
+                // département de la liste (surligné, ou seul résultat du filtre).
                 if ($this->highlightedIndex >= 0 && isset($this->searchResults[$this->highlightedIndex])) {
-                    // Sélectionner l'élément surligné
                     $this->toggleDepartment($this->searchResults[$this->highlightedIndex]['code']);
                 } elseif (count($this->searchResults) === 1) {
-                    // Si un seul résultat, le sélectionner automatiquement
                     $this->toggleDepartment($this->searchResults[0]['code']);
-                } elseif (count($this->searchResults) > 0 && $this->highlightedIndex < 0) {
-                    // Sinon, surligner le premier élément
+                } elseif (count($this->searchResults) > 0) {
+                    // Aucun élément ciblé : on surligne le premier au lieu de valider.
                     $this->highlightedIndex = 0;
                 }
                 break;

@@ -23,7 +23,8 @@ class QualificationForm extends Component
     public const PREDEFINED_COUNTRIES = ['France', 'Belgique', 'Allemagne', 'Italie', 'Pays-Bas', 'Suisse', 'Espagne', 'Angleterre'];
 
     // Étape 1 : Informations générales
-    public $visitorType = '';
+    // Présélectionné sur "Touriste" : cas très majoritaire à l'accueil.
+    public $visitorType = 'Touriste';
     public $countries = ['France'];
     public $countriesTouched = false;
     public $showCountryDropdown = false;
@@ -93,9 +94,9 @@ class QualificationForm extends Component
     {
         // Options spécifiques par ville
         $this->specificOptions = [
-            'annot' => ['Sport de falaise', 'Train à Vapeur', 'Grès d\'Annot'],
+            'annot' => ['Sport de falaise', 'Train à vapeur', 'Grès d\'Annot'],
             'colmars-les-alpes' => ['Lac d\'Allos', 'Cascade de la Lance', 'Maison Musée', 'Fête Médiévale', 'Fort de Savoie'],
-            'entrevaux' => ['Côte d\'Azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à Vapeur'],
+            'entrevaux' => ['Côte d\'Azur', 'Chemin de ronde', 'Citadelle', 'Gorge de Daluis', 'Train à vapeur'],
             'la-palud-sur-verdon' => ['Blanc-Martel', 'Route des Crêtes', 'Sport de falaise', 'Couloir Samson', 'Lac de Sainte-Croix'],
             'saint-andre-les-alpes' => ['Lac de Castillon', 'Parapente', 'Train à vapeur']
         ];
@@ -439,7 +440,7 @@ class QualificationForm extends Component
         $this->qualificationId = null;
 
         // Réinitialiser Étape 1
-        $this->visitorType = '';
+        $this->visitorType = 'Touriste';
         $this->countries = ['France'];
         $this->countriesTouched = false;
         $this->showCountryDropdown = false;
@@ -517,10 +518,31 @@ class QualificationForm extends Component
         // Sélectionner un vrai pays retire l'état "Inconnu".
         $this->countries = array_values(array_diff($this->countries, ['Inconnu']));
 
+        // Première interaction sur un autre pays : la France présélectionnée
+        // par défaut est retirée automatiquement.
+        $this->dropDefaultFrance($country);
+
         if (in_array($country, $this->countries, true)) {
             $this->countries = array_values(array_diff($this->countries, [$country]));
         } else {
             $this->countries[] = $country;
+        }
+
+        $this->countriesTouched = true;
+    }
+
+    /**
+     * Retire la France de la sélection lorsqu'elle n'y figure que par défaut
+     * (aucune interaction utilisateur sur les pays) et qu'un autre pays est choisi.
+     */
+    protected function dropDefaultFrance($country)
+    {
+        if ($country === 'France' || $this->countriesTouched) {
+            return;
+        }
+
+        if ($this->countries === ['France']) {
+            $this->countries = [];
         }
     }
 
@@ -529,6 +551,8 @@ class QualificationForm extends Component
      */
     public function toggleCountryUnknown()
     {
+        $this->countriesTouched = true;
+
         if (in_array('Inconnu', $this->countries, true)) {
             $this->countries = [];
         } else {
@@ -559,7 +583,9 @@ class QualificationForm extends Component
         if (in_array($country, self::PREDEFINED_COUNTRIES, true) || $this->geographyService->isValidCountry($country)) {
             // Sélectionner un vrai pays retire l'état "Inconnu".
             $this->countries = array_values(array_diff($this->countries, ['Inconnu']));
+            $this->dropDefaultFrance($country);
             $this->countries[] = $country;
+            $this->countriesTouched = true;
         }
     }
 
