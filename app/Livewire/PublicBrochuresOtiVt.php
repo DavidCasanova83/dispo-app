@@ -47,6 +47,12 @@ class PublicBrochuresOtiVt extends Component
     #[Rule('required|string|min:10|max:1000')]
     public string $reportComment = '';
 
+    // Modal d'information "contacter le responsable"
+    public bool $showResponsableInfoModal = false;
+    public ?string $responsableInfoBrochureTitle = null;
+    public ?string $responsableInfoName = null;
+    public ?string $responsableInfoEmail = null;
+
     // Modal de mise hors ligne
     public bool $showOfflineModal = false;
     public ?int $offlineBrochureId = null;
@@ -190,6 +196,54 @@ class PublicBrochuresOtiVt extends Component
 
         $this->closeReportModal();
         session()->flash('success', 'Votre signalement a été envoyé. Merci pour votre contribution !');
+    }
+
+    /**
+     * Vérifie si l'utilisateur courant peut éditer une brochure.
+     * Autorisé : Admin, Super-admin, ou le responsable de la brochure.
+     */
+    public function canEditBrochure(Image $brochure): bool
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        if ($user->hasAnyRole(['Admin', 'Super-admin'])) {
+            return true;
+        }
+
+        return $brochure->responsable_id !== null && $brochure->responsable_id === $user->id;
+    }
+
+    /**
+     * Affiche les coordonnées du responsable pour une brochure que l'utilisateur
+     * connecté n'a pas le droit de modifier.
+     */
+    public function openResponsableInfoModal(int $brochureId): void
+    {
+        if (!Auth::check()) {
+            return;
+        }
+
+        $brochure = Image::with('responsable')->find($brochureId);
+        if (!$brochure) {
+            return;
+        }
+
+        $this->responsableInfoBrochureTitle = $brochure->title ?? $brochure->name;
+        $this->responsableInfoName = $brochure->responsable?->name;
+        $this->responsableInfoEmail = $brochure->responsable?->email;
+        $this->showResponsableInfoModal = true;
+    }
+
+    public function closeResponsableInfoModal(): void
+    {
+        $this->showResponsableInfoModal = false;
+        $this->responsableInfoBrochureTitle = null;
+        $this->responsableInfoName = null;
+        $this->responsableInfoEmail = null;
     }
 
     /**
@@ -480,12 +534,18 @@ class PublicBrochuresOtiVt extends Component
 
         // Données nécessaires au modal d'édition admin (chargées uniquement si admin connecté)
         $isAdmin = Auth::check() && Auth::user()->hasAnyRole(['Admin', 'Super-admin']);
-        $editModalCategories = $isAdmin ? Category::orderBy('name')->get() : collect();
-        $editModalSubCategories = $isAdmin ? SubCategory::with('category')->orderBy('name')->get() : collect();
-        $editModalAuthors = $isAdmin ? Author::orderBy('name')->get() : collect();
-        $editModalSectors = $isAdmin ? Sector::orderBy('name')->get() : collect();
-        $editModalResponsables = $isAdmin ? User::where('approved', true)->orderBy('name')->get() : collect();
-        $editModalUsedDisplayOrders = $isAdmin
+
+        // Le modal d'édition est aussi accessible aux responsables de brochures
+        $isResponsable = Auth::check()
+            && Image::where('responsable_id', Auth::id())->exists();
+        $canUseEditModal = $isAdmin || $isResponsable;
+
+        $editModalCategories = $canUseEditModal ? Category::orderBy('name')->get() : collect();
+        $editModalSubCategories = $canUseEditModal ? SubCategory::with('category')->orderBy('name')->get() : collect();
+        $editModalAuthors = $canUseEditModal ? Author::orderBy('name')->get() : collect();
+        $editModalSectors = $canUseEditModal ? Sector::orderBy('name')->get() : collect();
+        $editModalResponsables = $canUseEditModal ? User::where('approved', true)->orderBy('name')->get() : collect();
+        $editModalUsedDisplayOrders = $canUseEditModal
             ? Image::whereNotNull('display_order')->orderBy('display_order')->pluck('display_order')->unique()->values()->toArray()
             : [];
 
@@ -510,6 +570,7 @@ class PublicBrochuresOtiVt extends Component
             'isFilteredByUrl' => (bool) ($this->categorySlug || $this->sectorSlug || $this->authorSlug),
             // Données pour le modal d'édition admin
             'isAdmin' => $isAdmin,
+            'canUseEditModal' => $canUseEditModal,
             'editModalCategories' => $editModalCategories,
             'editModalSubCategories' => $editModalSubCategories,
             'editModalAuthors' => $editModalAuthors,

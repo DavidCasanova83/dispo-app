@@ -37,8 +37,10 @@ class ImagePolicy
      */
     public function update(User $user, Image $image): bool
     {
-        // User can update if they are the uploader OR if they are Super-admin
-        return $image->uploaded_by === $user->id || $user->hasRole('Super-admin');
+        // Admin / Super-admin, l'uploader, ou le responsable de la brochure
+        return $user->hasAnyRole(['Admin', 'Super-admin'])
+            || $image->uploaded_by === $user->id
+            || ($image->responsable_id !== null && $image->responsable_id === $user->id);
     }
 
     /**

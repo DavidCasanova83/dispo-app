@@ -703,22 +703,22 @@
                                                 @endif
                                             </button>
                                         @endif
-                                        @if ($isAdmin)
+                                        @if ($isAdmin || auth()->id() === $brochure->responsable_id)
                                             <button type="button" wire:click="openEditModal({{ $brochure->id }})"
                                                 class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-[#3E9B90] text-white hover:bg-[#347d74] shadow-sm transition-colors cursor-pointer"
-                                                title="Modifier (admin)">
+                                                title="{{ $isAdmin ? 'Modifier (admin)' : 'Modifier cette brochure' }}">
                                                 <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
                                             </button>
-                                        @elseif (auth()->id() === $brochure->responsable_id)
-                                            <a href="{{ route('mes-brochures') }}"
-                                                class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-900/50 shadow-sm transition-colors cursor-pointer"
-                                                title="Modifier cette brochure">
+                                        @else
+                                            <button type="button" wire:click="openResponsableInfoModal({{ $brochure->id }})"
+                                                class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-gray-100 dark:bg-zinc-700 text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-600 shadow-sm transition-colors cursor-pointer"
+                                                title="Modification réservée au responsable">
                                                 <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
-                                            </a>
+                                            </button>
                                         @endif
                                         <button type="button" wire:click="openReportModal({{ $brochure->id }})"
                                             class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 shadow-sm transition-colors cursor-pointer"
@@ -921,9 +921,49 @@
         @endif
     @endauth
 
-    {{-- Modal d'édition admin (visible uniquement pour Admin / Super-admin) --}}
+    {{-- Modal d'information : contacter le responsable --}}
     @auth
-        @if ($isAdmin)
+        @if ($showResponsableInfoModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" wire:click.self="closeResponsableInfoModal">
+                <div class="w-full max-w-md bg-white dark:bg-zinc-800 rounded-xl shadow-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                        Modification non autorisée
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                        Vous n'êtes pas responsable de la brochure
+                        <span class="font-medium text-gray-900 dark:text-white">« {{ $responsableInfoBrochureTitle }} »</span>.
+                    </p>
+                    @if ($responsableInfoName)
+                        <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                            Pour toute modification, merci de contacter le responsable :
+                            <span class="font-medium text-gray-900 dark:text-white">{{ $responsableInfoName }}</span>
+                            @if ($responsableInfoEmail)
+                                <br>
+                                <a href="mailto:{{ $responsableInfoEmail }}" class="text-[#3E9B90] hover:underline">{{ $responsableInfoEmail }}</a>
+                            @endif
+                        </p>
+                    @else
+                        <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                            Aucun responsable n'est actuellement défini pour cette brochure. Merci de contacter un administrateur.
+                        </p>
+                    @endif
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                        Vous pouvez aussi utiliser le bouton « Signaler un problème » pour prévenir le responsable.
+                    </p>
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" wire:click="closeResponsableInfoModal"
+                            class="px-4 py-2 rounded-lg bg-[#3E9B90] text-white text-sm font-medium hover:bg-[#347d74] transition-colors cursor-pointer">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endauth
+
+    {{-- Modal d'édition (Admin / Super-admin et responsables de brochures) --}}
+    @auth
+        @if ($canUseEditModal)
             @include('partials.admin-brochure-edit-modal', [
                 'categories' => $editModalCategories,
                 'subCategories' => $editModalSubCategories,
