@@ -54,6 +54,7 @@ class RoleService
             'Admin' => 4,
             'Qualification' => 3,
             'Disponibilites' => 3,
+            'Traducteur' => 2,
             'Utilisateurs' => 1,
         ];
 
@@ -82,6 +83,7 @@ class RoleService
             'Admin' => 'Accès complet au système sauf gestion des utilisateurs',
             'Qualification' => 'Accès à la section qualification et statistiques',
             'Disponibilites' => 'Accès aux informations d\'hébergement et disponibilités',
+            'Traducteur' => 'Vérification des traductions EN/IT des pages du site',
             'Utilisateurs' => 'Accès aux formulaires des villes uniquement',
             default => 'Rôle inconnu',
         };

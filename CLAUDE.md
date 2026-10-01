@@ -16,6 +16,7 @@ Application Laravel 12 + Livewire 3 (Flux UI, Volt) regroupant plusieurs modules
 | Commandes | Commande de brochures par les partenaires (Turnstile + honeypot) et gestion admin | `/commander-images`, `/admin/commandes` |
 | Agendas | PDF d'agenda avec activation programmée | `/admin/agendas`, `/storage/agendas/agenda-en-cours.pdf` |
 | Vérification des pages | Relecture des pages de verdontourisme.com (scan du sitemap, assignation aux relecteurs, multi-langues, revalidation annuelle) | `/verification`, `/verification/admin/*`, `app/Services/*Verification*`, `PageReleaseService`, `SitemapScanService` |
+| Traductions | Rôle **Traducteur** : verdict EN/IT par page (correcte → validée ; à corriger → commentaire), suivi et validation des corrections par le super-admin. Circuit indépendant de la vérification FR (table `translation_checks`, non purgée par la clôture annuelle) | `/verification/traductions`, `/verification/admin/traductions`, `TranslationCheckService`, `app/Livewire/Verification/Translation/` |
 | Administration | Utilisateurs (approbation manuelle), rôles/permissions, export Apidae, soumissions de formulaires WordPress (CF7) | `/admin/users`, `/admin/apidae-export`, `/admin/contact-submissions` |
 
 APIs : `GET /api/accommodations`, `GET /api/images[/{id}]` (public), `POST /api/contact-form/submit` (token `WORDPRESS_CF7_API_TOKEN`).
@@ -85,7 +86,8 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 - **Autorisations** : middleware maison `permission:perm1,perm2` (OU logique, `app/Http/Middleware/CheckPermission.php`),
   policies dans `app/Policies/`, rôles/permissions définis dans `database/seeders/RolePermissionSeeder.php`
   (+ seeders `Add*PermissionSeeder` pour les permissions ajoutées ensuite, à lancer en prod avec `db:seed --class=…`).
-  Rôles : Super-admin, Admin, Qualification, Disponibilites, Utilisateurs.
+  Rôles : Super-admin, Admin, Qualification, Disponibilites, Traducteur, Utilisateurs.
+  Rôle Traducteur en prod : `php artisan migrate` puis `php artisan db:seed --class=AddTranslatorRoleSeeder`.
 - Toujours une migration pour les changements de schéma ; soft deletes sur `images` et `verification_pages`.
 - Échapper les sorties (`{{ }}`) ; HTML utilisateur → `Purify`. Valider côté serveur.
 - Liens envoyés aux hébergeurs = **URLs signées** (`signed`), page d'expiration gérée dans `bootstrap/app.php`.

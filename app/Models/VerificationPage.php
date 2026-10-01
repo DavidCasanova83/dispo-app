@@ -212,6 +212,32 @@ class VerificationPage extends Model
         return $this->hasMany(VerificationReview::class, 'page_id');
     }
 
+    public function translationChecks(): HasMany
+    {
+        return $this->hasMany(TranslationCheck::class, 'page_id');
+    }
+
+    /**
+     * État de traduction d'une langue (null = à vérifier). S'appuie sur la
+     * relation chargée quand elle l'est, pour éviter une requête par ligne.
+     */
+    public function translationCheckFor(string $language): ?TranslationCheck
+    {
+        return $this->translationChecks->firstWhere('language', $language);
+    }
+
+    /**
+     * Pages concernées par la vérification des traductions : toutes, sauf celles
+     * sorties du sitemap (vues lors d'un scan, absentes du dernier). Les pages
+     * créées à la main, jamais scannées, restent incluses.
+     */
+    public function scopeForTranslation($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->where('is_in_sitemap', true)
+            ->orWhereNull('last_seen_in_sitemap_at'));
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

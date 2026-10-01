@@ -58,6 +58,8 @@
                                 Accès section qualification et stats
                             @elseif($role->name === 'Disponibilites')
                                 Accès informations hébergement
+                            @elseif($role->name === 'Traducteur')
+                                Vérification des traductions EN/IT
                             @elseif($role->name === 'Utilisateurs')
                                 Accès formulaires des villes uniquement
                             @endif
