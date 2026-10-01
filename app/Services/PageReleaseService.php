@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\VerificationPage;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -70,7 +71,7 @@ class PageReleaseService
             ->where('va.user_id', $userId)
             ->whereNull('va.released_at')
             ->whereNull('vp.deleted_at')
-            ->orderByRaw("FIELD(vp.priority, 'high', 'medium', 'low')")
+            ->orderByRaw(VerificationPage::priorityOrderSql('vp.priority'))
             ->orderByRaw('vp.deadline IS NULL, vp.deadline ASC')
             ->orderBy('va.created_at')
             ->limit($needed)

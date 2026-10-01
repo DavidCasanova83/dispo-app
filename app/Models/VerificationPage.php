@@ -83,6 +83,34 @@ class VerificationPage extends Model
         'validated' => ['label' => 'Validée', 'tone' => 'success'],
     ];
 
+    /** Ordre de tri des priorités, de la plus urgente à la moins urgente. */
+    public const PRIORITY_ORDER = ['high', 'medium', 'low'];
+
+    /**
+     * Expression SQL portable (MySQL/MariaDB et SQLite) équivalente à
+     * FIELD($column, ...$values) : rang 1, 2, 3… selon l'ordre de $values, 0 sinon.
+     * $column et $values viennent du code, jamais de l'utilisateur.
+     */
+    public static function orderBySql(string $column, array $values): string
+    {
+        $cases = collect($values)
+            ->values()
+            ->map(fn (string $value, int $i) => "WHEN '{$value}' THEN ".($i + 1))
+            ->implode(' ');
+
+        return "CASE {$column} {$cases} ELSE 0 END";
+    }
+
+    public static function priorityOrderSql(string $column = 'priority'): string
+    {
+        return self::orderBySql($column, self::PRIORITY_ORDER);
+    }
+
+    public static function statusOrderSql(string $column = 'status'): string
+    {
+        return self::orderBySql($column, array_keys(self::STATUSES));
+    }
+
     public function statusLabel(): string
     {
         return self::STATUSES[$this->status]['label'] ?? (string) $this->status;

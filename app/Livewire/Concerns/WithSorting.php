@@ -16,7 +16,7 @@ use Livewire\Attributes\Url;
  *
  * Une entrée de sortableFields() vaut soit un nom de colonne, soit un callable
  * (Builder $query, string $direction) pour les tris qui demandent une
- * expression SQL (FIELD(), COALESCE()…).
+ * expression SQL (CASE, COALESCE()…).
  */
 trait WithSorting
 {

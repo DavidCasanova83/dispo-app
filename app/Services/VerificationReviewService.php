@@ -214,7 +214,7 @@ class VerificationReviewService
     public function pendingForUser(User $user): Collection
     {
         return VerificationPage::pendingForUser($user)
-            ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+            ->orderByRaw(VerificationPage::priorityOrderSql())
             ->orderBy('deadline')
             ->get();
     }
