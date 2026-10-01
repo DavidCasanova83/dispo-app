@@ -26,7 +26,7 @@
                 @endcan
             </flux:navlist.group>
 
-            @canany(['manage-users', 'manage-images', 'manage-orders', 'manage-brochure-menu'])
+            @canany(['manage-users', 'manage-images', 'manage-orders', 'manage-brochure-menu', 'export-apidae'])
                 <flux:navlist.group :heading="__('Administration')" class="grid">
                     @can('manage-users')
                         <flux:navlist.item icon="users" :href="route('admin.users')" :current="request() -> routeIs('admin.users')"
@@ -46,6 +46,11 @@
                     @can('manage-brochure-menu')
                         <flux:navlist.item icon="list-bullet" :href="route('admin.brochure-menu')" :current="request() -> routeIs('admin.brochure-menu')"
                             wire:navigate>{{ __('Menu Brochures') }}</flux:navlist.item>
+                    @endcan
+
+                    @can('export-apidae')
+                        <flux:navlist.item icon="arrow-down-tray" :href="route('admin.apidae-export')" :current="request() -> routeIs('admin.apidae-export')"
+                            wire:navigate>{{ __('Export Apidae') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
             @endcanany
