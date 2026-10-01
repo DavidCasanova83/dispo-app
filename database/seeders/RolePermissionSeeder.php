@@ -30,6 +30,8 @@ class RolePermissionSeeder extends Seeder
             'manage-page-verification',
             'export-apidae',
             'sync-mailjet',
+            'verify-translations',
+            'manage-translations',
         ];
 
         foreach ($permissions as $permission) {
@@ -67,6 +69,10 @@ class RolePermissionSeeder extends Seeder
         // 5. Utilisateurs: Base level - can view and fill forms
         $utilisateurs = Role::firstOrCreate(['name' => 'Utilisateurs', 'guard_name' => 'web']);
         $utilisateurs->syncPermissions(['fill-forms', 'view-qualification']);
+
+        // 6. Traducteur: vérification des traductions EN/IT des pages du site
+        $traducteur = Role::firstOrCreate(['name' => 'Traducteur', 'guard_name' => 'web']);
+        $traducteur->syncPermissions(['verify-translations']);
 
         $this->command->info('Roles and permissions synchronized!');
     }

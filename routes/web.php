@@ -192,6 +192,19 @@ Route::middleware(['auth', 'approved'])->group(function () {
             Route::get('/retours', \App\Livewire\Verification\Admin\ReviewsInbox::class)->name('reviews');
         });
 
+        // Vérification des traductions EN/IT - rôle Traducteur
+        Route::middleware(['permission:verify-translations'])->prefix('traductions')->name('translations.')->group(function () {
+            Route::get('/', \App\Livewire\Verification\Translation\TranslationList::class)->name('index');
+            Route::get('/{page}', \App\Livewire\Verification\Translation\TranslationForm::class)
+                ->whereNumber('page')
+                ->name('form');
+        });
+
+        // Suivi et validation des traductions - super-admin
+        Route::middleware(['permission:manage-translations'])->prefix('admin')->name('admin.')->group(function () {
+            Route::get('/traductions', \App\Livewire\Verification\Admin\TranslationsManager::class)->name('translations');
+        });
+
         // Formulaire d'une page (route paramétrée — placée après admin pour éviter le conflit)
         Route::get('/{page}', \App\Livewire\Verification\VerificationForm::class)
             ->whereNumber('page')

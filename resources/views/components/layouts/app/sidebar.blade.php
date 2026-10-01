@@ -62,18 +62,34 @@
                 </flux:navlist.group>
             @endcan
 
-            @can('manage-page-verification')
+            @canany(['manage-page-verification', 'verify-translations', 'manage-translations'])
                 <flux:navlist.group :heading="__('Vérification web')" class="grid">
-                    <flux:navlist.item icon="document-magnifying-glass"
-                        :href="route('verification.admin.pages')"
-                        :current="request()->routeIs('verification.admin.pages')"
-                        wire:navigate>{{ __('Pages à vérifier') }}</flux:navlist.item>
-                    <flux:navlist.item icon="inbox"
-                        :href="route('verification.admin.reviews')"
-                        :current="request()->routeIs('verification.admin.reviews')"
-                        wire:navigate>{{ __('Boîte de retours') }}</flux:navlist.item>
+                    @can('manage-page-verification')
+                        <flux:navlist.item icon="document-magnifying-glass"
+                            :href="route('verification.admin.pages')"
+                            :current="request()->routeIs('verification.admin.pages')"
+                            wire:navigate>{{ __('Pages à vérifier') }}</flux:navlist.item>
+                        <flux:navlist.item icon="inbox"
+                            :href="route('verification.admin.reviews')"
+                            :current="request()->routeIs('verification.admin.reviews')"
+                            wire:navigate>{{ __('Boîte de retours') }}</flux:navlist.item>
+                    @endcan
+                    @can('verify-translations')
+                        <flux:navlist.item icon="language"
+                            :href="route('verification.translations.index')"
+                            :current="request()->routeIs('verification.translations.*')"
+                            wire:navigate>{{ __('Traductions') }}</flux:navlist.item>
+                    @endcan
+                    @can('manage-translations')
+                        @php $translationsToHandle = app(\App\Services\TranslationCheckService::class)->countToHandle(); @endphp
+                        <flux:navlist.item icon="check-badge"
+                            :href="route('verification.admin.translations')"
+                            :current="request()->routeIs('verification.admin.translations')"
+                            :badge="$translationsToHandle ?: null" badge-color="red"
+                            wire:navigate>{{ __('Suivi des traductions') }}</flux:navlist.item>
+                    @endcan
                 </flux:navlist.group>
-            @endcan
+            @endcanany
         </flux:navlist>
 
         <flux:spacer />
