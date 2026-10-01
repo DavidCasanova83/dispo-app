@@ -28,6 +28,8 @@ class RolePermissionSeeder extends Seeder
             'edit-disponibilites',
             'fill-forms',
             'manage-page-verification',
+            'export-apidae',
+            'sync-mailjet',
         ];
 
         foreach ($permissions as $permission) {
@@ -50,6 +52,8 @@ class RolePermissionSeeder extends Seeder
             'view-disponibilites',
             'edit-disponibilites',
             'fill-forms',
+            'export-apidae',
+            'sync-mailjet',
         ]);
 
         // 3. Qualification: Access to qualification section

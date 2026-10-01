@@ -94,6 +94,11 @@ Route::middleware(['auth', 'approved'])->group(function () {
         })->name('accommodations');
     });
 
+    // Route pour l'export des sélections Apidae - requires export-apidae permission
+    Route::middleware(['permission:export-apidae'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/apidae-export', \App\Livewire\Admin\ApidaeExport::class)->name('apidae-export');
+    });
+
     // Routes pour l'administration des utilisateurs - requires manage-users permission (Super-admin only)
     Route::middleware(['permission:manage-users'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', \App\Livewire\Admin\UsersList::class)->name('users');

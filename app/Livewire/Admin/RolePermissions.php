@@ -65,6 +65,8 @@ class RolePermissions extends Component
             'edit-disponibilites' => 'Modifier les disponibilités',
             'fill-forms' => 'Remplir les formulaires',
             'manage-brochure-menu' => 'Gérer le menu de la page brochures OTI-VT',
+            'export-apidae' => 'Exporter les sélections Apidae (CSV et Excel)',
+            'sync-mailjet' => 'Mettre à jour une liste de contacts Mailjet',
             default => $permissionName,
         };
     }
