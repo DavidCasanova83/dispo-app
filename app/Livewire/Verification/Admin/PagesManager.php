@@ -125,11 +125,9 @@ class PagesManager extends Component
     {
         return [
             'title' => 'title',
-            'priority' => fn (Builder $q, string $dir) => $q->orderByRaw("FIELD(priority, 'high', 'medium', 'low') {$dir}"),
+            'priority' => fn (Builder $q, string $dir) => $q->orderByRaw(VerificationPage::priorityOrderSql()." {$dir}"),
             'deadline' => fn (Builder $q, string $dir) => $q->orderByRaw("deadline IS NULL, deadline {$dir}"),
-            'status' => fn (Builder $q, string $dir) => $q->orderByRaw(
-                "FIELD(status, 'pending', 'in_progress', 'needs_fix', 'awaiting_validation', 'validated') {$dir}"
-            ),
+            'status' => fn (Builder $q, string $dir) => $q->orderByRaw(VerificationPage::statusOrderSql()." {$dir}"),
             'assignees' => fn (Builder $q, string $dir) => $q->orderBy('assignees_count', $dir),
             'created_at' => 'created_at',
         ];
@@ -143,7 +141,7 @@ class PagesManager extends Component
     protected function applyDefaultSorting(Builder $query): Builder
     {
         return $query
-            ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'needs_fix', 'awaiting_validation', 'validated')")
+            ->orderByRaw(VerificationPage::statusOrderSql())
             ->orderByDesc('created_at');
     }
 
@@ -672,11 +670,11 @@ class PagesManager extends Component
                 SUM(status = 'validated') as validated,
                 SUM(is_in_sitemap = 1) as in_sitemap,
                 SUM(is_in_sitemap = 0 AND last_seen_in_sitemap_at IS NOT NULL) as orphan,
-                SUM(status <> 'validated' AND deadline IS NOT NULL AND deadline < CURDATE()) as overdue,
+                SUM(status <> 'validated' AND deadline IS NOT NULL AND deadline < ?) as overdue,
                 SUM(NOT EXISTS (
                     SELECT 1 FROM verification_assignments va WHERE va.page_id = verification_pages.id
                 )) as without_assignee
-            ")
+            ", [now()->toDateString()])
             ->first();
 
         return array_map(

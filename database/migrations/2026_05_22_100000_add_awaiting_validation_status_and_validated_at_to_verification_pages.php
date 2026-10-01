@@ -13,6 +13,30 @@ return new class extends Migration
             $table->timestamp('validated_at')->nullable()->after('status');
         });
 
+        // SQLite (tests, dev local) : pas de MODIFY COLUMN ni d'UPDATE … JOIN.
+        // L'enum y est une contrainte CHECK, que change() recrée en reconstruisant la table ;
+        // priority est redéclarée pour que la reconstruction conserve aussi sa contrainte.
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            Schema::table('verification_pages', function (Blueprint $table) {
+                $table->enum('priority', ['low', 'medium', 'high'])->default('medium')->change();
+                $table->enum('status', ['pending', 'in_progress', 'awaiting_validation', 'validated', 'needs_fix'])
+                    ->default('pending')
+                    ->change();
+            });
+
+            DB::statement("
+                UPDATE verification_pages
+                SET validated_at = COALESCE((
+                    SELECT MAX(vr.updated_at)
+                    FROM verification_reviews vr
+                    WHERE vr.page_id = verification_pages.id AND vr.language = 'fr' AND vr.status = 'done'
+                ), updated_at)
+                WHERE status = 'validated'
+            ");
+
+            return;
+        }
+
         DB::statement("ALTER TABLE verification_pages MODIFY COLUMN status ENUM('pending', 'in_progress', 'awaiting_validation', 'validated', 'needs_fix') NOT NULL DEFAULT 'pending'");
 
         // Backfill : pour les pages déjà validées avant l'introduction de validated_at,
@@ -40,7 +64,16 @@ return new class extends Migration
             ->where('status', 'awaiting_validation')
             ->update(['status' => 'in_progress']);
 
-        DB::statement("ALTER TABLE verification_pages MODIFY COLUMN status ENUM('pending', 'in_progress', 'validated', 'needs_fix') NOT NULL DEFAULT 'pending'");
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            Schema::table('verification_pages', function (Blueprint $table) {
+                $table->enum('priority', ['low', 'medium', 'high'])->default('medium')->change();
+                $table->enum('status', ['pending', 'in_progress', 'validated', 'needs_fix'])
+                    ->default('pending')
+                    ->change();
+            });
+        } else {
+            DB::statement("ALTER TABLE verification_pages MODIFY COLUMN status ENUM('pending', 'in_progress', 'validated', 'needs_fix') NOT NULL DEFAULT 'pending'");
+        }
 
         Schema::table('verification_pages', function (Blueprint $table) {
             $table->dropColumn('validated_at');

@@ -50,21 +50,25 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 
 ## Pièges connus (à lire avant de toucher à la base ou aux tests)
 
-1. **SQLite n'est plus supporté de bout en bout**, malgré le README et `.env.example` :
-   - la migration `2026_05_22_100000_add_awaiting_validation_status_and_validated_at_to_verification_pages`
-     utilise `ALTER TABLE … MODIFY COLUMN … ENUM` et `UPDATE … JOIN` (MySQL uniquement) → `migrate` échoue sur SQLite ;
-   - `orderByRaw("FIELD(...)")` dans `PagesManager`, `PageReleaseService`, `VerificationReviewService`
-     → `/dashboard` et `/verification` renvoient une 500 sur SQLite.
-   Pour développer : utiliser MySQL/MariaDB. Toute nouvelle migration avec du SQL brut doit tester
-   `Schema::getConnection()->getDriverName()` (modèle : `2025_12_10_164444_add_status_to_agendas_table.php`).
+1. **Le code doit rester compatible MySQL/MariaDB (prod) ET SQLite (dev local, tests)** :
+   - pas de fonction SQL propre à MySQL (`FIELD()`, `CURDATE()`, `DATE_FORMAT()`, `MODIFY COLUMN`, `UPDATE … JOIN`…) ;
+     pour trier selon une liste de valeurs, utiliser `VerificationPage::orderBySql()` / `priorityOrderSql()` / `statusOrderSql()`
+     (expression `CASE` portable) ; passer les dates en paramètre lié (`?`) plutôt que `CURDATE()` ;
+   - littéraux SQL entre apostrophes simples (`'valeur'`), jamais entre guillemets doubles ;
+   - une migration avec du SQL brut doit tester `Schema::getConnection()->getDriverName()`
+     (modèle : `2026_05_22_100000_add_awaiting_validation_status_…` ; sous SQLite, modifier un enum = `->change()`,
+     en redéclarant les autres enums de la table pour conserver leurs contraintes CHECK).
 2. **Tests** : `.env.testing` et `phpunit.xml` forcent SQLite `:memory:` (pour ne jamais toucher la base de prod).
-   À cause du point 1, la suite échoue actuellement (25/27 tests en échec à la migration).
-   Ne jamais faire tourner les tests sur la base MySQL de production.
+   Ne jamais faire tourner les tests sur la base MySQL de production. Les migrations passent, mais 7 tests hérités du
+   starter kit échouent encore pour des raisons métier : utilisateurs de la factory non approuvés (302),
+   réinitialisation de mot de passe qui instancie Mailjet sans clé, validation de l'e-mail à l'inscription.
 3. **CI** (`.github/workflows/`) ne se déclenche que sur `main`/`develop`, alors que la branche par défaut est
    `master` → la CI ne tourne pas en pratique. Elle nécessite aussi les secrets `FLUX_USERNAME` / `FLUX_LICENSE_KEY`.
 4. **Approbation des comptes** : toute route protégée passe par le middleware `approved` (`users.approved = true`).
    Le seeder ne met pas `approved` à `true` pour `test@example.com` : il faut le faire à la main
    (voir `clearcache.md` ou `php artisan tinker`), sinon la connexion renvoie vers `/login`.
+   `DatabaseSeeder` ne lance pas les seeders `Add*PermissionSeeder` : sans eux, même le Super-admin reçoit une 403
+   sur `/admin/agendas` et `/admin/brochure-menu` (`manage-agendas`, `manage-brochure-menu`).
 5. Les routes qualification sont contraintes par une regex de slugs de villes (dupliquée dans `routes/web.php`) :
    ajouter une ville = modifier toutes les occurrences + `QualificationController`.
 6. Le planificateur est défini à **deux endroits** : `bootstrap/app.php` (`withSchedule` : Apidae 5h, reset statuts 3h,

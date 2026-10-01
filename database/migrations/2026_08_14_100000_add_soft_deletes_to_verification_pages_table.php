@@ -25,6 +25,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('verification_pages', function (Blueprint $table) {
+            // Index supprimé d'abord : SQLite refuse de retirer une colonne encore indexée.
+            $table->dropIndex(['deleted_at']);
             $table->dropSoftDeletes();
         });
     }
