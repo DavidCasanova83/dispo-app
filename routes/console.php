@@ -24,3 +24,8 @@ Schedule::command('verification:revalidate-aged')->dailyAt('03:00');
 //    ne submerge personne, il remplace une page terminée dès le lendemain au
 //    lieu d'attendre la semaine suivante.
 Schedule::command('verification:release-pages')->dailyAt('03:30');
+
+// ─── Corrections de traduction confiées à Claude ──────────────────────
+// Crée la PR quand Claude a fini, puis suit son état (ouverte, fusionnée,
+// fermée). Sans demande en cours, aucun appel à GitHub.
+Schedule::command('translations:claude-sync')->everyFiveMinutes()->withoutOverlapping(10);

@@ -226,6 +226,21 @@ class VerificationPage extends Model
         return $this->translationChecks->firstWhere('language', $language);
     }
 
+    /** Corrections de traduction demandées à Claude (toutes langues, historique). */
+    public function claudeRequests(): HasMany
+    {
+        return $this->hasMany(TranslationClaudeRequest::class, 'page_id');
+    }
+
+    /** Dernière demande à Claude pour une langue (relation chargée quand elle l'est). */
+    public function latestClaudeRequestFor(string $language): ?TranslationClaudeRequest
+    {
+        return $this->claudeRequests
+            ->where('language', $language)
+            ->sortByDesc('id')
+            ->first();
+    }
+
     /**
      * Pages concernées par la vérification des traductions : toutes, sauf celles
      * sorties du sitemap (vues lors d'un scan, absentes du dernier). Les pages
