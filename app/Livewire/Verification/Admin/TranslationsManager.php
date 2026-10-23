@@ -5,12 +5,14 @@ namespace App\Livewire\Verification\Admin;
 use App\Models\TranslationCheck;
 use App\Models\VerificationPage;
 use App\Services\TranslationCheckService;
+use App\Services\TranslationClaudeService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
  * Suivi des traductions (super-admin) : état EN/IT de toutes les pages et
- * traitement des corrections signalées par les traducteurs.
+ * traitement des corrections signalées par les traducteurs, à la main ou
+ * confiées à Claude (issue GitHub puis PR, TranslationClaudeService).
  */
 class TranslationsManager extends Component
 {
@@ -30,6 +32,9 @@ class TranslationsManager extends Component
     /** @var array<string, string> réponse de l'admin, par langue */
     public array $responses = [];
 
+    /** @var array<string, string> précisions pour Claude, par langue */
+    public array $claudeMessages = [];
+
     protected $queryString = [
         'filterStatus' => ['as' => 'etat', 'except' => 'all'],
         'filterLanguage' => ['as' => 'langue', 'except' => 'all'],
@@ -40,9 +45,12 @@ class TranslationsManager extends Component
 
     protected TranslationCheckService $service;
 
-    public function boot(TranslationCheckService $service): void
+    protected TranslationClaudeService $claude;
+
+    public function boot(TranslationCheckService $service, TranslationClaudeService $claude): void
     {
         $this->service = $service;
+        $this->claude = $claude;
     }
 
     public function updating($property): void
@@ -85,6 +93,7 @@ class TranslationsManager extends Component
     {
         $this->selectedPageId = null;
         $this->responses = [];
+        $this->claudeMessages = [];
         $this->resetErrorBag();
     }
 
@@ -107,6 +116,61 @@ class TranslationsManager extends Component
         $this->responses[$language] = '';
 
         session()->flash('success', 'Nouvelle vérification '.TranslationCheck::LANGUAGES[$language]['short'].' demandée.');
+    }
+
+    // ─── CORRECTION PAR CLAUDE ────────────────────────────────────
+
+    /**
+     * Envoie la traduction signalée à Claude : issue GitHub avec la page, les
+     * adresses et le commentaire du traducteur ; la PR est créée par le panel
+     * quand Claude a fini (translations:claude-sync, toutes les 5 minutes).
+     */
+    public function askClaude(string $language): void
+    {
+        $page = $this->selectedPage();
+        abort_unless($page && isset(TranslationCheck::LANGUAGES[$language]), 404);
+
+        $this->validate(
+            ["claudeMessages.{$language}" => ['nullable', 'string', 'max:3000']],
+            ["claudeMessages.{$language}.max" => 'Les précisions ne doivent pas dépasser 3000 caractères.'],
+        );
+
+        $check = $page->translationCheckFor($language);
+        if (! $check) {
+            $this->addError("claude.{$language}", 'Cette traduction n\'a pas encore été vérifiée.');
+
+            return;
+        }
+
+        try {
+            $request = $this->claude->send($check, auth()->user(), $this->claudeMessages[$language] ?? '');
+        } catch (\DomainException $e) {
+            $this->addError("claude.{$language}", $e->getMessage());
+
+            return;
+        }
+
+        $this->claudeMessages[$language] = '';
+        session()->flash('success', "Demande envoyée à Claude (issue #{$request->issue_number}). La PR sera créée automatiquement dès qu'il aura fini.");
+    }
+
+    /** Vérifie tout de suite où en est la dernière demande à Claude d'une langue. */
+    public function refreshClaude(string $language): void
+    {
+        $page = $this->selectedPage();
+        abort_unless($page && isset(TranslationCheck::LANGUAGES[$language]), 404);
+
+        $request = $page->latestClaudeRequestFor($language);
+        if (! $request || ! $request->isActive()) {
+            return;
+        }
+
+        $messages = $this->claude->sync($request);
+
+        // Une erreur s'affiche déjà sous la demande.
+        if (! $request->fresh()->error) {
+            session()->flash('success', $messages[0] ?? 'Demande à jour.');
+        }
     }
 
     private function resolve(string $language, string $status, string $message): void
@@ -140,7 +204,7 @@ class TranslationsManager extends Component
     private function selectedPage(): ?VerificationPage
     {
         return $this->selectedPageId
-            ? VerificationPage::with(['translationChecks.checker:id,name', 'translationChecks.handler:id,name'])->find($this->selectedPageId)
+            ? VerificationPage::with(['translationChecks.checker:id,name', 'translationChecks.handler:id,name', 'claudeRequests.requester:id,name'])->find($this->selectedPageId)
             : null;
     }
 
@@ -198,6 +262,7 @@ class TranslationsManager extends Component
                     'page' => $page,
                     'stats' => $stats,
                     'languages' => $languages,
+                    'claudeConfigured' => $this->claude->isConfigured(),
                 ])->layout('components.layouts.app');
             }
 
@@ -207,7 +272,7 @@ class TranslationsManager extends Component
 
         // Ce qui attend une action de l'admin remonte en premier.
         $query = $this->baseQuery()
-            ->with('translationChecks.checker:id,name')
+            ->with(['translationChecks.checker:id,name', 'claudeRequests'])
             ->withCount([
                 'translationChecks as to_fix_count' => fn ($q) => $q->whereIn('language', $languages)->where('status', 'to_fix'),
                 'translationChecks as in_progress_count' => fn ($q) => $q->whereIn('language', $languages)->where('status', 'in_progress'),

@@ -48,4 +48,11 @@ return [
         'api_token' => env('WORDPRESS_CF7_API_TOKEN'),
     ],
 
+    // Corrections de traduction confiées à Claude (Suivi des traductions) :
+    // issues @claude et PR dans le dépôt du site. Mise en place : DEMANDES_CLAUDE.md
+    'github_claude' => [
+        'token' => env('CLAUDE_GITHUB_TOKEN'),
+        'repository' => env('CLAUDE_GITHUB_REPOSITORY', 'DavidCasanova83/VT-custom-2025'),
+    ],
+
 ];

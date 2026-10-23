@@ -16,7 +16,7 @@ Application Laravel 12 + Livewire 3 (Flux UI, Volt) regroupant plusieurs modules
 | Commandes | Commande de brochures par les partenaires (Turnstile + honeypot) et gestion admin | `/commander-images`, `/admin/commandes` |
 | Agendas | PDF d'agenda avec activation programmée | `/admin/agendas`, `/storage/agendas/agenda-en-cours.pdf` |
 | Vérification des pages | Relecture des pages de verdontourisme.com (scan du sitemap, assignation aux relecteurs, multi-langues, revalidation annuelle) | `/verification`, `/verification/admin/*`, `app/Services/*Verification*`, `PageReleaseService`, `SitemapScanService` |
-| Traductions | Rôle **Traducteur** : verdict EN/IT par page (correcte → validée ; à corriger → commentaire), suivi et validation des corrections par le super-admin. Circuit indépendant de la vérification FR (table `translation_checks`, non purgée par la clôture annuelle) | `/verification/traductions`, `/verification/admin/traductions`, `TranslationCheckService`, `app/Livewire/Verification/Translation/` |
+| Traductions | Rôle **Traducteur** : verdict EN/IT par page (correcte → validée ; à corriger → commentaire), suivi et validation des corrections par le super-admin. Circuit indépendant de la vérification FR (table `translation_checks`, non purgée par la clôture annuelle). Correction confiable à **Claude** : issue GitHub `@claude` dans le dépôt du site, PR créée par le panel quand il a fini (`DEMANDES_CLAUDE.md`) | `/verification/traductions`, `/verification/admin/traductions`, `TranslationCheckService`, `TranslationClaudeService`, `app/Livewire/Verification/Translation/` |
 | Administration | Utilisateurs (approbation manuelle), rôles/permissions, export Apidae, soumissions de formulaires WordPress (CF7) | `/admin/users`, `/admin/apidae-export`, `/admin/contact-submissions` |
 
 APIs : `GET /api/accommodations`, `GET /api/images[/{id}]` (public), `POST /api/contact-form/submit` (token `WORDPRESS_CF7_API_TOKEN`).
@@ -46,7 +46,8 @@ php artisan app:deploy-command      # clear caches + npm run build + config/rout
 Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `accommodations:reset-status`,
 `agendas:activate-pending`, `verification:revalidate-aged`, `verification:release-pages`,
 `verification:purge`, `verification:restore-page`, `verification:recompute-statuses`,
-`brochures:compress-existing`, `brochures:resync-sizes --dry-run`, `images:generate-json`
+`brochures:compress-existing`, `brochures:resync-sizes --dry-run`, `images:generate-json`,
+`translations:claude-sync` (`--test` : connexion à GitHub)
 (voir `app/Console/Commands/` pour les signatures exactes et options).
 
 ## Pièges connus (à lire avant de toucher à la base ou aux tests)
@@ -73,7 +74,8 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 5. Les routes qualification sont contraintes par une regex de slugs de villes (dupliquée dans `routes/web.php`) :
    ajouter une ville = modifier toutes les occurrences + `QualificationController`.
 6. Le planificateur est défini à **deux endroits** : `bootstrap/app.php` (`withSchedule` : Apidae 5h, reset statuts 3h,
-   queue chaque minute, e-mails 6h) et `routes/console.php` (agendas 00:01, vérification 3h00 puis 3h30 — l'ordre compte).
+   queue chaque minute, e-mails 6h) et `routes/console.php` (agendas 00:01, vérification 3h00 puis 3h30 — l'ordre compte ;
+   suivi des corrections confiées à Claude toutes les 5 minutes).
    En prod, la queue est consommée par le cron (`queue:work --stop-when-empty`), pas par un worker permanent.
 
 ## Architecture & conventions
@@ -98,7 +100,8 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 
 `APIDAE_API_KEY`, `APIDAE_PROJECT_ID`, `APIDAE_SELECTION_ID`, `MAILJET_APIKEY`, `MAILJET_APISECRET`,
 `ORDER_NOTIFICATION_EMAIL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `WORDPRESS_CF7_API_TOKEN`,
-`GHOSTSCRIPT_BIN`, `PDF_COMPRESSION_ENABLED`, `VERIFICATION_SITEMAP_URL`, `HONEYPOT_*`.
+`GHOSTSCRIPT_BIN`, `PDF_COMPRESSION_ENABLED`, `VERIFICATION_SITEMAP_URL`, `HONEYPOT_*`,
+`CLAUDE_GITHUB_TOKEN`, `CLAUDE_GITHUB_REPOSITORY` (corrections de traduction confiées à Claude).
 Sans clés Apidae/Mailjet, l'interface fonctionne mais import et e-mails échouent (mettre `MAIL_MAILER=log` en local).
 
 ## Documentation existante
@@ -106,7 +109,7 @@ Sans clés Apidae/Mailjet, l'interface fonctionne mais import et e-mails échoue
 Détails fonctionnels dans les fichiers à la racine (certains passages sont datés — le code fait foi) :
 `ANALYSE_APPLICATION.md` (vue d'ensemble), `APIDAE_SETUP.md`, `APIDAE_SCHEDULING.md`, `MAILJET_SETUP.md`,
 `QUEUES_JOBS_ET_FICHIERS.md`, `DOCUMENTATION_STATISTIQUES.md`, `PLAN_UPLOAD_IMAGES.md`, `SECURITY_SETUP.md`,
-`Outil-qualification.md`, `clearcache.md`, ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
+`Outil-qualification.md`, `clearcache.md`, `DEMANDES_CLAUDE.md` (traductions corrigées par Claude), ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
 
 ## Fichiers à ne pas committer / à manipuler avec précaution
 

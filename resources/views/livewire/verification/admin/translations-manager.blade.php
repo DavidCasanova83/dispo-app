@@ -104,6 +104,10 @@
                                         @elseif (! $page->urlForLanguage($code))
                                             <p class="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">URL non renseignée</p>
                                         @endif
+                                        @php $claudeRequest = $page->latestClaudeRequestFor($code); @endphp
+                                        @if ($claudeRequest && ($claudeRequest->isActive() || in_array($check?->status, ['to_fix', 'in_progress'], true)))
+                                            <p class="mt-0.5 text-[11px] text-purple-700 dark:text-purple-300">🤖 Claude : {{ $claudeRequest->statusLabel() }}</p>
+                                        @endif
                                     </td>
                                 @endforeach
                                 <td class="px-3 py-2 align-top">
@@ -213,6 +217,84 @@
                             <div class="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
                                 <p class="text-xs uppercase font-semibold text-blue-800 dark:text-blue-300 mb-1">Votre réponse</p>
                                 <p class="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-line">{{ $check->admin_response }}</p>
+                            </div>
+                        @endif
+
+                        {{-- Correction par Claude : issue GitHub, puis PR créée par le panel --}}
+                        @php $claudeRequest = $page->latestClaudeRequestFor($code); @endphp
+                        @if ($actionable || $claudeRequest)
+                            <div class="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-900/10 p-3 flex flex-col gap-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs uppercase font-semibold text-purple-800 dark:text-purple-300">🤖 Correction par Claude</p>
+                                    @if ($claudeRequest)
+                                        <x-verif.status-badge size="xs" :tone="$claudeRequest->statusTone()" :label="$claudeRequest->statusLabel()" />
+                                    @endif
+                                </div>
+
+                                @if ($claudeRequest)
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        Demandée le {{ $claudeRequest->sent_at?->translatedFormat('d F Y à H:i') }}
+                                        par {{ $claudeRequest->requester?->name ?? 'un utilisateur supprimé' }}
+                                        @if ($claudeRequest->issue_url)
+                                            · <a href="{{ $claudeRequest->issue_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="text-indigo-600 dark:text-indigo-400 hover:underline">issue #{{ $claudeRequest->issue_number }} ↗</a>
+                                        @endif
+                                        @if ($claudeRequest->pr_url)
+                                            · <a href="{{ $claudeRequest->pr_url }}" target="_blank" rel="noopener noreferrer"
+                                                class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">PR #{{ $claudeRequest->pr_number }} ↗</a>
+                                        @endif
+                                    </p>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                        @switch($claudeRequest->status)
+                                            @case('sent')
+                                                Claude corrige la traduction. La PR sera créée automatiquement dès qu'il aura fini (vérification toutes les 5 minutes).
+                                                @break
+                                            @case('pr_open')
+                                                PR à relire et fusionner sur GitHub.
+                                                @break
+                                            @case('merged')
+                                                PR fusionnée : après déploiement, vérifiez la page en ligne puis « Marquer corrigée ».
+                                                @break
+                                            @case('closed')
+                                                PR fermée sans fusion : rien n'a été modifié sur le site.
+                                                @break
+                                            @case('no_change')
+                                                Claude n'a rien modifié dans le dépôt : sa réponse est dans l'issue (page de l'admin WordPress à corriger à la main, ou correction non applicable).
+                                                @break
+                                        @endswitch
+                                    </p>
+                                    @if ($claudeRequest->error)
+                                        <p class="text-sm {{ $claudeRequest->status === 'failed' ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400' }}">{{ $claudeRequest->error }}</p>
+                                    @endif
+                                    @if ($claudeRequest->isActive())
+                                        <button type="button" wire:click="refreshClaude('{{ $code }}')" wire:loading.attr="disabled"
+                                            class="self-start text-sm text-purple-800 dark:text-purple-300 hover:underline underline-offset-2">
+                                            🔄 Vérifier maintenant
+                                        </button>
+                                    @endif
+                                @endif
+
+                                @if ($actionable && ! $claudeRequest?->isActive())
+                                    <div>
+                                        <label for="claude-{{ $code }}" class="text-sm font-medium text-gray-900 dark:text-white">Précisions pour Claude (facultatif)</label>
+                                        <textarea id="claude-{{ $code }}" wire:model="claudeMessages.{{ $code }}" rows="2"
+                                            placeholder="Le commentaire du traducteur est transmis tel quel."
+                                            class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white"></textarea>
+                                        @error("claudeMessages.{$code}") <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                                    </div>
+                                    @if ($claudeConfigured)
+                                        <button type="button" wire:click="askClaude('{{ $code }}')" wire:loading.attr="disabled"
+                                            wire:confirm="Envoyer la correction {{ $lang['short'] }} à Claude ? Une issue GitHub est créée avec le commentaire du traducteur ; Claude corrige la page et une PR est créée automatiquement, à relire avant de fusionner."
+                                            class="self-start px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg">
+                                            🤖 {{ $claudeRequest ? 'Renvoyer à Claude' : 'Demander la correction à Claude' }}
+                                        </button>
+                                    @else
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            Connexion à GitHub non configurée (<code>CLAUDE_GITHUB_TOKEN</code>, voir DEMANDES_CLAUDE.md).
+                                        </p>
+                                    @endif
+                                @endif
+                                @error("claude.{$code}") <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                             </div>
                         @endif
 
