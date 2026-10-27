@@ -14,6 +14,7 @@ class VerificationReview extends Model
         'page_id',
         'user_id',
         'language',
+        'cycle',
         'content_ok',
         'content_comment',
         'media_ok',
@@ -31,6 +32,9 @@ class VerificationReview extends Model
         'admin_response',
         'admin_response_at',
         'status',
+        'archived_at',
+        'reviewer_seen_at',
+        'submitted_at',
     ];
 
     public const LANGUAGE_FLAGS = [
@@ -54,7 +58,11 @@ class VerificationReview extends Model
         'media_ok' => 'boolean',
         'content_to_add' => 'array',
         'rating' => 'integer',
+        'cycle' => 'integer',
         'admin_response_at' => 'datetime',
+        'archived_at' => 'datetime',
+        'reviewer_seen_at' => 'datetime',
+        'submitted_at' => 'datetime',
     ];
 
     public const RELEVANCE_LABELS = [
@@ -121,9 +129,10 @@ class VerificationReview extends Model
             || ! empty($this->suggestions);
     }
 
+    /** Page de la relecture, y compris si elle a été retirée du suivi (corbeille). */
     public function page(): BelongsTo
     {
-        return $this->belongsTo(VerificationPage::class, 'page_id');
+        return $this->belongsTo(VerificationPage::class, 'page_id')->withTrashed();
     }
 
     public function user(): BelongsTo
@@ -133,17 +142,21 @@ class VerificationReview extends Model
 
     /**
      * Source unique des libellés et couleurs de statut côté admin.
-     * (userFacingStatus() reste la variante émoji destinée au relecteur.)
+     * (userFacingStatus() est la variante destinée au relecteur.)
      */
     public const STATUSES = [
-        'pending_admin' => ['label' => 'À traiter', 'tone' => 'warn'],
-        'in_progress' => ['label' => 'En cours', 'tone' => 'info'],
-        'revision_requested' => ['label' => 'À ré-vérifier', 'tone' => 'accent'],
-        'done' => ['label' => 'Validée', 'tone' => 'success'],
+        'pending_admin' => ['label' => 'Nouveau', 'tone' => 'warn'],
+        'in_progress' => ['label' => 'En correction', 'tone' => 'info'],
+        'revision_requested' => ['label' => 'Renvoyé au relecteur', 'tone' => 'accent'],
+        'done' => ['label' => 'Réglé', 'tone' => 'success'],
     ];
 
     public function statusLabel(): string
     {
+        if ($this->status === 'done' && $this->isAllClear()) {
+            return 'Rien à signaler';
+        }
+
         return self::STATUSES[$this->status]['label'] ?? (string) $this->status;
     }
 
@@ -155,11 +168,10 @@ class VerificationReview extends Model
     public function userFacingStatus(): string
     {
         return match ($this->status) {
-            'done' => '✅ Validée',
-            'in_progress' => '🛠️ En cours de modification',
-            'revision_requested' => '🔄 À ré-vérifier',
-            'pending_admin' => '⏳ En attente de traitement',
-            default => '⏳ En attente de traitement',
+            'done' => $this->isAllClear() ? 'Rien à signaler' : 'Réglé',
+            'in_progress' => 'En cours de correction',
+            'revision_requested' => 'À revoir',
+            default => 'Reçu',
         };
     }
 
@@ -172,6 +184,55 @@ class VerificationReview extends Model
             'pending_admin' => 'gray',
             default => 'gray',
         };
+    }
+
+    /**
+     * Le relecteur n'a signalé aucun problème (contenu et médias OK) : la
+     * relecture est réglée d'office, sans passer par l'admin.
+     */
+    public function isAllClear(): bool
+    {
+        return (bool) $this->content_ok && (bool) $this->media_ok;
+    }
+
+    /** Date de la dernière soumission du relecteur (pas celle du traitement par l'admin). */
+    public function submittedAt(): ?\Illuminate\Support\Carbon
+    {
+        return $this->submitted_at ?? $this->created_at;
+    }
+
+    /** Relecture d'un cycle clôturé : consultable, hors de tout calcul. */
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /**
+     * Réponses ou traitements de l'admin que le relecteur n'a pas encore vus
+     * (pastille « nouveau » de son historique).
+     */
+    public function scopeUnseenByReviewer($query)
+    {
+        return $query->whereNull('reviewer_seen_at');
+    }
+
+    /** Valeurs copiées dans le journal avant qu'une nouvelle soumission les remplace. */
+    public function snapshot(): array
+    {
+        return collect($this->only([
+            'status', 'content_ok', 'content_comment', 'media_ok', 'media_comment', 'remarks',
+            'relevance', 'content_to_add', 'content_to_add_details', 'content_to_remove',
+            'content_to_remove_details', 'visitor_perspective', 'visitor_unanswered', 'rating',
+            'suggestions', 'admin_response',
+        ]))->put('admin_response_at', $this->admin_response_at?->toIso8601String())
+            ->put('submitted_at', $this->submittedAt()?->toIso8601String())
+            ->reject(fn ($v) => $v === null || $v === '' || $v === [])
+            ->all();
     }
 
     public function hasIssues(): bool

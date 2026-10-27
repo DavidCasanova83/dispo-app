@@ -22,10 +22,10 @@
         <select wire:model.live="filterStatus"
             class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
             <option value="all">Toutes</option>
-            <option value="done">✅ Validées</option>
-            <option value="in_progress">🛠️ En cours de modification</option>
-            <option value="revision_requested">🔄 À ré-vérifier</option>
-            <option value="pending_admin">⏳ En attente</option>
+            <option value="done">✅ Réglées ou rien à signaler</option>
+            <option value="in_progress">🛠️ En cours de correction</option>
+            <option value="revision_requested">🔄 À revoir</option>
+            <option value="pending_admin">⏳ Reçues</option>
         </select>
         <select wire:model.live="filterPeriod"
             class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
@@ -43,12 +43,21 @@
                     <h3 class="text-base font-semibold text-gray-900 dark:text-white">
                         {{ $review->page?->title ?? '—' }}
                     </h3>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                        {{ $review->languageFlag() }} {{ $review->languageLabel() }}
-                    </span>
+                    @if ($review->language !== 'fr')
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            {{ $review->languageFlag() }} {{ $review->languageLabel() }}
+                        </span>
+                    @endif
+                    @if (in_array($review->id, $newIds, true))
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-600 text-white">Nouveau</span>
+                    @endif
+                    @if ($review->isArchived())
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                            title="La vérification annuelle de cette page est terminée">Cycle clôturé le {{ $review->archived_at->translatedFormat('d F Y') }}</span>
+                    @endif
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Vérifiée le {{ $review->created_at->translatedFormat('d F Y') }}
+                    Rendue le {{ $review->submittedAt()->translatedFormat('d F Y') }}
                     @if ($review->rating)
                         <span class="ml-2 text-yellow-500">
                             @for ($i = 1; $i <= 5; $i++){{ $i <= $review->rating ? '★' : '☆' }}@endfor

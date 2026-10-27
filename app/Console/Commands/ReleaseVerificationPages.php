@@ -19,10 +19,11 @@ class ReleaseVerificationPages extends Command
     public function handle(PageReleaseService $service): int
     {
         $report = $service->replenishAll();
-        $quota = PageReleaseService::ACTIVE_PAGES_QUOTA;
+        $quota = PageReleaseService::quota();
 
         if (empty($report)) {
             $this->info("Aucune libération nécessaire (tous les relecteurs ont déjà ≥ {$quota} pages actives, ou aucune assignation en attente).");
+
             return Command::SUCCESS;
         }
 

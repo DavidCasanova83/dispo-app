@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\VerificationPage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SitemapScanService
@@ -37,7 +36,7 @@ class SitemapScanService
                     ]);
                     $updated++;
                 } else {
-                    VerificationPage::create([
+                    $page = VerificationPage::create([
                         'title' => $this->deriveTitleFromUrl($url),
                         'url' => $url,
                         'priority' => 'medium',
@@ -46,6 +45,7 @@ class SitemapScanService
                         'last_seen_in_sitemap_at' => $now,
                         'created_by' => $creatorUserId,
                     ]);
+                    app(\App\Services\VerificationJournal::class)->record($page, 'created', ['source' => 'scan'], actorId: $creatorUserId);
                     $created++;
                 }
             }

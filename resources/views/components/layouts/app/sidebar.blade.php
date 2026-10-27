@@ -62,17 +62,32 @@
                 </flux:navlist.group>
             @endcan
 
-            @canany(['manage-page-verification', 'verify-translations', 'manage-translations'])
+            {{-- Relecteurs : leurs pages à relire et les réponses de l'admin --}}
+            @php
+                $verificationReviewer = app(\App\Services\VerificationReviewService::class);
+                $isReviewer = \Illuminate\Support\Facades\DB::table('verification_assignments')->where('user_id', auth()->id())->exists()
+                    || \App\Models\VerificationReview::where('user_id', auth()->id())->exists();
+                $reviewerBadge = $isReviewer
+                    ? $verificationReviewer->pendingForUser(auth()->user())->count() + $verificationReviewer->unseenResponsesCount(auth()->user())
+                    : 0;
+            @endphp
+
+            @if ($isReviewer || auth()->user()->canAny(['manage-page-verification', 'verify-translations', 'manage-translations']))
                 <flux:navlist.group :heading="__('Vérification web')" class="grid">
+                    @if ($isReviewer)
+                        <flux:navlist.item icon="clipboard-document-check"
+                            :href="route('verification.index')"
+                            :current="request()->routeIs('verification.index', 'verification.history', 'verification.form')"
+                            :badge="$reviewerBadge ?: null" badge-color="red"
+                            wire:navigate>{{ __('Mes vérifications') }}</flux:navlist.item>
+                    @endif
                     @can('manage-page-verification')
+                        @php $newFeedback = app(\App\Services\VerificationOverviewService::class)->newFeedbackCount(); @endphp
                         <flux:navlist.item icon="document-magnifying-glass"
-                            :href="route('verification.admin.pages')"
-                            :current="request()->routeIs('verification.admin.pages')"
-                            wire:navigate>{{ __('Pages à vérifier') }}</flux:navlist.item>
-                        <flux:navlist.item icon="inbox"
-                            :href="route('verification.admin.reviews')"
-                            :current="request()->routeIs('verification.admin.reviews')"
-                            wire:navigate>{{ __('Boîte de retours') }}</flux:navlist.item>
+                            :href="route('verification.admin.todo')"
+                            :current="request()->routeIs('verification.admin.todo', 'verification.admin.pages', 'verification.admin.page', 'verification.admin.verified', 'verification.admin.trash')"
+                            :badge="$newFeedback ?: null" badge-color="red"
+                            wire:navigate>{{ __('Vérification des pages') }}</flux:navlist.item>
                     @endcan
                     @can('verify-translations')
                         <flux:navlist.item icon="language"
@@ -89,7 +104,7 @@
                             wire:navigate>{{ __('Suivi des traductions') }}</flux:navlist.item>
                     @endcan
                 </flux:navlist.group>
-            @endcanany
+            @endif
         </flux:navlist>
 
         <flux:spacer />

@@ -132,20 +132,55 @@
                 </a>
             </div>
 
+            {{-- Vérification des pages — pour l'admin : retours à traiter --}}
+            @can('manage-page-verification')
+                @php
+                    $newFeedbackCount = app(\App\Services\VerificationOverviewService::class)->newFeedbackCount();
+                    $readyToCloseCount = \App\Models\VerificationPage::where('status', 'awaiting_validation')->count();
+                @endphp
+                <div class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-emerald-600 to-teal-800 hover:from-emerald-700 hover:to-teal-900 transition-all duration-300">
+                    <a href="{{ route('verification.admin.todo') }}"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
+                        <div class="absolute inset-3 border-2 border-white/30 rounded-lg transition-all duration-500 ease-out group-hover:inset-4 group-hover:border-white/60 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"></div>
+
+                        @if ($newFeedbackCount > 0)
+                            <span class="absolute top-4 right-4 z-10 inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-red-600 text-white text-xs font-bold">{{ $newFeedbackCount }}</span>
+                        @endif
+                        <div class="text-4xl mb-2 relative z-10">🗂️</div>
+                        <h3 class="text-lg font-semibold mb-2 relative z-10">Vérification des pages</h3>
+                        <p class="text-sm opacity-90 relative z-10">
+                            @if ($newFeedbackCount > 0 || $readyToCloseCount > 0)
+                                {{ $newFeedbackCount }} nouveau(x) retour(s) · {{ $readyToCloseCount }} prête(s) à clôturer
+                            @else
+                                Rien à traiter
+                            @endif
+                        </p>
+                    </a>
+                </div>
+            @endcan
+
             {{-- Vérification de pages — pour les utilisateurs ayant des pages assignées --}}
             @php
                 $pendingVerificationsCount = app(\App\Services\VerificationReviewService::class)
                     ->pendingForUser(auth()->user())->count();
+                $unseenVerificationResponses = app(\App\Services\VerificationReviewService::class)
+                    ->unseenResponsesCount(auth()->user());
             @endphp
-            @if ($pendingVerificationsCount > 0)
+            @if ($pendingVerificationsCount > 0 || $unseenVerificationResponses > 0)
                 <div class="group relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-br from-rose-500 to-pink-700 hover:from-rose-600 hover:to-pink-800 transition-all duration-300">
                     <a href="{{ route('verification.index') }}"
                         class="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center">
                         <div class="absolute inset-3 border-2 border-white/30 rounded-lg transition-all duration-500 ease-out group-hover:inset-4 group-hover:border-white/60 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"></div>
 
+                        @if ($unseenVerificationResponses > 0)
+                            <span class="absolute top-4 right-4 z-10 inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-red-600 text-white text-xs font-bold" title="Réponses de l'équipe à vos relectures">{{ $unseenVerificationResponses }}</span>
+                        @endif
                         <div class="text-4xl mb-2 relative z-10">🔍</div>
                         <h3 class="text-lg font-semibold mb-2 relative z-10">Vérification de pages</h3>
-                        <p class="text-sm opacity-90 relative z-10">{{ $pendingVerificationsCount }} page(s) à vérifier</p>
+                        <p class="text-sm opacity-90 relative z-10">
+                            {{ $pendingVerificationsCount }} page(s) à relire
+                            @if ($unseenVerificationResponses > 0) · {{ $unseenVerificationResponses }} réponse(s) de l'équipe @endif
+                        </p>
                     </a>
                 </div>
             @endif

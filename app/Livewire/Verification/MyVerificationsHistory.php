@@ -11,7 +11,11 @@ class MyVerificationsHistory extends Component
     use WithPagination;
 
     public string $filterStatus = 'all';
+
     public string $filterPeriod = 'all';
+
+    /** @var int[] Relectures traitées par l'admin depuis la dernière visite (pastille « Nouveau ») */
+    public array $newIds = [];
 
     protected VerificationReviewService $service;
 
@@ -23,6 +27,18 @@ class MyVerificationsHistory extends Component
     public function boot(VerificationReviewService $service): void
     {
         $this->service = $service;
+    }
+
+    public function mount(): void
+    {
+        // On retient ce qui est nouveau pour l'afficher, puis on le marque comme vu
+        // (la pastille du menu disparaît).
+        $this->newIds = \App\Models\VerificationReview::where('user_id', auth()->id())
+            ->unseenByReviewer()
+            ->pluck('id')
+            ->all();
+
+        $this->service->markResponsesSeen(auth()->user());
     }
 
     public function updatingFilterStatus()
