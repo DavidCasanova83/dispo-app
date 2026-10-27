@@ -16,6 +16,9 @@
         @if ($review->status === 'in_progress')
             <x-verif.status-badge size="xs" :tone="$review->statusTone()" :label="$review->statusLabel()" />
         @endif
+        @if ($claude = ($claudeByPage ?? collect())->get($review->page_id))
+            <x-verif.status-badge size="xs" tone="accent" :label="'🤖 Claude : '.$claude->statusLabel()" />
+        @endif
     </div>
 
     <x-verif.review-content :review="$review" />

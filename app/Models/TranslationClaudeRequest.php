@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasClaudeRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TranslationClaudeRequest extends Model
 {
+    use HasClaudeRequestStatus;
+
     protected $fillable = [
         'reference',
         'page_id',
@@ -37,46 +40,8 @@ class TranslationClaudeRequest extends Model
         'finished_at' => 'datetime',
     ];
 
-    /** Libellés et tons de <x-verif.status-badge>. */
-    public const STATUSES = [
-        'sent' => ['label' => 'Chez Claude', 'tone' => 'info'],
-        'pr_open' => ['label' => 'PR ouverte', 'tone' => 'accent'],
-        'merged' => ['label' => 'PR fusionnée', 'tone' => 'success'],
-        'closed' => ['label' => 'PR fermée sans fusion', 'tone' => 'neutral'],
-        'no_change' => ['label' => 'Aucune modification', 'tone' => 'warn'],
-        'failed' => ['label' => 'Échec', 'tone' => 'danger'],
-    ];
-
-    /** Demandes encore suivies par le panel : une seule à la fois par traduction. */
-    public const ACTIVE_STATUSES = ['sent', 'pr_open'];
-
-    public function isActive(): bool
-    {
-        return in_array($this->status, self::ACTIVE_STATUSES, true);
-    }
-
-    public function statusLabel(): string
-    {
-        return self::STATUSES[$this->status]['label'] ?? (string) $this->status;
-    }
-
-    public function statusTone(): string
-    {
-        return self::STATUSES[$this->status]['tone'] ?? 'neutral';
-    }
-
-    public function page(): BelongsTo
-    {
-        return $this->belongsTo(VerificationPage::class, 'page_id')->withTrashed();
-    }
-
     public function translationCheck(): BelongsTo
     {
         return $this->belongsTo(TranslationCheck::class);
-    }
-
-    public function requester(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'requested_by');
     }
 }

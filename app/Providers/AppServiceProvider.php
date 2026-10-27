@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\SitemapScanService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +29,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Corrections de page confiées à Claude (fiche d'une page) : réservées
+        // au super-admin, même si un autre rôle reçoit la vérification des pages.
+        Gate::define('ask-claude-page-correction', fn (User $user) => $user->hasRole('Super-admin')
+            && $user->hasPermissionTo('manage-page-verification'));
+
         // Rate limiting pour le formulaire de commande public
         RateLimiter::for('order-form', function (Request $request) {
             // Limite plus stricte pour les POST (soumissions)

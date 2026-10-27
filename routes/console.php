@@ -29,3 +29,7 @@ Schedule::command('verification:release-pages')->dailyAt('03:30');
 // Crée la PR quand Claude a fini, puis suit son état (ouverte, fusionnée,
 // fermée). Sans demande en cours, aucun appel à GitHub.
 Schedule::command('translations:claude-sync')->everyFiveMinutes()->withoutOverlapping(10);
+
+// ─── Corrections de page confiées à Claude (fiche d'une page) ─────────
+// Même principe, à partir des retours des relecteurs.
+Schedule::command('verification:claude-sync')->everyFiveMinutes()->withoutOverlapping(10);

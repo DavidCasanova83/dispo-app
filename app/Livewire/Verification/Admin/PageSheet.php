@@ -6,8 +6,10 @@ use App\Livewire\Concerns\EditsVerificationPage;
 use App\Livewire\Concerns\ResolvesReviews;
 use App\Models\VerificationPage;
 use App\Services\PageReleaseService;
+use App\Services\VerificationClaudeService;
 use App\Services\VerificationPageService;
 use App\Services\VerificationReviewService;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 /**
@@ -35,9 +37,15 @@ class PageSheet extends Component
 
     public bool $showFullJournal = false;
 
+    /** @var array<int, string> Retours cochés pour la correction par Claude */
+    public array $claudeReviewIds = [];
+
+    public string $claudeMessage = '';
+
     public function mount(int $page): void
     {
         $this->pageId = VerificationPage::withTrashed()->findOrFail($page)->id;
+        $this->selectAllClaudeReviews();
     }
 
     private function page(): VerificationPage
@@ -115,6 +123,68 @@ class PageSheet extends Component
         session()->flash('success', 'Page restaurée : elle reprend sa place dans le suivi, avec ses relecteurs et ses relectures.');
     }
 
+    // ─── CORRECTION PAR CLAUDE (super-admin) ──────────────────────
+
+    /** Coche tous les retours signalés et pas encore réglés. */
+    public function selectAllClaudeReviews(): void
+    {
+        $page = VerificationPage::find($this->pageId);
+        $this->claudeReviewIds = $page && Gate::allows('ask-claude-page-correction')
+            ? app(VerificationClaudeService::class)->openReviews($page)->pluck('id')->map(fn ($id) => (string) $id)->all()
+            : [];
+    }
+
+    /**
+     * Envoie les retours cochés à Claude : issue GitHub @claude dans le dépôt
+     * du site ; la PR est créée par le panel quand Claude a fini
+     * (verification:claude-sync, toutes les 5 minutes).
+     */
+    public function askClaude(): void
+    {
+        abort_unless(Gate::allows('ask-claude-page-correction'), 403);
+
+        $this->validate(
+            ['claudeMessage' => ['nullable', 'string', 'max:3000']],
+            ['claudeMessage.max' => 'Les précisions ne doivent pas dépasser 3000 caractères.'],
+        );
+
+        try {
+            $request = app(VerificationClaudeService::class)->send(
+                $this->page(),
+                auth()->user(),
+                $this->claudeReviewIds,
+                $this->claudeMessage,
+            );
+        } catch (\DomainException $e) {
+            $this->addError('claude', $e->getMessage());
+
+            return;
+        }
+
+        $this->claudeMessage = '';
+        $this->selectAllClaudeReviews();
+        session()->flash('success', "Demande envoyée à Claude (issue #{$request->issue_number}, {$request->reviewCount()} retour(s)). La PR sera créée automatiquement dès qu'il aura fini.");
+    }
+
+    /** Vérifie tout de suite où en est la demande en cours. */
+    public function refreshClaude(): void
+    {
+        abort_unless(Gate::allows('ask-claude-page-correction'), 403);
+
+        $service = app(VerificationClaudeService::class);
+        $request = $service->activeRequest($this->page());
+        if (! $request) {
+            return;
+        }
+
+        $messages = $service->sync($request);
+
+        // Une erreur s'affiche déjà sous la demande.
+        if (! $request->fresh()->error) {
+            session()->flash('success', $messages[0] ?? 'Demande à jour.');
+        }
+    }
+
     // ─── RENDU ────────────────────────────────────────────────────
 
     public function render()
@@ -139,6 +209,9 @@ class PageSheet extends Component
 
         $assignedIds = $page->assignees->pluck('id');
 
+        $canAskClaude = Gate::allows('ask-claude-page-correction');
+        $claude = app(VerificationClaudeService::class);
+
         return view('livewire.verification.admin.page-sheet', [
             'page' => $page,
             'progress' => $progress,
@@ -150,6 +223,12 @@ class PageSheet extends Component
             'availableUsers' => app(VerificationPageService::class)->availableReviewers(),
             'addableUsers' => app(VerificationPageService::class)->availableReviewers()->whereNotIn('id', $assignedIds),
             'closingCount' => $page->reviews->count(),
+            'canAskClaude' => $canAskClaude,
+            'claudeConfigured' => $canAskClaude && $claude->isConfigured(),
+            'claudeOpenReviews' => $canAskClaude && ! $page->trashed() ? $claude->openReviews($page) : collect(),
+            'claudeRequests' => $canAskClaude
+                ? $page->claudeCorrections()->with('requester:id,name')->latest('id')->limit(5)->get()
+                : collect(),
         ])->layout('components.layouts.app');
     }
 }

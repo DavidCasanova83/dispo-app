@@ -50,6 +50,14 @@ Relecteur : **Mes vérifications** (`/verification`), historique
 (`/verification/historique`), formulaire de relecture (français seulement ; un
 ancien lien `?lang=en` ouvre la relecture FR).
 
+## Correction par Claude (super-admin)
+
+Fiche d'une page, bloc « 🤖 Correction par Claude » : les retours signalés et
+pas encore réglés sont envoyés à Claude (issue GitHub dans le dépôt du site,
+sans le nom des relecteurs) ; Claude corrige les `contenu.*.md` de la page et
+le panel crée la PR à relire. Réservé au super-admin. Détails et mise en
+place : `DEMANDES_CLAUDE.md`.
+
 ## Pastilles (notifications dans l'app)
 
 - Admin : pastille rouge sur « Vérification des pages » = nouveaux retours ;
@@ -96,9 +104,10 @@ distribution » (table `settings`, clé `verification.active_pages_quota`,
 ## Mise en production
 
 1. Sauvegarde complète de la base.
-2. `php artisan migrate` : deux migrations additives
+2. `php artisan migrate` : trois migrations additives
    (`2026_10_27_100000_add_cycles_to_verification`,
-   `2026_10_27_100100_create_verification_events_table`). Les relectures
+   `2026_10_27_100100_create_verification_events_table`,
+   `2026_10_27_110000_create_verification_claude_requests_table`). Les relectures
    existantes passent au cycle 1, marquées vues, datées de leur création.
 3. `php artisan app:deploy-command` (caches, `npm run build`).
 
