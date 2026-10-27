@@ -417,6 +417,12 @@ class VerificationPage extends Model
         return $this->hasMany(VerificationReview::class, 'page_id')->whereNotNull('archived_at');
     }
 
+    /** Corrections de la page demandées à Claude (historique complet). */
+    public function claudeCorrections(): HasMany
+    {
+        return $this->hasMany(VerificationClaudeRequest::class, 'page_id');
+    }
+
     /** Journal de la page, du plus récent au plus ancien. */
     public function events(): HasMany
     {

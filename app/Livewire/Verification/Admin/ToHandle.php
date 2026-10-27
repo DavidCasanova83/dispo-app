@@ -101,7 +101,14 @@ class ToHandle extends Component
             ? VerificationPage::whereIn('id', $this->closingIds)->withCount('reviews')->get()
             : collect();
 
+        // Demandes à Claude en cours, signalées sur les cartes (super-admin seulement).
+        $claudeByPage = \Illuminate\Support\Facades\Gate::allows('ask-claude-page-correction')
+            ? \App\Models\VerificationClaudeRequest::whereIn('status', \App\Models\VerificationClaudeRequest::ACTIVE_STATUSES)
+                ->latest('id')->get()->keyBy('page_id')
+            : collect();
+
         return view('livewire.verification.admin.to-handle', [
+            'claudeByPage' => $claudeByPage,
             'newReviews' => $this->showAllNew ? $newQuery->get() : $newQuery->limit(self::PREVIEW)->get(),
             'newCount' => $newCount,
             'progressReviews' => $this->showAllInProgress ? $progressQuery->get() : $progressQuery->limit(self::PREVIEW)->get(),

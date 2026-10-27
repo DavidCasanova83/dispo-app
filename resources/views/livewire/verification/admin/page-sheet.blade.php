@@ -77,6 +77,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-4 items-start">
+        <div class="flex flex-col gap-4 min-w-0">
         {{-- ═══ RETOURS DU CYCLE EN COURS ═══ --}}
         <section class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex flex-col gap-4 min-w-0">
             <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -147,6 +148,112 @@
                 </div>
             @endif
         </section>
+
+        {{-- ═══ CORRECTION PAR CLAUDE (super-admin) ═══ --}}
+        @if ($canAskClaude && ($claudeOpenReviews->isNotEmpty() || $claudeRequests->isNotEmpty()))
+            @php $claudeRequest = $claudeRequests->first(); @endphp
+            <section class="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-900/10 p-4 flex flex-col gap-3" aria-labelledby="claude-title">
+                <div class="flex items-center justify-between gap-2">
+                    <h3 id="claude-title" class="text-xs font-semibold uppercase tracking-wide text-purple-800 dark:text-purple-300">🤖 Correction par Claude</h3>
+                    @if ($claudeRequest)
+                        <x-verif.status-badge size="xs" :tone="$claudeRequest->statusTone()" :label="$claudeRequest->statusLabel()" />
+                    @endif
+                </div>
+
+                @if ($claudeRequest)
+                    <div class="flex flex-col gap-1">
+                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                            Demandée le {{ $claudeRequest->sent_at?->translatedFormat('d F Y à H:i') }}
+                            par {{ $claudeRequest->requester?->name ?? 'un utilisateur supprimé' }}
+                            · {{ $claudeRequest->reviewCount() }} retour(s)
+                            @if ($claudeRequest->issue_url)
+                                · <a href="{{ $claudeRequest->issue_url }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">issue #{{ $claudeRequest->issue_number }} ↗</a>
+                            @endif
+                            @if ($claudeRequest->pr_url)
+                                · <a href="{{ $claudeRequest->pr_url }}" target="_blank" rel="noopener noreferrer" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">PR #{{ $claudeRequest->pr_number }} ↗</a>
+                            @endif
+                        </p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            {{ match ($claudeRequest->status) {
+                                'sent' => 'Claude corrige la page. La PR sera créée automatiquement dès qu\'il aura fini (vérification toutes les 5 minutes).',
+                                'pr_open' => 'PR à relire et fusionner sur GitHub.',
+                                'merged' => 'PR fusionnée : après déploiement, vérifiez la page en ligne puis marquez les retours « Réglé ».',
+                                'closed' => 'PR fermée sans fusion : rien n\'a été modifié sur le site.',
+                                'no_change' => 'Claude n\'a rien modifié dans le dépôt : sa réponse est dans l\'issue (page de l\'admin WordPress à corriger à la main, ou retours non applicables).',
+                                default => '',
+                            } }}
+                        </p>
+                        @if ($claudeRequest->error)
+                            <p class="text-sm {{ $claudeRequest->status === 'failed' ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400' }}">{{ $claudeRequest->error }}</p>
+                        @endif
+                        @if ($claudeRequest->isActive())
+                            <button type="button" wire:click="refreshClaude" wire:loading.attr="disabled"
+                                class="self-start text-sm text-purple-800 dark:text-purple-300 hover:underline underline-offset-2">
+                                🔄 Vérifier maintenant
+                            </button>
+                        @endif
+                        @if ($claudeRequests->count() > 1)
+                            <details class="text-xs text-gray-600 dark:text-gray-400">
+                                <summary class="cursor-pointer">Demandes précédentes</summary>
+                                <ul class="mt-1 flex flex-col gap-0.5">
+                                    @foreach ($claudeRequests->skip(1) as $previous)
+                                        <li>
+                                            {{ $previous->sent_at?->format('d/m/Y') }} · {{ $previous->statusLabel() }}
+                                            @if ($previous->issue_url) · <a href="{{ $previous->issue_url }}" target="_blank" rel="noopener noreferrer" class="hover:underline">issue #{{ $previous->issue_number }}</a>@endif
+                                            @if ($previous->pr_url) · <a href="{{ $previous->pr_url }}" target="_blank" rel="noopener noreferrer" class="hover:underline">PR #{{ $previous->pr_number }}</a>@endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </details>
+                        @endif
+                    </div>
+                @endif
+
+                @if ($claudeOpenReviews->isNotEmpty() && ! $claudeRequest?->isActive())
+                    <div class="flex flex-col gap-2 {{ $claudeRequest ? 'pt-3 border-t border-purple-200 dark:border-purple-800' : '' }}">
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            Claude corrige la page à partir des retours cochés, puis le panel crée une PR à relire avant de fusionner.
+                            Les noms des relecteurs ne sont pas transmis ; les retours « Nouveau » passent « En correction ».
+                        </p>
+                        <fieldset class="flex flex-col gap-1">
+                            <legend class="sr-only">Retours à transmettre</legend>
+                            @foreach ($claudeOpenReviews as $review)
+                                <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer" wire:key="claude-review-{{ $review->id }}">
+                                    <input type="checkbox" value="{{ $review->id }}" wire:model="claudeReviewIds"
+                                        class="mt-0.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="min-w-0">
+                                        <span class="font-mono text-[11px]">{{ strtoupper($review->language) }}</span>
+                                        {{ $review->user?->name ?? 'Utilisateur supprimé' }}
+                                        <span class="text-gray-500 dark:text-gray-400">· {{ $review->statusLabel() }} ·</span>
+                                        <span class="text-gray-600 dark:text-gray-300">{{ \Illuminate\Support\Str::limit($review->content_comment ?: ($review->media_comment ?: ($review->remarks ?: 'Voir le retour')), 90) }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </fieldset>
+                        <div>
+                            <label for="claude-message" class="text-sm font-medium text-gray-900 dark:text-white">Précisions pour Claude (facultatif)</label>
+                            <textarea id="claude-message" wire:model="claudeMessage" rows="2" maxlength="3000"
+                                placeholder="Les retours cochés sont transmis tels quels. Ex : ne pas toucher au bloc des horaires."
+                                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white"></textarea>
+                            @error('claudeMessage') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+                        @if ($claudeConfigured)
+                            <button type="button" wire:click="askClaude" wire:loading.attr="disabled"
+                                wire:confirm="Envoyer les retours cochés à Claude ? Une issue GitHub est créée dans le dépôt du site ; Claude corrige la page et une PR est créée automatiquement, à relire avant de fusionner."
+                                class="self-start px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg">
+                                🤖 {{ $claudeRequest ? 'Renvoyer à Claude' : 'Demander la correction à Claude' }}
+                            </button>
+                        @else
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Connexion à GitHub non configurée (<code>CLAUDE_GITHUB_TOKEN</code>, voir DEMANDES_CLAUDE.md).
+                            </p>
+                        @endif
+                    </div>
+                @endif
+                @error('claude') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+            </section>
+        @endif
+        </div>
 
         {{-- ═══ COLONNE LATÉRALE ═══ --}}
         <aside class="flex flex-col gap-4">

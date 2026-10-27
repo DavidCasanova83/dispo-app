@@ -15,7 +15,7 @@ Application Laravel 12 + Livewire 3 (Flux UI, Volt) regroupant plusieurs modules
 | Brochures / Images | Gestion des brochures PDF (upload, compression Ghostscript, liens Calaméo), catégories / sous-catégories / auteurs / secteurs, menu public, statistiques de clics | `/admin/images`, `/admin/brochure-menu`, `/mes-brochures`, page publique `/brochures-oti-vt` |
 | Commandes | Commande de brochures par les partenaires (Turnstile + honeypot) et gestion admin | `/commander-images`, `/admin/commandes` |
 | Agendas | PDF d'agenda avec activation programmée | `/admin/agendas`, `/storage/agendas/agenda-en-cours.pdf` |
-| Vérification des pages | Relecture annuelle des pages FR de verdontourisme.com par les relecteurs (scan du site, assignation, distribution nocturne avec plafond réglable, retours traités par l'admin, clôture qui **archive** les relectures par cycle, journal, corbeille). Espace admin unique en onglets À traiter / Pages / Vérifiées / Corbeille + fiche page ; pastilles dans le menu (`VERIFICATION_PAGES.md`) | `/verification` (relecteur), `/verification/admin/a-traiter`, `/verification/admin/pages[/{id}]`, `VerificationReviewService`, `VerificationPageService`, `VerificationJournal`, `PageReleaseService`, `SitemapScanService` |
+| Vérification des pages | Relecture annuelle des pages FR de verdontourisme.com par les relecteurs (scan du site, assignation, distribution nocturne avec plafond réglable, retours traités par l'admin, clôture qui **archive** les relectures par cycle, journal, corbeille). Espace admin unique en onglets À traiter / Pages / Vérifiées / Corbeille + fiche page ; pastilles dans le menu (`VERIFICATION_PAGES.md`). Correction de la page confiable à **Claude** depuis la fiche, à partir des retours (super-admin seulement, gate `ask-claude-page-correction`) : issue `@claude` dans le dépôt du site, PR créée par le panel (`DEMANDES_CLAUDE.md`) | `/verification` (relecteur), `/verification/admin/a-traiter`, `/verification/admin/pages[/{id}]`, `VerificationReviewService`, `VerificationPageService`, `VerificationJournal`, `VerificationClaudeService`, `PageReleaseService`, `SitemapScanService` |
 | Traductions | Rôle **Traducteur** : verdict EN/IT par page (correcte → validée ; à corriger → commentaire), suivi et validation des corrections par le super-admin. Circuit indépendant de la vérification FR (table `translation_checks`, non purgée par la clôture annuelle). Correction confiable à **Claude** : issue GitHub `@claude` dans le dépôt du site, PR créée par le panel quand il a fini (`DEMANDES_CLAUDE.md`) | `/verification/traductions`, `/verification/admin/traductions`, `TranslationCheckService`, `TranslationClaudeService`, `app/Livewire/Verification/Translation/` |
 | Administration | Utilisateurs (approbation manuelle), rôles/permissions, export Apidae, soumissions de formulaires WordPress (CF7) | `/admin/users`, `/admin/apidae-export`, `/admin/contact-submissions` |
 
@@ -47,7 +47,7 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 `agendas:activate-pending`, `verification:revalidate-aged`, `verification:release-pages`,
 `verification:purge` (efface DÉFINITIVEMENT tout le module, journal compris), `verification:restore-page`, `verification:recompute-statuses`,
 `brochures:compress-existing`, `brochures:resync-sizes --dry-run`, `images:generate-json`,
-`translations:claude-sync` (`--test` : connexion à GitHub)
+`translations:claude-sync` (`--test` : connexion à GitHub), `verification:claude-sync`
 (voir `app/Console/Commands/` pour les signatures exactes et options).
 
 ## Pièges connus (à lire avant de toucher à la base ou aux tests)
@@ -75,7 +75,8 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
    ajouter une ville = modifier toutes les occurrences + `QualificationController`.
 6. Le planificateur est défini à **deux endroits** : `bootstrap/app.php` (`withSchedule` : Apidae 5h, reset statuts 3h,
    queue chaque minute, e-mails 6h) et `routes/console.php` (agendas 00:01, vérification 3h00 puis 3h30 — l'ordre compte ;
-   suivi des corrections confiées à Claude toutes les 5 minutes).
+   suivi des corrections confiées à Claude toutes les 5 minutes : traductions et pages).
+   Le suivi GitHub commun aux deux est dans `app/Services/Concerns/FollowsClaudeIssues.php`.
    En prod, la queue est consommée par le cron (`queue:work --stop-when-empty`), pas par un worker permanent.
 
 ## Architecture & conventions
@@ -101,7 +102,7 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 `APIDAE_API_KEY`, `APIDAE_PROJECT_ID`, `APIDAE_SELECTION_ID`, `MAILJET_APIKEY`, `MAILJET_APISECRET`,
 `ORDER_NOTIFICATION_EMAIL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `WORDPRESS_CF7_API_TOKEN`,
 `GHOSTSCRIPT_BIN`, `PDF_COMPRESSION_ENABLED`, `VERIFICATION_SITEMAP_URL`, `HONEYPOT_*`,
-`CLAUDE_GITHUB_TOKEN`, `CLAUDE_GITHUB_REPOSITORY` (corrections de traduction confiées à Claude).
+`CLAUDE_GITHUB_TOKEN`, `CLAUDE_GITHUB_REPOSITORY` (corrections de traduction et de page confiées à Claude).
 Sans clés Apidae/Mailjet, l'interface fonctionne mais import et e-mails échouent (mettre `MAIL_MAILER=log` en local).
 
 ## Documentation existante
@@ -109,7 +110,7 @@ Sans clés Apidae/Mailjet, l'interface fonctionne mais import et e-mails échoue
 Détails fonctionnels dans les fichiers à la racine (certains passages sont datés — le code fait foi) :
 `ANALYSE_APPLICATION.md` (vue d'ensemble), `APIDAE_SETUP.md`, `APIDAE_SCHEDULING.md`, `MAILJET_SETUP.md`,
 `QUEUES_JOBS_ET_FICHIERS.md`, `DOCUMENTATION_STATISTIQUES.md`, `PLAN_UPLOAD_IMAGES.md`, `SECURITY_SETUP.md`,
-`Outil-qualification.md`, `clearcache.md`, `DEMANDES_CLAUDE.md` (traductions corrigées par Claude), `VERIFICATION_PAGES.md` (vérification des pages : écrans, conservation des données, mise en production), ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
+`Outil-qualification.md`, `clearcache.md`, `DEMANDES_CLAUDE.md` (traductions et pages corrigées par Claude), `VERIFICATION_PAGES.md` (vérification des pages : écrans, conservation des données, mise en production), ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
 
 ## Fichiers à ne pas committer / à manipuler avec précaution
 
