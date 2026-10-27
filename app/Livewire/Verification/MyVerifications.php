@@ -23,6 +23,7 @@ class MyVerifications extends Component
         return view('livewire.verification.my-verifications', [
             'pages' => $pages,
             'totalDone' => $totalDone,
+            'unseenResponses' => $this->service->unseenResponsesCount($user),
         ])->layout('components.layouts.app');
     }
 }

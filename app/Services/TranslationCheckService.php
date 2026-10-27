@@ -66,7 +66,7 @@ class TranslationCheckService
 
     /**
      * Renseigne l'URL EN/IT manquante d'une page. Le traducteur ne fait que
-     * compléter : une URL existante se modifie dans « Pages à vérifier ».
+     * compléter : une URL existante se modifie dans « Vérification des pages ».
      *
      * @throws \DomainException
      */

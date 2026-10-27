@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use App\Models\VerificationPage;
 use Illuminate\Support\Facades\DB;
 
@@ -9,23 +10,48 @@ use Illuminate\Support\Facades\DB;
  * Distribution des pages assignées vers les dashboards des relecteurs.
  *
  * Le quota n'est pas une allocation périodique mais un PLAFOND DE PAGES ACTIVES
- * SIMULTANÉES : un relecteur n'a jamais plus de ACTIVE_PAGES_QUOTA pages ouvertes
- * en même temps. La fréquence d'exécution ne change donc pas cette limite, elle
+ * SIMULTANÉES : un relecteur n'a jamais plus de quota() pages ouvertes en même
+ * temps (réglable dans « Vérification des pages », 2 par défaut). La fréquence d'exécution ne change donc pas cette limite, elle
  * change seulement la vitesse à laquelle une page terminée est remplacée.
  *
  * Cadence courante : chaque nuit (voir routes/console.php).
  */
 class PageReleaseService
 {
-    /** Nombre maximal de pages actives simultanément par relecteur. */
+    /** Plafond par défaut de pages actives simultanément par relecteur. */
     public const ACTIVE_PAGES_QUOTA = 2;
+
+    /** Bornes du réglage. */
+    public const QUOTA_MIN = 1;
+
+    public const QUOTA_MAX = 20;
+
+    public const QUOTA_SETTING = 'verification.active_pages_quota';
+
+    public function __construct(private readonly VerificationJournal $journal) {}
+
+    /** Plafond en vigueur : le réglage de l'écran, sinon ACTIVE_PAGES_QUOTA. */
+    public static function quota(): int
+    {
+        $value = (int) Setting::get(self::QUOTA_SETTING, self::ACTIVE_PAGES_QUOTA);
+
+        return max(self::QUOTA_MIN, min(self::QUOTA_MAX, $value));
+    }
+
+    public static function setQuota(int $quota): int
+    {
+        $quota = max(self::QUOTA_MIN, min(self::QUOTA_MAX, $quota));
+        Setting::set(self::QUOTA_SETTING, (string) $quota);
+
+        return $quota;
+    }
 
     /**
      * Pour chaque utilisateur ayant des pages assignées en attente, libère
-     * autant de pages que nécessaire pour atteindre ACTIVE_PAGES_QUOTA "actives".
+     * autant de pages que nécessaire pour atteindre quota() "actives".
      *
      * Une page "active" pour un user = assignation released ET review FR pas done.
-     * Si le user a déjà ≥ ACTIVE_PAGES_QUOTA actives, on ne libère rien.
+     * Si le user a déjà ≥ quota() actives, on ne libère rien.
      *
      * @return array<int,int> id_user => nb pages libérées
      */
@@ -57,16 +83,17 @@ class PageReleaseService
      */
     public function releaseForUserUpToQuota(int $userId): int
     {
+        $quota = self::quota();
         $activeCount = $this->countActiveForUser($userId);
 
-        if ($activeCount >= self::ACTIVE_PAGES_QUOTA) {
+        if ($activeCount >= $quota) {
             return 0;
         }
 
-        $needed = self::ACTIVE_PAGES_QUOTA - $activeCount;
+        $needed = $quota - $activeCount;
 
-        // IDs d'assignations en attente (released_at NULL) pour cet user, triées.
-        $candidateIds = DB::table('verification_assignments as va')
+        // Assignations en attente (released_at NULL) pour cet user, triées.
+        $candidates = DB::table('verification_assignments as va')
             ->join('verification_pages as vp', 'va.page_id', '=', 'vp.id')
             ->where('va.user_id', $userId)
             ->whereNull('va.released_at')
@@ -75,17 +102,19 @@ class PageReleaseService
             ->orderByRaw('vp.deadline IS NULL, vp.deadline ASC')
             ->orderBy('va.created_at')
             ->limit($needed)
-            ->pluck('va.id');
+            ->pluck('va.page_id', 'va.id');
 
-        if ($candidateIds->isEmpty()) {
+        if ($candidates->isEmpty()) {
             return 0;
         }
 
         DB::table('verification_assignments')
-            ->whereIn('id', $candidateIds)
+            ->whereIn('id', $candidates->keys())
             ->update(['released_at' => now()]);
 
-        return $candidateIds->count();
+        $this->logDistribution($candidates->values()->all(), $userId, 'nuit');
+
+        return $candidates->count();
     }
 
     /**
@@ -96,12 +125,39 @@ class PageReleaseService
      *
      * @return int Nombre de relecteurs nouvellement libérés sur cette page
      */
-    public function releasePageNow(int $pageId): int
+    public function releasePageNow(int $pageId, ?int $userId = null): int
     {
-        return DB::table('verification_assignments')
+        $userIds = DB::table('verification_assignments')
             ->where('page_id', $pageId)
             ->whereNull('released_at')
+            ->when($userId !== null, fn ($q) => $q->where('user_id', $userId))
+            ->pluck('user_id');
+
+        if ($userIds->isEmpty()) {
+            return 0;
+        }
+
+        DB::table('verification_assignments')
+            ->where('page_id', $pageId)
+            ->whereIn('user_id', $userIds)
+            ->whereNull('released_at')
             ->update(['released_at' => now()]);
+
+        foreach ($userIds as $uid) {
+            $this->logDistribution([$pageId], (int) $uid, 'manuel');
+        }
+
+        return $userIds->count();
+    }
+
+    /**
+     * @param  int[]  $pageIds
+     */
+    private function logDistribution(array $pageIds, int $userId, string $mode): void
+    {
+        VerificationPage::whereIn('id', $pageIds)->get()->each(
+            fn (VerificationPage $page) => $this->journal->record($page, 'distributed', ['mode' => $mode], $userId)
+        );
     }
 
     /**
@@ -131,6 +187,7 @@ class PageReleaseService
                     ->whereColumn('verification_reviews.page_id', 'va.page_id')
                     ->where('verification_reviews.user_id', $userId)
                     ->where('verification_reviews.language', 'fr')
+                    ->whereNull('verification_reviews.archived_at')
                     ->whereIn('verification_reviews.status', ['done', 'pending_admin', 'in_progress']);
             })
             ->count();

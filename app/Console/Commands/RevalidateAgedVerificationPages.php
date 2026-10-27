@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\VerificationPage;
+use App\Services\VerificationJournal;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +26,7 @@ class RevalidateAgedVerificationPages extends Command
         $threshold = now()->subDays($days);
 
         // La page est validated et a été clôturée annuellement il y a plus de $days jours.
-        // (Les reviews ayant été purgées au moment de la clôture, on s'appuie sur validated_at,
+        // (Les relectures sont archivées à la clôture, on s'appuie sur validated_at,
         // pas sur la dernière review FR done.)
         $pagesToRevalidate = VerificationPage::query()
             ->where('status', 'validated')
@@ -35,6 +36,7 @@ class RevalidateAgedVerificationPages extends Command
 
         if ($pagesToRevalidate->isEmpty()) {
             $this->info('Aucune page à réinitialiser.');
+
             return Command::SUCCESS;
         }
 
@@ -54,8 +56,8 @@ class RevalidateAgedVerificationPages extends Command
                 // Sans cette remise à zéro, toutes les pages renouvelées le même jour
                 // réapparaissaient d'un coup sur le dashboard du relecteur : les trois
                 // conditions de scopePendingForUser étaient satisfaites immédiatement
-                // (assignation libérée, statut ≠ validated, aucune review — purgées à
-                // la clôture). Le plafond de pages actives était donc contourné.
+                // (assignation libérée, statut ≠ validated, aucune review active —
+                // archivées à la clôture). Le plafond de pages actives était donc contourné.
                 //
                 // Remis à NULL, le cycle repart par la distribution nocturne, qui les
                 // ressort au compte-gouttes selon priorité puis deadline.
@@ -63,6 +65,8 @@ class RevalidateAgedVerificationPages extends Command
                     ->where('page_id', $page->id)
                     ->whereNotNull('released_at')
                     ->update(['released_at' => null]);
+
+                app(VerificationJournal::class)->record($page, 'renewed', [], actorId: null);
 
                 $count++;
             });

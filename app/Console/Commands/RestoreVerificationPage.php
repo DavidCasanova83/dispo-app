@@ -56,6 +56,7 @@ class RestoreVerificationPage extends Command
         }
 
         $page->restore();
+        app(\App\Services\VerificationJournal::class)->record($page, 'restored', ['source' => 'commande']);
 
         $this->info(sprintf(
             'Page #%d "%s" restaurée, avec %d relecture(s) et %d assignation(s).',

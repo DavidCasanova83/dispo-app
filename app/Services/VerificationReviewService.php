@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class VerificationReviewService
 {
+    public function __construct(private readonly VerificationJournal $journal) {}
+
     public function submit(VerificationPage $page, User $user, array $data): VerificationReview
     {
         $language = in_array($data['language'] ?? 'fr', ['fr', 'en', 'it'], true) ? $data['language'] : 'fr';
@@ -42,37 +44,52 @@ class VerificationReviewService
         ) {
             // Verrou pessimiste sur la page : sérialise les soumissions concurrentes.
             $lockedPage = VerificationPage::whereKey($page->id)->lockForUpdate()->first();
+            $cycle = $lockedPage->cycle ?? 1;
 
-            $review = VerificationReview::updateOrCreate(
-                [
-                    'page_id' => $lockedPage->id,
-                    'user_id' => $user->id,
-                    'language' => $language,
-                ],
-                [
-                    'content_ok' => $contentOk,
-                    'content_comment' => $contentComment ?: null,
-                    'media_ok' => $mediaOk,
-                    'media_comment' => $mediaComment ?: null,
-                    'remarks' => $remarks ?: null,
-                    'relevance' => $relevance ?: null,
-                    'content_to_add' => empty($contentToAdd) ? null : $contentToAdd,
-                    'content_to_add_details' => $contentToAddDetails ?: null,
-                    'content_to_remove' => $contentToRemove ?: null,
-                    'content_to_remove_details' => $contentToRemoveDetails ?: null,
-                    'visitor_perspective' => $visitorPerspective ?: null,
-                    'visitor_unanswered' => $visitorUnanswered ?: null,
-                    'rating' => $rating,
-                    'suggestions' => $suggestions ?: null,
-                    'status' => $allClear ? 'done' : 'pending_admin',
-                    // On efface une éventuelle réponse admin précédente : c'est une nouvelle soumission.
-                    'admin_response' => null,
-                    'admin_response_at' => null,
-                ]
-            );
+            $key = [
+                'page_id' => $lockedPage->id,
+                'user_id' => $user->id,
+                'language' => $language,
+                'cycle' => $cycle,
+            ];
+
+            // Une relecture renvoyée puis resoumise remplace la précédente : la
+            // version précédente (et la réponse de l'admin) part au journal.
+            $previous = VerificationReview::where($key)->first()?->snapshot();
+
+            $review = VerificationReview::updateOrCreate($key, [
+                'content_ok' => $contentOk,
+                'content_comment' => $contentComment ?: null,
+                'media_ok' => $mediaOk,
+                'media_comment' => $mediaComment ?: null,
+                'remarks' => $remarks ?: null,
+                'relevance' => $relevance ?: null,
+                'content_to_add' => empty($contentToAdd) ? null : $contentToAdd,
+                'content_to_add_details' => $contentToAddDetails ?: null,
+                'content_to_remove' => $contentToRemove ?: null,
+                'content_to_remove_details' => $contentToRemoveDetails ?: null,
+                'visitor_perspective' => $visitorPerspective ?: null,
+                'visitor_unanswered' => $visitorUnanswered ?: null,
+                'rating' => $rating,
+                'suggestions' => $suggestions ?: null,
+                'status' => $allClear ? 'done' : 'pending_admin',
+                // Nouvelle soumission : la réponse précédente de l'admin ne s'applique
+                // plus (elle reste dans le journal).
+                'admin_response' => null,
+                'admin_response_at' => null,
+                // Le relecteur connaît l'état de ce qu'il vient d'envoyer.
+                'reviewer_seen_at' => now(),
+                'submitted_at' => now(),
+            ]);
+
+            $this->journal->record($lockedPage, 'review_submitted', [
+                'language' => $language,
+                'all_clear' => $allClear,
+                'resubmitted' => $previous !== null,
+                'previous' => $previous,
+            ], $user->id, $review->id, $user->id);
 
             // Le statut de la page n'est piloté que par les reviews FR.
-            // Les reviews EN/IT sont des bonus, n'impactent pas le cycle de vie de la page.
             if ($language === 'fr') {
                 $this->recomputePageStatus($lockedPage);
             }
@@ -95,17 +112,36 @@ class VerificationReviewService
 
         DB::transaction(function () use ($review, $newStatus, $adminResponse) {
             // Verrou pessimiste sur la page liée à la review.
-            $lockedPage = VerificationPage::whereKey($review->page_id)->lockForUpdate()->first();
+            $lockedPage = VerificationPage::withTrashed()->whereKey($review->page_id)->lockForUpdate()->first();
+            $review = VerificationReview::whereKey($review->id)->lockForUpdate()->firstOrFail();
 
-            $payload = ['status' => $newStatus];
+            if ($review->isArchived()) {
+                throw new \DomainException('Cette relecture appartient à un cycle clôturé : elle ne se traite plus.');
+            }
 
+            $payload = [
+                'status' => $newStatus,
+                // Nouveauté pour le relecteur : pastille jusqu'à ce qu'il l'ait vue.
+                'reviewer_seen_at' => null,
+            ];
+
+            $message = null;
             if ($adminResponse !== null) {
                 $message = trim($adminResponse);
                 $payload['admin_response'] = $message !== '' ? $message : null;
                 $payload['admin_response_at'] = $message !== '' ? now() : null;
             }
 
+            $from = $review->status;
             $review->update($payload);
+
+            $this->journal->record($lockedPage, 'review_resolved', [
+                'language' => $review->language,
+                'from' => $from,
+                'to' => $newStatus,
+                'message' => $message !== '' ? $message : null,
+                'message_cleared' => $message === '' ? true : null,
+            ], $review->user_id, $review->id);
 
             // Recalcule le statut page selon TOUTES les reviews FR actives,
             // pas uniquement celle qui vient d'être traitée.
@@ -151,11 +187,13 @@ class VerificationReviewService
 
         if ($assigneeIds->isEmpty()) {
             $page->update(['status' => 'pending']);
+
             return;
         }
 
         $activeReviews = VerificationReview::query()
             ->where('page_id', $page->id)
+            ->whereNull('archived_at')
             ->where('language', 'fr')
             ->whereIn('user_id', $assigneeIds)
             ->where('status', '!=', 'revision_requested')
@@ -163,6 +201,7 @@ class VerificationReviewService
 
         if ($activeReviews->isEmpty()) {
             $page->update(['status' => 'pending']);
+
             return;
         }
 
@@ -191,24 +230,62 @@ class VerificationReviewService
 
     /**
      * Clôture la vérification annuelle d'une page :
-     * - supprime TOUTES les reviews (toutes langues confondues) ;
-     * - passe la page en 'validated' et horodate validated_at ;
+     * - archive les relectures du cycle (toutes langues) : elles restent en base,
+     *   consultables dans la fiche de la page et l'historique des relecteurs ;
+     * - passe la page au cycle suivant, en 'validated', et horodate validated_at ;
      * - conserve les assignations (les mêmes relecteurs reverront la page dans 1 an).
      *
-     * Action irréversible : à n'utiliser que sur une page en 'awaiting_validation'.
+     * Rien n'est supprimé. À n'utiliser que sur une page en 'awaiting_validation'.
+     *
+     * @return int Nombre de relectures archivées
      */
-    public function closeAnnualVerification(VerificationPage $page): void
+    public function closeAnnualVerification(VerificationPage $page): int
     {
-        DB::transaction(function () use ($page) {
+        return DB::transaction(function () use ($page) {
             $lockedPage = VerificationPage::whereKey($page->id)->lockForUpdate()->first();
+            $cycle = $lockedPage->cycle ?? 1;
 
-            VerificationReview::where('page_id', $lockedPage->id)->delete();
+            // toBase() : l'archivage ne doit pas changer updated_at (date du traitement).
+            $archived = VerificationReview::where('page_id', $lockedPage->id)
+                ->whereNull('archived_at')
+                ->toBase()
+                ->update(['archived_at' => now()]);
+
+            // Journal avant le changement de cycle : l'événement appartient au cycle clôturé.
+            $this->journal->record($lockedPage, 'closed', ['cycle' => $cycle, 'archived' => $archived]);
 
             $lockedPage->update([
                 'status' => 'validated',
                 'validated_at' => now(),
+                'cycle' => $cycle + 1,
             ]);
+
+            return $archived;
         });
+    }
+
+    /**
+     * Clôture en masse. Seules les pages « prêtes à clôturer » le sont ; les
+     * autres sont ignorées (leur statut a pu changer depuis l'affichage).
+     *
+     * @param  int[]  $pageIds
+     * @return array{closed: int, skipped: int, archived: int}
+     */
+    public function closeMany(array $pageIds): array
+    {
+        $pages = VerificationPage::whereIn('id', $pageIds)->get();
+        $ready = $pages->where('status', 'awaiting_validation');
+
+        $archived = 0;
+        foreach ($ready as $page) {
+            $archived += $this->closeAnnualVerification($page);
+        }
+
+        return [
+            'closed' => $ready->count(),
+            'skipped' => count(array_unique($pageIds)) - $ready->count(),
+            'archived' => $archived,
+        ];
     }
 
     public function pendingForUser(User $user): Collection
@@ -244,5 +321,27 @@ class VerificationReviewService
     public function userVerificationCount(User $user): int
     {
         return VerificationReview::where('user_id', $user->id)->count();
+    }
+
+    /** Réponses ou traitements de l'admin pas encore vus par le relecteur. */
+    public function unseenResponsesCount(User $user): int
+    {
+        return VerificationReview::where('user_id', $user->id)
+            ->unseenByReviewer()
+            ->whereHas('page', fn ($q) => $q->whereNull('verification_pages.deleted_at'))
+            ->count();
+    }
+
+    /**
+     * @param  int[]|null  $reviewIds  null : toutes les relectures du relecteur.
+     */
+    public function markResponsesSeen(User $user, ?array $reviewIds = null): void
+    {
+        // toBase() : « vu » ne doit pas changer updated_at (date du traitement).
+        VerificationReview::where('user_id', $user->id)
+            ->unseenByReviewer()
+            ->when($reviewIds !== null, fn ($q) => $q->whereIn('id', $reviewIds))
+            ->toBase()
+            ->update(['reviewer_seen_at' => now()]);
     }
 }

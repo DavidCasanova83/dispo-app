@@ -23,39 +23,12 @@
         </div>
     </div>
 
-    {{-- Language selector --}}
-    <div class="flex flex-wrap items-center gap-2 text-sm">
-        <span class="text-gray-500 dark:text-gray-400">Langue :</span>
-        @foreach (['fr', 'en', 'it'] as $code)
-            @php
-                $label = strtoupper($code);
-                $available = $code === 'fr' ? true : ! empty($page->urlForLanguage($code));
-                $isActive = $language === $code;
-            @endphp
-            @if ($isActive)
-                <span class="inline-flex items-center px-2.5 py-1 font-medium rounded border border-gray-900 bg-gray-900 text-white dark:bg-white dark:text-gray-900 dark:border-white">
-                    {{ $label }}
-                </span>
-            @elseif ($available)
-                <button type="button" wire:click="switchLanguage('{{ $code }}')"
-                    class="inline-flex items-center px-2.5 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    {{ $label }}
-                </button>
-            @else
-                <span class="inline-flex items-center px-2.5 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    title="L'URL {{ $label }} n'est pas renseignée pour cette page">
-                    {{ $label }}
-                </span>
-            @endif
-        @endforeach
-    </div>
-
     {{-- Bandeau message admin --}}
     @if ($adminMessage)
         <div class="rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
             <p class="text-xs uppercase font-semibold text-blue-800 dark:text-blue-300 mb-1">
                 @if ($existingReviewStatus === 'revision_requested')
-                    Ré-vérification demandée — message de l'admin
+                    À revoir : message de l'admin
                 @else
                     Message de l'admin
                 @endif
@@ -81,7 +54,7 @@
         </p>
         <a href="{{ $page->urlForLanguage($language) }}" target="_blank" rel="noopener noreferrer"
             class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 rounded whitespace-nowrap">
-            Ouvrir la page {{ strtoupper($language) }} ↗
+            Ouvrir la page ↗
         </a>
     </div>
 

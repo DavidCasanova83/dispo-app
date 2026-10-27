@@ -12,6 +12,7 @@ use Livewire\Component;
 class VerificationForm extends Component
 {
     public VerificationPage $page;
+
     public string $language = 'fr';
 
     /**
@@ -19,29 +20,38 @@ class VerificationForm extends Component
      * 'wizard'  : questionnaire pas-à-pas
      */
     public string $mode = 'choice';
+
     public int $step = 1;
 
     /** Étapes 1 à 3 = section obligatoire, 4 à 9 = section optionnelle. */
     public const FIRST_OPTIONAL_STEP = 4;
+
     public const LAST_STEP = 9;
 
-    // Bandeau "déjà soumis" (mis à jour à mount() et lors d'un switchLanguage).
+    // Bandeau "déjà soumis" (renseigné à mount()).
     public ?string $existingReviewSubmittedAt = null;
+
     public ?string $existingReviewStatus = null;
 
     // Message de l'admin associé à la review précédente (visible si re-vérification demandée).
     public ?string $adminMessage = null;
+
     public ?string $adminMessageAt = null;
 
     // Section 1 — Vérification factuelle (obligatoire)
     public ?bool $contentOk = null;
+
     public string $contentComment = '';
+
     public ?bool $mediaOk = null;
+
     public string $mediaComment = '';
+
     public string $remarks = '';
 
     // Section 2 — Évaluation éditoriale (optionnelle)
     public ?string $relevance = null;
+
     /**
      * Volontairement non typée : Livewire assigne la valeur brute envoyée par
      * le client, et une propriété `array` lève alors une TypeError (500) dès
@@ -51,12 +61,19 @@ class VerificationForm extends Component
      * @var array<int, string>
      */
     public $contentToAdd = [];
+
     public string $contentToAddDetails = '';
+
     public ?string $contentToRemove = null;
+
     public string $contentToRemoveDetails = '';
+
     public ?string $visitorPerspective = null;
+
     public string $visitorUnanswered = '';
+
     public ?int $rating = null;
+
     public string $suggestions = '';
 
     protected VerificationReviewService $service;
@@ -84,15 +101,10 @@ class VerificationForm extends Component
 
         $this->page = $page;
 
-        $requested = strtolower((string) request()->query('lang', 'fr'));
-        if (! in_array($requested, ['fr', 'en', 'it'], true)) {
-            $requested = 'fr';
-        }
-        // On refuse de basculer sur une langue dont l'URL n'est pas renseignée.
-        if ($requested !== 'fr' && ! $page->urlForLanguage($requested)) {
-            $requested = 'fr';
-        }
-        $this->language = $requested;
+        // Relecture en français uniquement : l'anglais et l'italien sont vérifiés
+        // par les traducteurs (module Traductions). Un ancien lien ?lang=en
+        // ramène donc sur la relecture FR.
+        $this->language = 'fr';
 
         $this->loadExistingReviewIfAny();
 
@@ -234,6 +246,7 @@ class VerificationForm extends Component
             ->where('page_id', $this->page->id)
             ->where('user_id', auth()->id())
             ->where('language', $this->language)
+            ->whereNull('archived_at')
             ->first();
 
         if (! $existing) {
@@ -241,10 +254,16 @@ class VerificationForm extends Component
             $this->existingReviewStatus = null;
             $this->adminMessage = null;
             $this->adminMessageAt = null;
+
             return;
         }
 
-        $this->existingReviewSubmittedAt = $existing->updated_at?->translatedFormat('d F Y à H:i');
+        // Le relecteur voit ici la réponse de l'admin : elle n'est plus « nouvelle ».
+        if ($existing->reviewer_seen_at === null) {
+            $this->service->markResponsesSeen(auth()->user(), [$existing->id]);
+        }
+
+        $this->existingReviewSubmittedAt = $existing->submittedAt()?->translatedFormat('d F Y à H:i');
         $this->existingReviewStatus = $existing->status;
         $this->adminMessage = $existing->admin_response ?: null;
         $this->adminMessageAt = $existing->admin_response_at?->translatedFormat('d F Y à H:i');
@@ -263,17 +282,6 @@ class VerificationForm extends Component
         $this->visitorUnanswered = $existing->visitor_unanswered ?? '';
         $this->rating = $existing->rating;
         $this->suggestions = $existing->suggestions ?? '';
-    }
-
-    public function switchLanguage(string $lang)
-    {
-        if (! in_array($lang, ['fr', 'en', 'it'], true)) {
-            return;
-        }
-        if ($lang !== 'fr' && ! $this->page->urlForLanguage($lang)) {
-            return;
-        }
-        return redirect()->route('verification.form', ['page' => $this->page->id, 'lang' => $lang]);
     }
 
     public function updatedContentToAdd($value, $key): void
@@ -412,15 +420,9 @@ class VerificationForm extends Component
             'suggestions' => $data['suggestions'] ?? '',
         ]);
 
-        $langLabel = strtoupper($this->language);
-
-        if ($this->language === 'fr') {
-            $message = $review->status === 'done'
-                ? "Merci ! La page \"{$this->page->title}\" est validée. Bon travail !"
-                : "Merci ! Vous avez signalé des points à corriger sur \"{$this->page->title}\". David va les examiner.";
-        } else {
-            $message = "Merci ! Votre vérification {$langLabel} de \"{$this->page->title}\" a bien été enregistrée.";
-        }
+        $message = $review->status === 'done'
+            ? "Merci ! La page \"{$this->page->title}\" est validée. Bon travail !"
+            : "Merci ! Vous avez signalé des points à corriger sur \"{$this->page->title}\". David va les examiner.";
 
         session()->flash('success', $message);
 

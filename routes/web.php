@@ -186,10 +186,25 @@ Route::middleware(['auth', 'approved'])->group(function () {
         Route::get('/', \App\Livewire\Verification\MyVerifications::class)->name('index');
         Route::get('/historique', \App\Livewire\Verification\MyVerificationsHistory::class)->name('history');
 
-        // Espace admin
+        // Espace admin « Vérification des pages » : onglets À traiter, Pages,
+        // Vérifiées, Corbeille, et fiche d'une page.
         Route::middleware(['permission:manage-page-verification'])->prefix('admin')->name('admin.')->group(function () {
+            Route::get('/a-traiter', \App\Livewire\Verification\Admin\ToHandle::class)->name('todo');
             Route::get('/pages', \App\Livewire\Verification\Admin\PagesManager::class)->name('pages');
-            Route::get('/retours', \App\Livewire\Verification\Admin\ReviewsInbox::class)->name('reviews');
+            Route::get('/pages/{page}', \App\Livewire\Verification\Admin\PageSheet::class)
+                ->whereNumber('page')
+                ->name('page');
+            Route::get('/verifiees', \App\Livewire\Verification\Admin\VerifiedPages::class)->name('verified');
+            Route::get('/corbeille', \App\Livewire\Verification\Admin\Trash::class)->name('trash');
+
+            // Ancienne « Boîte de retours » : ses liens (?page=ID) mènent à la fiche.
+            Route::get('/retours', function (\Illuminate\Http\Request $request) {
+                $pageId = $request->query('page');
+
+                return is_numeric($pageId)
+                    ? redirect()->route('verification.admin.page', (int) $pageId)
+                    : redirect()->route('verification.admin.todo');
+            })->name('reviews');
         });
 
         // Vérification des traductions EN/IT - rôle Traducteur

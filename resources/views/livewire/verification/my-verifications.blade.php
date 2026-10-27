@@ -16,6 +16,18 @@
         </div>
     @endif
 
+    {{-- Réponses de l'admin pas encore vues --}}
+    @if ($unseenResponses > 0)
+        <a href="{{ route('verification.history') }}" wire:navigate
+            class="flex items-center justify-between gap-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 hover:bg-indigo-100 dark:hover:bg-indigo-900/30">
+            <span class="text-sm text-indigo-900 dark:text-indigo-100">
+                <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 mr-1.5 rounded-full bg-red-600 text-white text-xs font-semibold">{{ $unseenResponses }}</span>
+                L'équipe a traité {{ $unseenResponses > 1 ? $unseenResponses.' de vos relectures' : 'une de vos relectures' }}.
+            </span>
+            <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300 whitespace-nowrap">Voir →</span>
+        </a>
+    @endif
+
     {{-- List --}}
     <div>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -58,7 +70,7 @@
                             </span>
                             @if ($revisionReview)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                    🔄 Ré-vérification demandée
+                                    🔄 À revoir
                                 </span>
                             @endif
                         </div>
@@ -70,7 +82,7 @@
                         @endif
                         @if ($page->deadline)
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                📅 À vérifier avant le {{ $page->deadline->translatedFormat('d F Y') }}
+                                📅 À rendre avant le {{ $page->deadline->translatedFormat('d F Y') }}
                             </p>
                         @endif
 
@@ -89,20 +101,8 @@
                         <div class="mt-4 flex flex-col sm:flex-row gap-2">
                             <a href="{{ route('verification.form', $page) }}" wire:navigate
                                 class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
-                                🇫🇷 Vérifier en FR →
+                                Relire la page →
                             </a>
-                            @if ($page->url_en)
-                                <a href="{{ route('verification.form', ['page' => $page->id, 'lang' => 'en']) }}" wire:navigate
-                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:text-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 rounded-lg transition-colors">
-                                    🇬🇧 EN
-                                </a>
-                            @endif
-                            @if ($page->url_it)
-                                <a href="{{ route('verification.form', ['page' => $page->id, 'lang' => 'it']) }}" wire:navigate
-                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:text-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 rounded-lg transition-colors">
-                                    🇮🇹 IT
-                                </a>
-                            @endif
                         </div>
                     </div>
                 @endforeach

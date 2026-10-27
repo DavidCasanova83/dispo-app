@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class VerificationPage extends Model
 {
     use HasFactory;
+
     // Les FK page_id sont en ON DELETE CASCADE : sans SoftDeletes, supprimer une
     // page effacerait aussi définitivement ses relectures et ses assignations.
     use SoftDeletes;
@@ -28,6 +29,7 @@ class VerificationPage extends Model
         'last_seen_in_sitemap_at',
         'is_in_sitemap',
         'status',
+        'cycle',
         'validated_at',
         'created_by',
     ];
@@ -51,8 +53,13 @@ class VerificationPage extends Model
     public function availableLanguages(): array
     {
         $langs = ['fr'];
-        if ($this->url_en) $langs[] = 'en';
-        if ($this->url_it) $langs[] = 'it';
+        if ($this->url_en) {
+            $langs[] = 'en';
+        }
+        if ($this->url_it) {
+            $langs[] = 'it';
+        }
+
         return $langs;
     }
 
@@ -61,6 +68,7 @@ class VerificationPage extends Model
         'last_seen_in_sitemap_at' => 'datetime',
         'validated_at' => 'datetime',
         'is_in_sitemap' => 'boolean',
+        'cycle' => 'integer',
     ];
 
     public const CATEGORIES = [
@@ -76,11 +84,46 @@ class VerificationPage extends Model
      * Les vues passent par <x-verif.status-badge> plutôt que de refaire un match().
      */
     public const STATUSES = [
-        'pending' => ['label' => 'À vérifier', 'tone' => 'warn'],
-        'in_progress' => ['label' => 'En cours', 'tone' => 'info'],
-        'needs_fix' => ['label' => 'À corriger', 'tone' => 'danger'],
-        'awaiting_validation' => ['label' => 'À clôturer', 'tone' => 'accent'],
-        'validated' => ['label' => 'Validée', 'tone' => 'success'],
+        'pending' => ['label' => 'En relecture', 'tone' => 'info'],
+        'in_progress' => ['label' => 'Correction en cours', 'tone' => 'info'],
+        'needs_fix' => ['label' => 'Retours à traiter', 'tone' => 'warn'],
+        'awaiting_validation' => ['label' => 'Prête à clôturer', 'tone' => 'accent'],
+        'validated' => ['label' => 'Vérifiée', 'tone' => 'success'],
+    ];
+
+    /**
+     * Étapes affichées dans l'espace « Vérification des pages ». Le statut
+     * 'pending' y est détaillé : sans relecteur, en attente de distribution,
+     * ou en relecture. Dans l'ordre du circuit.
+     */
+    public const STAGES = [
+        'unassigned' => ['label' => 'Sans relecteur', 'short' => 'Sans relecteur', 'tone' => 'danger'],
+        'queued' => ['label' => 'En attente de distribution', 'short' => 'En attente', 'tone' => 'neutral'],
+        'reviewing' => ['label' => 'En relecture', 'short' => 'En relecture', 'tone' => 'info'],
+        'to_handle' => ['label' => 'Retours à traiter', 'short' => 'Retours à traiter', 'tone' => 'warn'],
+        'correcting' => ['label' => 'Correction en cours', 'short' => 'Correction en cours', 'tone' => 'info'],
+        'ready' => ['label' => 'Prête à clôturer', 'short' => 'Prêtes à clôturer', 'tone' => 'accent'],
+        'verified' => ['label' => 'Vérifiée', 'short' => 'Vérifiées', 'tone' => 'success'],
+    ];
+
+    /** Statut de page correspondant directement à une étape. */
+    private const STAGE_STATUSES = [
+        'to_handle' => 'needs_fix',
+        'correcting' => 'in_progress',
+        'ready' => 'awaiting_validation',
+        'verified' => 'validated',
+    ];
+
+    /**
+     * Où en est chaque relecteur sur la page (colonne « Avancement »).
+     */
+    public const REVIEWER_STATES = [
+        'done' => ['label' => 'A répondu', 'icon' => '✓', 'tone' => 'success'],
+        'new' => ['label' => 'Retour à traiter', 'icon' => '!', 'tone' => 'warn'],
+        'correcting' => ['label' => 'Retour en correction', 'icon' => '…', 'tone' => 'info'],
+        'back' => ['label' => 'Renvoyée, à revoir', 'icon' => '↺', 'tone' => 'accent'],
+        'open' => ['label' => 'Page chez le relecteur', 'icon' => '●', 'tone' => 'info'],
+        'wait' => ['label' => 'En attente de distribution', 'icon' => '⏳', 'tone' => 'neutral'],
     ];
 
     /** Ordre de tri des priorités, de la plus urgente à la moins urgente. */
@@ -119,6 +162,153 @@ class VerificationPage extends Model
     public function statusTone(): string
     {
         return self::STATUSES[$this->status]['tone'] ?? 'neutral';
+    }
+
+    // ─── ÉTAPES ───────────────────────────────────────────────────
+
+    /**
+     * Expression SQL portable (MySQL/MariaDB et SQLite) donnant l'étape d'une
+     * page. Même règle que stage() et scopeInStage() : les trois doivent rester
+     * alignées (les compteurs du bandeau correspondent aux lignes filtrées).
+     */
+    public static function stageSql(): string
+    {
+        $assignments = 'SELECT 1 FROM verification_assignments va WHERE va.page_id = verification_pages.id';
+
+        return "CASE
+            WHEN verification_pages.status = 'validated' THEN 'verified'
+            WHEN verification_pages.status = 'awaiting_validation' THEN 'ready'
+            WHEN verification_pages.status = 'in_progress' THEN 'correcting'
+            WHEN verification_pages.status = 'needs_fix' THEN 'to_handle'
+            WHEN NOT EXISTS ({$assignments}) THEN 'unassigned'
+            WHEN NOT EXISTS ({$assignments} AND va.released_at IS NOT NULL) THEN 'queued'
+            ELSE 'reviewing'
+        END";
+    }
+
+    public function scopeInStage($query, string $stage)
+    {
+        if (isset(self::STAGE_STATUSES[$stage])) {
+            return $query->where('status', self::STAGE_STATUSES[$stage]);
+        }
+
+        $query->whereNotIn('status', array_values(self::STAGE_STATUSES));
+
+        return match ($stage) {
+            'unassigned' => $query->whereDoesntHave('assignees'),
+            'queued' => $query->whereHas('assignees')
+                ->whereDoesntHave('assignees', fn ($q) => $q->whereNotNull('verification_assignments.released_at')),
+            'reviewing' => $query->whereHas('assignees', fn ($q) => $q->whereNotNull('verification_assignments.released_at')),
+            default => $query,
+        };
+    }
+
+    /** Étape de la page, à partir des assignations (chargées si elles le sont). */
+    public function stage(): string
+    {
+        if ($stage = array_search($this->status, self::STAGE_STATUSES, true)) {
+            return $stage;
+        }
+
+        if ($this->assignees->isEmpty()) {
+            return 'unassigned';
+        }
+
+        return $this->assignees->contains(fn ($u) => $u->pivot->released_at !== null) ? 'reviewing' : 'queued';
+    }
+
+    public function stageLabel(): string
+    {
+        return self::STAGES[$this->stage()]['label'];
+    }
+
+    public function stageTone(): string
+    {
+        return self::STAGES[$this->stage()]['tone'];
+    }
+
+    /**
+     * Avancement de chaque relecteur sur le cycle en cours : les relecteurs
+     * assignés, puis ceux qui ont rendu une relecture FR sans être (ou sans
+     * être encore) assignés. S'appuie sur les relations assignees et reviews,
+     * chargées une fois.
+     *
+     * @return \Illuminate\Support\Collection<int, array{user_id: int|null, name: string, assigned: bool, state: string, label: string, since: \Illuminate\Support\Carbon|null, review: VerificationReview|null}>
+     */
+    public function reviewerProgress(): \Illuminate\Support\Collection
+    {
+        // Clé « deleted-<id> » : les relectures de comptes supprimés (user_id nul)
+        // gardent chacune leur ligne.
+        $frReviews = $this->reviews->where('language', 'fr')
+            ->keyBy(fn ($review) => $review->user_id ?? 'deleted-'.$review->id);
+
+        $rows = $this->assignees->map(function (User $user) use ($frReviews) {
+            $review = $frReviews->get($user->id);
+            $releasedAt = $user->pivot->released_at ? \Illuminate\Support\Carbon::parse($user->pivot->released_at) : null;
+
+            return $this->progressRow($user->id, $user->name, true, $review, $releasedAt);
+        });
+
+        $extra = $frReviews
+            ->reject(fn ($review) => $review->user_id !== null && $this->assignees->contains('id', $review->user_id))
+            ->map(fn ($review) => $this->progressRow($review->user_id, $review->user?->name ?? 'Utilisateur supprimé', false, $review, null));
+
+        return $rows->concat($extra->values())->values();
+    }
+
+    private function progressRow(?int $userId, string $name, bool $assigned, ?VerificationReview $review, ?\Illuminate\Support\Carbon $releasedAt): array
+    {
+        [$state, $since] = match (true) {
+            $review?->status === 'done' => ['done', $review->updated_at],
+            $review?->status === 'pending_admin' => ['new', $review->submittedAt()],
+            $review?->status === 'in_progress' => ['correcting', $review->updated_at],
+            $review?->status === 'revision_requested' => ['back', $review->updated_at],
+            $releasedAt !== null => ['open', $releasedAt],
+            default => ['wait', null],
+        };
+
+        $label = $state === 'done'
+            ? ($review->isAllClear() ? 'Rien à signaler' : 'Retour réglé')
+            : self::REVIEWER_STATES[$state]['label'];
+
+        return [
+            'user_id' => $userId,
+            'name' => $name,
+            'assigned' => $assigned,
+            'state' => $state,
+            'label' => $label,
+            'since' => $since,
+            'review' => $review,
+        ];
+    }
+
+    /** « 1/3 » : relecteurs assignés ayant une relecture FR réglée, sur le total. */
+    public function progressSummary(): ?string
+    {
+        $assigned = $this->reviewerProgress()->where('assigned', true);
+
+        return $assigned->isEmpty() ? null : $assigned->where('state', 'done')->count().'/'.$assigned->count();
+    }
+
+    // ─── PRÉSENCE SUR LE SITE ─────────────────────────────────────
+
+    /** Vue lors d'un scan du site, absente du dernier. */
+    public function isOutOfSite(): bool
+    {
+        return ! $this->is_in_sitemap && $this->last_seen_in_sitemap_at !== null;
+    }
+
+    public function scopeOutOfSite($query)
+    {
+        return $query->where('is_in_sitemap', false)->whereNotNull('last_seen_in_sitemap_at');
+    }
+
+    /** Pages du site : dans le dernier scan, ou créées à la main et jamais scannées. */
+    public function scopeOnSite($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->where('is_in_sitemap', true)
+            ->orWhereNull('last_seen_in_sitemap_at'));
     }
 
     /**
@@ -207,9 +397,30 @@ class VerificationPage extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Relectures du cycle en cours. Celles des cycles clôturés sont archivées
+     * (archived_at) : conservées, consultables, hors de tout calcul.
+     */
     public function reviews(): HasMany
     {
+        return $this->hasMany(VerificationReview::class, 'page_id')->whereNull('archived_at');
+    }
+
+    /** Toutes les relectures, cycles clôturés compris. */
+    public function allReviews(): HasMany
+    {
         return $this->hasMany(VerificationReview::class, 'page_id');
+    }
+
+    public function archivedReviews(): HasMany
+    {
+        return $this->hasMany(VerificationReview::class, 'page_id')->whereNotNull('archived_at');
+    }
+
+    /** Journal de la page, du plus récent au plus ancien. */
+    public function events(): HasMany
+    {
+        return $this->hasMany(VerificationEvent::class, 'page_id')->latest('created_at')->latest('id');
     }
 
     public function translationChecks(): HasMany
@@ -248,9 +459,7 @@ class VerificationPage extends Model
      */
     public function scopeForTranslation($query)
     {
-        return $query->where(fn ($q) => $q
-            ->where('is_in_sitemap', true)
-            ->orWhereNull('last_seen_in_sitemap_at'));
+        return $query->onSite();
     }
 
     public function creator(): BelongsTo
@@ -266,8 +475,8 @@ class VerificationPage extends Model
         // - il n'a pas de review FR active ('done', 'pending_admin' ou 'in_progress').
         //   Une review 'revision_requested' fait au contraire réapparaître la page (l'admin redemande un passage).
         return $query->whereHas('assignees', fn ($q) => $q
-                ->where('users.id', $user->id)
-                ->whereNotNull('verification_assignments.released_at'))
+            ->where('users.id', $user->id)
+            ->whereNotNull('verification_assignments.released_at'))
             ->where('status', '!=', 'validated')
             ->whereDoesntHave('reviews', fn ($q) => $q->where('user_id', $user->id)
                 ->where('language', 'fr')
