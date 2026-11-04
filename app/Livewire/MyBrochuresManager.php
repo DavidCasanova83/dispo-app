@@ -450,7 +450,9 @@ class MyBrochuresManager extends Component
 
     public function render()
     {
-        $query = Image::with(['category', 'subCategory', 'author', 'sector'])
+        // Brochures françaises ; leurs versions EN / IT s'ouvrent depuis leur carte
+        $query = Image::main()
+            ->with(['category', 'subCategory', 'author', 'sector', 'versions'])
             ->where('responsable_id', Auth::id())
             ->orderByRaw('display_order IS NULL, display_order ASC')
             ->orderBy('created_at', 'desc');
@@ -460,7 +462,8 @@ class MyBrochuresManager extends Component
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('title', 'like', '%' . $this->search . '%')
-                    ->orWhere('filename', 'like', '%' . $this->search . '%');
+                    ->orWhere('filename', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('versions', fn ($v) => $v->where('title', 'like', '%' . $this->search . '%'));
             });
         }
 

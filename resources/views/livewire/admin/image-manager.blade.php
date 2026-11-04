@@ -661,6 +661,20 @@
                                     <h3 class="font-semibold text-gray-900 dark:text-white">
                                         {{ $image->title ?? $image->name }}
                                     </h3>
+                                    {{-- Versions linguistiques (ouvrir pour modifier) --}}
+                                    @if ($image->versions->isNotEmpty() || !empty($image->extra_languages))
+                                        <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                            <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-[#3E9B90]/15 text-[#3E9B90]">FR{{ !empty($image->extra_languages) ? '/' . strtoupper(implode('/', $image->extra_languages)) : '' }}</span>
+                                            @foreach ($image->versions as $version)
+                                                @php $versionOutdated = $version->edition_year && $image->edition_year && $version->edition_year < $image->edition_year; @endphp
+                                                <button type="button" wire:click="openEditModal({{ $version->id }})"
+                                                    class="text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer transition-colors {{ $versionOutdated ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200' : 'bg-[#3E9B90] text-white hover:bg-[#2d7a72]' }}"
+                                                    title="Version {{ \App\Models\Image::LANGUAGE_ADJECTIVES[$version->language] }} : {{ $version->title ?? $version->name }} ({{ $version->edition_year ?? 'sans année' }}){{ $versionOutdated ? ', plus ancienne que la version française' : '' }}">
+                                                    {{ strtoupper($version->language) }}{{ $version->edition_year ? ' ' . $version->edition_year : '' }}
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                     @if ($image->description)
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                                             {{ $image->description }}

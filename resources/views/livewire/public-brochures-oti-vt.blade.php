@@ -230,7 +230,7 @@
             <div>
 
                 {{-- Filtres rapides --}}
-                @if ($categories->count() > 0 || $authors->count() > 0 || $sectors->count() > 0 || $search)
+                @if ($categories->count() > 0 || $authors->count() > 0 || $sectors->count() > 0 || $search || array_sum($languageCounts) > 0)
                     <div class="mb-4 flex flex-wrap items-center gap-2">
                         {{-- Filtre Catégorie --}}
                         @if ($categories->count() > 0)
@@ -401,8 +401,29 @@
                             </div>
                         @endif
 
+                        {{-- Filtre Langue : brochures lisibles en anglais / en italien, cartes ouvertes dans la langue --}}
+                        @if (array_sum($languageCounts) > 0)
+                            <div class="inline-flex items-center gap-0.5 p-0.5 rounded-full border-2 border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+                                role="group" aria-label="Langue des brochures">
+                                <button type="button" wire:click="setLanguage('')" aria-pressed="{{ $activeLanguage ? 'false' : 'true' }}"
+                                    class="px-2.5 py-1 text-xs sm:text-sm font-medium rounded-full transition-colors cursor-pointer {{ !$activeLanguage ? 'bg-[#3E9B90] text-white shadow' : 'text-gray-700 dark:text-gray-300 hover:text-[#3E9B90]' }}">
+                                    Toutes langues
+                                </button>
+                                @foreach ($languageCounts as $code => $count)
+                                    @if ($count > 0)
+                                        <button type="button" wire:click="setLanguage('{{ $code }}')" lang="{{ $code }}"
+                                            aria-pressed="{{ $activeLanguage === $code ? 'true' : 'false' }}"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs sm:text-sm font-medium rounded-full transition-colors cursor-pointer {{ $activeLanguage === $code ? 'bg-[#3E9B90] text-white shadow' : 'text-gray-700 dark:text-gray-300 hover:text-[#3E9B90]' }}">
+                                            {{ \App\Models\Image::LANGUAGES[$code] }}
+                                            <span class="text-[10px] sm:text-xs {{ $activeLanguage === $code ? 'text-white/80' : 'text-gray-400' }}">{{ $count }}</span>
+                                        </button>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+
                         {{-- Bouton Effacer --}}
-                        @if ($categoryId || $subCategoryId || $authorId || $sectorId)
+                        @if ($categoryId || $subCategoryId || $authorId || $sectorId || $activeLanguage)
                             <a href="{{ route('brochures-oti-vt') }}"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -634,14 +655,45 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                         @foreach ($brochures as $brochure)
                             @php
-                                $downloadUrl = $brochure->pdf_path
-                                    ? asset('storage/' . $brochure->pdf_path)
-                                    : $brochure->link_url ?? asset('storage/' . $brochure->path);
-                                $consultUrl = $brochure->pdf_path
-                                    ? asset('storage/' . $brochure->pdf_path)
-                                    : $brochure->calameo_link_url ?? ($brochure->link_url ?? asset('storage/' . $brochure->path));
+                                // Une carte par brochure : le document de chaque langue disponible
+                                // (FR, puis versions EN / IT), choisi avec les pastilles de langue.
+                                $yearClasses = function (?int $year): string {
+                                    if (!$year) {
+                                        return '';
+                                    }
+                                    $yearDiff = (int) date('Y') - $year;
+                                    if ($yearDiff <= 1) {
+                                        return 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
+                                    }
+
+                                    return $yearDiff === 2
+                                        ? 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30'
+                                        : 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
+                                };
+                                $cardEditions = [];
+                                foreach ($brochure->editions(includeOffline: auth()->check()) as $code => $edition) {
+                                    $cardEditions[$code] = [
+                                        'id' => $edition->id,
+                                        'title' => $edition->title ?? $edition->name,
+                                        'description' => $edition->description ?? '',
+                                        'cover' => asset('storage/' . ($edition->thumbnail_path ?: $edition->path)),
+                                        'alt' => $edition->alt_text ?? ($edition->title ?? $edition->name),
+                                        'consult' => $edition->consultUrl(),
+                                        'download' => $edition->downloadUrl(),
+                                        'isFile' => (bool) $edition->pdf_path,
+                                        'link' => $brochure->permalink($code) ?? $edition->downloadUrl(),
+                                        'year' => $edition->edition_year,
+                                        'yearClasses' => $yearClasses($edition->edition_year),
+                                        'outdated' => $edition->id !== $brochure->id && $edition->edition_year && $brochure->edition_year
+                                            && $edition->edition_year < $brochure->edition_year,
+                                    ];
+                                }
+                                $cardLanguage = $activeLanguage && isset($cardEditions[$activeLanguage]) ? $activeLanguage : 'fr';
+                                $current = $cardEditions[$cardLanguage];
                             @endphp
-                            <div class="relative flex flex-col h-full bg-white dark:bg-zinc-800 rounded-lg border {{ $brochure->is_offline ? 'border-red-400 dark:border-red-600' : 'border-gray-200 dark:border-zinc-700' }} shadow-md dark:shadow-zinc-950/50 overflow-hidden hover:shadow-lg dark:hover:shadow-zinc-950/70 hover:-translate-y-0.5 transition-all duration-200">
+                            <div wire:key="brochure-{{ $brochure->id }}-{{ $cardLanguage }}"
+                                x-data="{ lang: '{{ $cardLanguage }}', editions: @js($cardEditions), get v() { return this.editions[this.lang] } }"
+                                class="relative flex flex-col h-full bg-white dark:bg-zinc-800 rounded-lg border {{ $brochure->is_offline ? 'border-red-400 dark:border-red-600' : 'border-gray-200 dark:border-zinc-700' }} shadow-md dark:shadow-zinc-950/50 overflow-hidden hover:shadow-lg dark:hover:shadow-zinc-950/70 hover:-translate-y-0.5 transition-all duration-200">
                                 {{-- Bandeau "hors ligne" (visible uniquement aux utilisateurs connectés) --}}
                                 @auth
                                     @if ($brochure->is_offline)
@@ -663,28 +715,11 @@
                                     @endif
                                 @endauth
 
-                                {{-- Coin haut-droit : tag année + actions admin/responsable empilées verticalement --}}
-                                @php
-                                    $hasYear = (bool) $brochure->edition_year;
-                                    if ($hasYear) {
-                                        $currentYear = (int) date('Y');
-                                        $editionYear = (int) $brochure->edition_year;
-                                        $yearDiff = $currentYear - $editionYear;
-                                        if ($yearDiff <= 1) {
-                                            $colorClasses = 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30';
-                                        } elseif ($yearDiff === 2) {
-                                            $colorClasses = 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30';
-                                        } else {
-                                            $colorClasses = 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30';
-                                        }
-                                    }
-                                @endphp
+                                {{-- Coin haut-droit : tag année (du document affiché) + actions admin/responsable empilées verticalement --}}
                                 <div class="absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
-                                    @if ($hasYear)
-                                        <span class="text-xs font-medium {{ $colorClasses }} px-2 py-0.5 rounded shadow-sm">
-                                            {{ $brochure->edition_year }}
-                                        </span>
-                                    @endif
+                                    <span x-show="v.year" x-text="v.year" :class="v.yearClasses"
+                                        class="text-xs font-medium px-2 py-0.5 rounded shadow-sm"
+                                        @if (!$current['year']) style="display: none" @endif>{{ $current['year'] }}</span>
 
                                     @auth
                                         @if ($isAdmin || auth()->id() === $brochure->responsable_id)
@@ -731,25 +766,49 @@
                                 </div>
 
                                 {{-- Image de couverture --}}
-                                <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
-                                    wire:click="trackClick({{ $brochure->id }}, 'consulter')" class="block" style="max-height: 180px; overflow: hidden;">
-                                    <img src="{{ $brochure->thumbnail_path ? asset('storage/' . $brochure->thumbnail_path) : asset('storage/' . $brochure->path) }}"
-                                        alt="{{ $brochure->alt_text ?? ($brochure->title ?? $brochure->name) }}"
+                                <a href="{{ $current['consult'] }}" :href="v.consult" target="_blank" rel="noopener noreferrer"
+                                    @click="$wire.trackClick(v.id, 'consulter')" class="block" style="max-height: 180px; overflow: hidden;">
+                                    <img src="{{ $current['cover'] }}" :src="v.cover"
+                                        alt="{{ $current['alt'] }}" :alt="v.alt"
                                         class="w-full h-full object-cover">
                                 </a>
 
                                 {{-- Contenu --}}
                                 <div class="p-2 sm:p-3 flex flex-col flex-1">
-                                    <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight">
-                                        {{ $brochure->title ?? $brochure->name }}
-                                    </h3>
-                                    <p class="hidden sm:block mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ $brochure->description ?? '' }}</p>
+                                    <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight"
+                                        x-text="v.title">{{ $current['title'] }}</h3>
+
+                                    {{-- Pastilles de langue (si la brochure existe en plusieurs langues) --}}
+                                    @if (count($cardEditions) > 1)
+                                        <div class="relative z-20 mt-1 flex flex-wrap gap-1" role="group" aria-label="Langues de la brochure">
+                                            @foreach ($cardEditions as $code => $edition)
+                                                <button type="button" @click="lang = '{{ $code }}'"
+                                                    :aria-pressed="lang === '{{ $code }}' ? 'true' : 'false'"
+                                                    :class="lang === '{{ $code }}'
+                                                        ? 'bg-[#3E9B90] border-[#3E9B90] text-white'
+                                                        : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90]'"
+                                                    class="relative inline-flex items-center px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold leading-none rounded border transition-colors cursor-pointer"
+                                                    title="{{ \App\Models\Image::LANGUAGES[$code] }}">
+                                                    {{ strtoupper($code) }}
+                                                    @auth
+                                                        @if ($edition['outdated'])
+                                                            <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-1 ring-white dark:ring-zinc-800"
+                                                                title="Version {{ $edition['year'] }}, plus ancienne que la version française ({{ $brochure->edition_year }})"></span>
+                                                        @endif
+                                                    @endauth
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <p class="hidden sm:block mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2"
+                                        x-text="v.description">{{ $current['description'] }}</p>
 
                                     <div class="relative z-20 mt-auto pt-1.5 sm:pt-2">
                                         {{-- Boutons d'action --}}
                                         <div class="flex items-center justify-between w-full">
-                                            <a href="{{ $consultUrl }}" target="_blank" rel="noopener noreferrer"
-                                                wire:click="trackClick({{ $brochure->id }}, 'consulter')"
+                                            <a href="{{ $current['consult'] }}" :href="v.consult" target="_blank" rel="noopener noreferrer"
+                                                @click="$wire.trackClick(v.id, 'consulter')"
                                                 class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
                                                 title="Consulter en ligne">
                                                 <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -757,19 +816,20 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                 </svg>
                                             </a>
-                                            <a href="{{ $downloadUrl }}" target="_blank" rel="noopener noreferrer"
-                                                wire:click="trackClick({{ $brochure->id }}, 'telecharger')"
+                                            <a href="{{ $current['download'] }}" :href="v.download" target="_blank" rel="noopener noreferrer"
+                                                @click="$wire.trackClick(v.id, 'telecharger')"
                                                 class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
-                                                title="Télécharger" {{ $brochure->pdf_path ? 'download' : '' }}>
+                                                title="Télécharger" {{ $current['isFile'] ? 'download' : '' }} :download="v.isFile ? '' : false">
                                                 <svg class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                 </svg>
                                             </a>
+                                            {{-- Lien permanent de la langue affichée (/brochure/{slug}/{langue}) --}}
                                             <button x-data="{ copied: false }"
-                                                @click="navigator.clipboard.writeText('{{ $downloadUrl }}'); copied = true; setTimeout(() => copied = false, 2000); $wire.trackClick({{ $brochure->id }}, 'copier_lien')"
+                                                @click="navigator.clipboard.writeText(v.link); copied = true; setTimeout(() => copied = false, 2000); $wire.trackClick(v.id, 'copier_lien')"
                                                 class="inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg transition-colors cursor-pointer"
                                                 :class="copied ? 'bg-green-500 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'"
-                                                :title="copied ? 'Lien copié !' : 'Copier le lien'">
+                                                :title="copied ? 'Lien copié !' : 'Copier le lien permanent'">
                                                 <svg x-show="!copied" class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
                                                 </svg>

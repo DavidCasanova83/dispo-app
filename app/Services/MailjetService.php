@@ -555,7 +555,7 @@ class MailjetService
     {
         $items = $order->items->map(function ($item) {
             return [
-                'title' => $item->image->title ?? $item->image->name ?? 'Image',
+                'title' => $item->image?->titleWithLanguage() ?? 'Image',
                 'quantity' => $item->quantity,
             ];
         })->toArray();
@@ -585,7 +585,7 @@ class MailjetService
     {
         $items = $order->items->map(function ($item) {
             return [
-                'title' => $item->image->title ?? $item->image->name ?? 'Image',
+                'title' => $item->image?->titleWithLanguage() ?? 'Image',
                 'quantity' => $item->quantity,
             ];
         })->toArray();

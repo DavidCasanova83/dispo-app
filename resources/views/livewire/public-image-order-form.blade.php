@@ -381,11 +381,11 @@
                                 {{-- Miniature et infos --}}
                                 <div class="flex items-center gap-4 flex-1 min-w-0">
                                     <img src="{{ asset('storage/' . $image->thumbnail_path) }}"
-                                        alt="{{ $image->title }}"
+                                        alt="{{ $image->titleWithLanguage() }}"
                                         class="w-14 h-[79px] object-cover rounded-lg flex-shrink-0 border border-gray-200 dark:border-gray-600">
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-semibold text-gray-900 dark:text-white">
-                                            {{ $image->title }}
+                                            {{ $image->titleWithLanguage() }}
                                         </h3>
                                         @if ($image->description)
                                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
@@ -450,10 +450,10 @@
                                 class="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-transparent">
                                 <div class="flex items-center gap-3">
                                     <img src="{{ asset('storage/' . $item['image']->thumbnail_path) }}"
-                                        alt="{{ $item['image']->title }}" class="w-12 h-12 object-cover rounded">
+                                        alt="{{ $item['image']->titleWithLanguage() }}" class="w-12 h-12 object-cover rounded">
                                     <div>
                                         <p class="font-medium text-gray-900 dark:text-white">
-                                            {{ $item['image']->title ?? $item['image']->name }}
+                                            {{ $item['image']->titleWithLanguage() }}
                                         </p>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
                                             Quantité: {{ $item['quantity'] }}

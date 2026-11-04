@@ -1018,14 +1018,17 @@ class ImageManager extends Component
             ->values()
             ->toArray();
 
-        $query = Image::with(['uploader', 'category', 'subCategory', 'author', 'sector', 'responsable']);
+        // Brochures françaises ; leurs versions EN / IT sont montrées sur leur ligne
+        $query = Image::main()->with(['uploader', 'category', 'subCategory', 'author', 'sector', 'responsable', 'versions']);
 
-        // Recherche (groupée pour ne pas casser les filtres)
+        // Recherche (groupée pour ne pas casser les filtres), titres des versions compris
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('filename', 'like', '%' . $this->search . '%')
-                  ->orWhere('title', 'like', '%' . $this->search . '%');
+                  ->orWhere('title', 'like', '%' . $this->search . '%')
+                  ->orWhereHas('versions', fn ($v) => $v->where('title', 'like', '%' . $this->search . '%')
+                      ->orWhere('name', 'like', '%' . $this->search . '%'));
             });
         }
 

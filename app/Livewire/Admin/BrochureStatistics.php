@@ -66,11 +66,11 @@ class BrochureStatistics extends Component
         $brochureRankingQuery = BrochureClick::query()
             ->whereBetween('brochure_clicks.created_at', [$startDate, $endDate])
             ->join('images', 'brochure_clicks.image_id', '=', 'images.id')
-            ->selectRaw("images.id, images.title, images.name, images.thumbnail_path, images.path, COUNT(*) as total_clicks,
+            ->selectRaw("images.id, images.title, images.name, images.thumbnail_path, images.path, images.language, COUNT(*) as total_clicks,
                 SUM(CASE WHEN brochure_clicks.button_type = 'consulter' THEN 1 ELSE 0 END) as consulter_clicks,
                 SUM(CASE WHEN brochure_clicks.button_type = 'telecharger' THEN 1 ELSE 0 END) as telecharger_clicks,
                 SUM(CASE WHEN brochure_clicks.button_type = 'copier_lien' THEN 1 ELSE 0 END) as copier_lien_clicks")
-            ->groupBy('images.id', 'images.title', 'images.name', 'images.thumbnail_path', 'images.path')
+            ->groupBy('images.id', 'images.title', 'images.name', 'images.thumbnail_path', 'images.path', 'images.language')
             ->orderByDesc('total_clicks');
 
         if ($this->buttonTypeFilter) {
@@ -88,12 +88,23 @@ class BrochureStatistics extends Component
 
         $anonymousClicks = $totalClicks - $authenticatedClicks;
 
+        // Clics par langue du document (brochure française ou version EN / IT)
+        $clicksByLanguage = BrochureClick::query()
+            ->whereBetween('brochure_clicks.created_at', [$startDate, $endDate])
+            ->when($this->buttonTypeFilter, fn($q) => $q->where('button_type', $this->buttonTypeFilter))
+            ->join('images', 'brochure_clicks.image_id', '=', 'images.id')
+            ->selectRaw('images.language, COUNT(*) as count')
+            ->groupBy('images.language')
+            ->pluck('count', 'language')
+            ->toArray();
+
         return [
             'totalClicks' => $totalClicks,
             'clicksByType' => $clicksByType,
             'brochureRanking' => $brochureRanking,
             'authenticatedClicks' => $authenticatedClicks,
             'anonymousClicks' => $anonymousClicks,
+            'clicksByLanguage' => $clicksByLanguage,
             'periodLabel' => $this->getPeriodLabel(),
         ];
     }

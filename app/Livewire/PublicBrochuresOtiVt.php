@@ -17,6 +17,7 @@ use App\Services\MailjetService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Rule;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 
@@ -38,6 +39,13 @@ class PublicBrochuresOtiVt extends Component
 
     // Recherche
     public string $search = '';
+
+    /**
+     * Langue (?langue=en|it) : seules les brochures lisibles dans cette langue,
+     * leur carte ouverte sur cette langue. Vide = toutes, cartes en français.
+     */
+    #[Url(as: 'langue', except: '')]
+    public string $langue = '';
 
     // Modal de signalement
     public bool $showReportModal = false;
@@ -403,6 +411,23 @@ class PublicBrochuresOtiVt extends Component
         $this->subCategoryId = null;
         $this->authorId = null;
         $this->sectorId = null;
+        $this->langue = '';
+    }
+
+    /**
+     * Choisit la langue des brochures (anglais, italien, ou toutes).
+     */
+    public function setLanguage(string $language): void
+    {
+        $this->langue = in_array($language, Image::VERSION_LANGUAGES, true) ? $language : '';
+    }
+
+    /**
+     * Langue choisie, si elle est valide.
+     */
+    private function activeLanguage(): ?string
+    {
+        return in_array($this->langue, Image::VERSION_LANGUAGES, true) ? $this->langue : null;
     }
 
     /**
@@ -419,6 +444,11 @@ class PublicBrochuresOtiVt extends Component
     public function shouldShowAgenda(?Agenda $agenda): bool
     {
         if (!$agenda) {
+            return false;
+        }
+
+        // L'agenda est en français : pas avec le filtre anglais / italien
+        if ($this->activeLanguage()) {
             return false;
         }
 
@@ -444,11 +474,6 @@ class PublicBrochuresOtiVt extends Component
         return true;
     }
 
-    /**
-     * Slugs des auteurs réservés aux utilisateurs connectés
-     */
-    private const RESTRICTED_AUTHOR_SLUGS = ['pro-verdon-tourisme', 'documentation-interne'];
-
     public function render()
     {
         // Récupérer l'agenda en cours
@@ -459,10 +484,14 @@ class PublicBrochuresOtiVt extends Component
         // IDs des auteurs restreints (visibles uniquement pour les connectés)
         $restrictedAuthorIds = Auth::check()
             ? []
-            : Author::whereIn('slug', self::RESTRICTED_AUTHOR_SLUGS)->pluck('id')->toArray();
+            : Author::whereIn('slug', Image::RESTRICTED_AUTHOR_SLUGS)->pluck('id')->toArray();
 
         // Les brochures hors ligne sont masquées aux visiteurs non connectés
         $hideOffline = !Auth::check();
+
+        // Une carte par brochure française, avec ses versions EN / IT visibles
+        $activeLanguage = $this->activeLanguage();
+        $withVisibleVersions = ['versions' => fn ($q) => $q->when($hideOffline, fn ($v) => $v->where('is_offline', false))];
 
         // Récupérer les brochures
         if ($this->search) {
@@ -470,16 +499,24 @@ class PublicBrochuresOtiVt extends Component
             $searchTerm = '%' . $this->search . '%';
 
             $brochures = Image::query()
+                ->main()
+                ->with($withVisibleVersions)
                 ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
                 ->when($hideOffline, fn($q) => $q->where('is_offline', false))
-                ->where(function ($q) use ($searchTerm) {
+                ->when($activeLanguage, fn($q) => $q->availableIn($activeLanguage, $hideOffline))
+                ->where(function ($q) use ($searchTerm, $hideOffline) {
                     $q->where('title', 'like', $searchTerm)
                       ->orWhere('name', 'like', $searchTerm)
                       ->orWhere('description', 'like', $searchTerm)
                       ->orWhere('alt_text', 'like', $searchTerm)
                       ->orWhere('link_text', 'like', $searchTerm)
                       ->orWhere('calameo_link_text', 'like', $searchTerm)
-                      ->orWhere('edition_year', 'like', $searchTerm);
+                      ->orWhere('edition_year', 'like', $searchTerm)
+                      // Titre ou description d'une version (« Hotels », « Guida pratica »)
+                      ->orWhereHas('versions', fn ($v) => $v
+                          ->when($hideOffline, fn ($v2) => $v2->where('is_offline', false))
+                          ->where(fn ($v2) => $v2->where('title', 'like', $searchTerm)
+                              ->orWhere('description', 'like', $searchTerm)));
                 })
                 ->orderByRaw("
                     CASE
@@ -493,8 +530,11 @@ class PublicBrochuresOtiVt extends Component
         } else {
             // Mode filtres : logique actuelle
             $brochures = Image::query()
+                ->main()
+                ->with($withVisibleVersions)
                 ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
                 ->when($hideOffline, fn($q) => $q->where('is_offline', false))
+                ->when($activeLanguage, fn($q) => $q->availableIn($activeLanguage, $hideOffline))
                 ->when($this->categoryId, fn($q) => $q->where('category_id', $this->categoryId))
                 ->when($this->subCategoryId, fn($q) => $q->where('sub_category_id', $this->subCategoryId))
                 ->when($this->authorId, fn($q) => $q->where('author_id', $this->authorId))
@@ -506,9 +546,15 @@ class PublicBrochuresOtiVt extends Component
 
         // Récupérer les IDs de toutes les brochures visibles pour les filtres
         $availableBrochureIds = Image::query()
+            ->main()
             ->when($restrictedAuthorIds, fn($q) => $q->whereNotIn('author_id', $restrictedAuthorIds))
             ->when($hideOffline, fn($q) => $q->where('is_offline', false))
             ->pluck('id');
+
+        // Nombre de brochures lisibles en anglais / en italien (filtre « Langue »)
+        $languageCounts = collect(Image::VERSION_LANGUAGES)->mapWithKeys(fn ($language) => [
+            $language => Image::whereIn('id', $availableBrochureIds)->availableIn($language, $hideOffline)->count(),
+        ])->all();
 
         // Toujours utiliser le layout app (sidebar admin pour les connectés)
         $layout = auth()->check()
@@ -551,6 +597,8 @@ class PublicBrochuresOtiVt extends Component
 
         return view('livewire.public-brochures-oti-vt', [
             'brochures' => $brochures,
+            'activeLanguage' => $activeLanguage,
+            'languageCounts' => $languageCounts,
             'currentAgenda' => $currentAgenda,
             'showAgenda' => $this->shouldShowAgenda($currentAgenda),
             'configuredMenu' => $configuredMenu,

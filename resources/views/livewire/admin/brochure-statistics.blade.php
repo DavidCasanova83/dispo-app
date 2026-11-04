@@ -116,6 +116,15 @@
                         </div>
                     </div>
                 </div>
+                {{-- Langue des documents ouverts (brochures et versions EN / IT) --}}
+                @php $languageTotal = array_sum($statistics['clicksByLanguage'] ?? []) ?: 1; @endphp
+                <p class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                    Par langue :
+                    @foreach (\App\Models\Image::LANGUAGES as $code => $label)
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ strtoupper($code) }}</span>
+                        {{ round((($statistics['clicksByLanguage'][$code] ?? 0) / $languageTotal) * 100) }} %@if (!$loop->last) ·@endif
+                    @endforeach
+                </p>
             </div>
         </div>
 
@@ -227,6 +236,9 @@
                                                 </div>
                                                 <div class="ml-3">
                                                     <div class="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
+                                                        @if (($brochure->language ?? 'fr') !== 'fr')
+                                                            <span class="mr-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#3E9B90]/15 text-[#3E9B90]">{{ strtoupper($brochure->language) }}</span>
+                                                        @endif
                                                         {{ $brochure->title ?? $brochure->name }}
                                                     </div>
                                                 </div>

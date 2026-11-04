@@ -10,17 +10,42 @@
       $usedDisplayOrders     : array<int>
 
     Le composant hôte doit utiliser le trait App\Livewire\Concerns\EditsBrochures.
+
+    Ouverte sur une version EN / IT, la fenêtre cache le classement (repris de
+    la brochure française) ; ouverte sur une brochure, elle montre en bas ses
+    versions linguistiques (partials/brochure-versions-section).
 --}}
 @if ($showEditModal && $editingImage)
+    @php
+        $isVersionEdit = $editingImage->isVersion();
+        $versionParent = $isVersionEdit ? $editingImage->versionOf : null;
+    @endphp
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex min-h-screen items-center justify-center px-4 py-6">
             <div class="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm transition-opacity"
                 wire:click="closeEditModal"></div>
 
             <div class="relative bg-white dark:bg-[#001716] rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                    Modifier la brochure
-                </h3>
+                @if ($isVersionEdit)
+                    <button type="button" wire:click="openMainBrochureEdit"
+                        class="mb-3 inline-flex items-center gap-1 text-sm text-[#3E9B90] hover:underline cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        Revenir à la brochure française
+                    </button>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        Modifier la version {{ \App\Models\Image::LANGUAGE_ADJECTIVES[$editingImage->language] ?? '' }}
+                        <span class="ml-1 align-middle text-xs font-bold px-1.5 py-0.5 rounded bg-[#3E9B90]/15 text-[#3E9B90]">{{ strtoupper($editingImage->language) }}</span>
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        de « {{ $versionParent?->title ?? $versionParent?->name }} » — catégorie, secteur, auteur et responsable sont ceux de la brochure française.
+                    </p>
+                @else
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        Modifier la brochure
+                    </h3>
+                @endif
 
                 <form wire:submit.prevent="updateImage">
                     {{-- Image preview --}}
@@ -32,6 +57,7 @@
                     </div>
 
                     <div class="space-y-4">
+                        @unless ($isVersionEdit)
                         {{-- Auteur (obligatoire) --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -105,6 +131,8 @@
                             </select>
                             @error('editResponsableId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                         </div>
+
+                        @endunless
 
                         {{-- Titre (obligatoire) --}}
                         <div>
@@ -206,7 +234,7 @@
 
                         {{-- Ordre d'affichage et Print --}}
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
+                            <div @class(['hidden' => $isVersionEdit])>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Ordre d'affichage
                                 </label>
@@ -279,6 +307,11 @@
                             </div>
                         </div>
                     </div>
+
+                    {{-- Langues : versions EN / IT de la brochure --}}
+                    @unless ($isVersionEdit)
+                        @include('partials.brochure-versions-section')
+                    @endunless
 
                     {{-- Récapitulatif des champs manquants --}}
                     @if (!$this->canSaveEdit && count($this->missingEditFields) > 0)
