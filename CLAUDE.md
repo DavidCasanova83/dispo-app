@@ -12,7 +12,7 @@ Application Laravel 12 + Livewire 3 (Flux UI, Volt) regroupant plusieurs modules
 |---|---|---|
 | Disponibilités | Hébergements importés d'Apidae, e-mails Mailjet quotidiens demandant aux hébergeurs leur disponibilité (lien signé), suivi des réponses | `/accommodations`, `app/Console/Commands/FetchApidaeData.php`, `SendAvailabilityEmails.php`, `AccommodationResponseController` |
 | Qualification | Formulaire visiteurs en 3 étapes pour 5 bureaux d'information (Annot, Colmars-les-Alpes, Entrevaux, La Palud-sur-Verdon, Saint-André-les-Alpes), statistiques V3, export Excel | `/qualification`, `QualificationController`, `app/Livewire/Qualification*` |
-| Brochures / Images | Gestion des brochures PDF (upload, compression Ghostscript, liens Calaméo), catégories / sous-catégories / auteurs / secteurs, menu public, statistiques de clics | `/admin/images`, `/admin/brochure-menu`, `/mes-brochures`, page publique `/brochures-oti-vt` |
+| Brochures / Images | Gestion des brochures PDF (upload, compression Ghostscript, liens Calaméo), catégories / sous-catégories / auteurs / secteurs, menu public, statistiques de clics. **Versions EN / IT** rattachées à la brochure française (une carte, pastilles FR · EN · IT, filtre `?langue=en` ou `it`, adresse permanente `/brochure/{slug}/{langue}`, reprise `brochures:lier-versions` ; `BROCHURES_VERSIONS_LANGUES.md`) | `/admin/images`, `/admin/brochure-menu`, `/mes-brochures`, page publique `/brochures-oti-vt`, `BrochureVersionService` |
 | Commandes | Commande de brochures par les partenaires (Turnstile + honeypot) et gestion admin | `/commander-images`, `/admin/commandes` |
 | Agendas | PDF d'agenda avec activation programmée | `/admin/agendas`, `/storage/agendas/agenda-en-cours.pdf` |
 | Vérification des pages | Relecture annuelle des pages FR de verdontourisme.com par les relecteurs (scan du site, assignation, distribution nocturne avec plafond réglable, retours traités par l'admin, clôture qui **archive** les relectures par cycle, journal, corbeille). Espace admin unique en onglets À traiter / Pages / Vérifiées / Corbeille + fiche page ; pastilles dans le menu (`VERIFICATION_PAGES.md`). Correction de la page confiable à **Claude** depuis la fiche, à partir des retours (super-admin seulement, gate `ask-claude-page-correction`) : issue `@claude` dans le dépôt du site, PR créée par le panel (`DEMANDES_CLAUDE.md`) | `/verification` (relecteur), `/verification/admin/a-traiter`, `/verification/admin/pages[/{id}]`, `VerificationReviewService`, `VerificationPageService`, `VerificationJournal`, `VerificationClaudeService`, `PageReleaseService`, `SitemapScanService` |
@@ -47,6 +47,7 @@ Commandes métier utiles : `apidae:fetch --all`, `emails:send-availability`, `ac
 `agendas:activate-pending`, `verification:revalidate-aged`, `verification:release-pages`,
 `verification:purge` (efface DÉFINITIVEMENT tout le module, journal compris), `verification:restore-page`, `verification:recompute-statuses`,
 `brochures:compress-existing`, `brochures:resync-sizes --dry-run`, `images:generate-json`,
+`brochures:lier-versions` (aperçu ; `--appliquer` : rattache les anciennes brochures « English - … » / « … IT »),
 `translations:claude-sync` (`--test` : connexion à GitHub), `verification:claude-sync`
 (voir `app/Console/Commands/` pour les signatures exactes et options).
 
@@ -110,7 +111,7 @@ Sans clés Apidae/Mailjet, l'interface fonctionne mais import et e-mails échoue
 Détails fonctionnels dans les fichiers à la racine (certains passages sont datés — le code fait foi) :
 `ANALYSE_APPLICATION.md` (vue d'ensemble), `APIDAE_SETUP.md`, `APIDAE_SCHEDULING.md`, `MAILJET_SETUP.md`,
 `QUEUES_JOBS_ET_FICHIERS.md`, `DOCUMENTATION_STATISTIQUES.md`, `PLAN_UPLOAD_IMAGES.md`, `SECURITY_SETUP.md`,
-`Outil-qualification.md`, `clearcache.md`, `DEMANDES_CLAUDE.md` (traductions et pages corrigées par Claude), `VERIFICATION_PAGES.md` (vérification des pages : écrans, conservation des données, mise en production), ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
+`Outil-qualification.md`, `clearcache.md`, `BROCHURES_VERSIONS_LANGUES.md` (versions EN / IT des brochures, mise en production), `DEMANDES_CLAUDE.md` (traductions et pages corrigées par Claude), `VERIFICATION_PAGES.md` (vérification des pages : écrans, conservation des données, mise en production), ainsi que `.claude/instructions.md` et `.claude/project_context.md`.
 
 ## Fichiers à ne pas committer / à manipuler avec précaution
 

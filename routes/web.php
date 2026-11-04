@@ -44,6 +44,12 @@ Route::get('/brochures-oti-vt/{categorySlug}', \App\Livewire\PublicBrochuresOtiV
 Route::get('/brochures-oti-vt/{categorySlug}/{subCategorySlug}', \App\Livewire\PublicBrochuresOtiVt::class)
      ->name('brochures-oti-vt.subcategory');
 
+// Adresse permanente d'une brochure dans une langue (redirige vers le fichier actuel,
+// ou vers le français s'il n'y a pas de version dans la langue)
+Route::get('/brochure/{slug}/{langue?}', \App\Http\Controllers\BrochurePermalinkController::class)
+     ->where('langue', 'fr|en|it')
+     ->name('brochure.permalink');
+
 // Redirection publique vers la version traduite (Google Translate) d'une newsletter.
 // Le permalien Mailjet est passé via ?url=[[PERMALINK]]. Langues : en, it, de.
 Route::get('/newsletter/traduction/{lang}', NewsletterTranslateController::class)

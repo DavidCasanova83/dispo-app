@@ -108,7 +108,7 @@ class OrderManager extends Component
 
         foreach ($orders as $order) {
             $images = $order->items->map(fn($item) => 
-                ($item->image->title ?? $item->image->name) . ' (x' . $item->quantity . ')'
+                $item->image?->titleWithLanguage() . ' (x' . $item->quantity . ')'
             )->implode(', ');
 
             fputcsv($handle, [

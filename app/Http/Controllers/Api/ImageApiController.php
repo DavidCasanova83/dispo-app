@@ -18,7 +18,8 @@ class ImageApiController extends Controller
                 'category:id,name',
                 'author:id,name',
                 'sector:id,name',
-                'responsable:id,name'
+                'responsable:id,name',
+                'versionOf:id,slug',
             ])
             ->latest()
             ->get()
@@ -27,6 +28,9 @@ class ImageApiController extends Controller
                     'id' => $image->id,
                     'name' => $image->name,
                     'title' => $image->title,
+                    'language' => $image->language,
+                    'version_of_id' => $image->version_of_id,
+                    'permalink' => $image->permalink($image->language),
                     'filename' => $image->filename,
                     'url' => asset('storage/' . $image->path),
                     'thumbnail_url' => $image->thumbnail_path
@@ -97,7 +101,8 @@ class ImageApiController extends Controller
             'category:id,name',
             'author:id,name',
             'sector:id,name',
-            'responsable:id,name'
+            'responsable:id,name',
+            'versionOf:id,slug',
         ])->findOrFail($id);
 
         return response()->json([
@@ -106,6 +111,9 @@ class ImageApiController extends Controller
                 'id' => $image->id,
                 'name' => $image->name,
                 'title' => $image->title,
+                'language' => $image->language,
+                'version_of_id' => $image->version_of_id,
+                'permalink' => $image->permalink($image->language),
                 'filename' => $image->filename,
                 'url' => asset('storage/' . $image->path),
                 'thumbnail_url' => $image->thumbnail_path

@@ -194,6 +194,19 @@
                                         <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight">
                                             {{ $brochure->title ?? $brochure->name }}
                                         </h3>
+                                        {{-- Versions EN / IT : cliquer pour modifier (orange = plus ancienne que le français) --}}
+                                        @if ($brochure->versions->isNotEmpty())
+                                            <div class="mt-1 flex flex-wrap gap-1">
+                                                @foreach ($brochure->versions as $version)
+                                                    @php $versionOutdated = $version->edition_year && $brochure->edition_year && $version->edition_year < $brochure->edition_year; @endphp
+                                                    <button type="button" wire:click="openEditModal({{ $version->id }})"
+                                                        class="text-[10px] sm:text-[11px] font-bold leading-none px-1.5 py-0.5 rounded cursor-pointer transition-colors {{ $versionOutdated ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200' : 'bg-[#3E9B90]/15 text-[#3E9B90] hover:bg-[#3E9B90]/25' }}"
+                                                        title="Modifier la version {{ \App\Models\Image::LANGUAGE_ADJECTIVES[$version->language] }} ({{ $version->edition_year ?? 'sans année' }}){{ $versionOutdated ? ' : plus ancienne que la version française' : '' }}">
+                                                        {{ strtoupper($version->language) }}{{ $version->edition_year ? ' ' . $version->edition_year : '' }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                         <p class="hidden sm:block mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ $brochure->description ?? '' }}</p>
 
                                         <div class="mt-1.5 sm:mt-2 flex items-center justify-between">
@@ -277,7 +290,14 @@
             <div class="flex min-h-screen items-center justify-center px-4 py-6">
                 <div class="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm transition-opacity" wire:click="closeEditModal"></div>
                 <div class="relative bg-white dark:bg-zinc-800 rounded-lg shadow-xl dark:shadow-zinc-950/50 max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-zinc-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Modifier la brochure</h3>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        @if ($editingImage->isVersion())
+                            Modifier la version {{ \App\Models\Image::LANGUAGE_ADJECTIVES[$editingImage->language] ?? '' }}
+                            <span class="block text-sm font-normal text-gray-500 dark:text-gray-400">de « {{ $editingImage->versionOf?->title ?? $editingImage->versionOf?->name }} »</span>
+                        @else
+                            Modifier la brochure
+                        @endif
+                    </h3>
                     <form wire:submit.prevent="updateBrochure">
                         {{-- Current image preview --}}
                         <div class="mb-4 flex items-center gap-4">

@@ -129,7 +129,7 @@
                                 @foreach($selectedOrder->items as $item)
                                     <li class="flex items-center gap-3">
                                         <img src="{{ asset('storage/' . $item->image->thumbnail_path) }}" class="w-12 h-12 object-cover rounded">
-                                        <span>{{ $item->image->title ?? $item->image->name }} (x{{ $item->quantity }})</span>
+                                        <span>{{ $item->image?->titleWithLanguage() }} (x{{ $item->quantity }})</span>
                                     </li>
                                 @endforeach
                             </ul>

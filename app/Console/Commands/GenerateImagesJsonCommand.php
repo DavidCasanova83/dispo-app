@@ -21,7 +21,8 @@ class GenerateImagesJsonCommand extends Command
                 'subCategory:id,name,category_id',
                 'author:id,name',
                 'sector:id,name',
-                'responsable:id,name'
+                'responsable:id,name',
+                'versionOf:id,slug',
             ])
             ->latest()
             ->get()
@@ -30,6 +31,9 @@ class GenerateImagesJsonCommand extends Command
                     'id' => $image->id,
                     'name' => $image->name,
                     'title' => $image->title,
+                    'language' => $image->language,
+                    'version_of_id' => $image->version_of_id,
+                    'permalink' => $image->permalink($image->language),
                     'filename' => $image->filename,
                     'url' => asset('storage/' . $image->path),
                     'thumbnail_url' => $image->thumbnail_path
