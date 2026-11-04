@@ -413,8 +413,10 @@
                                     @if ($count > 0)
                                         <button type="button" wire:click="setLanguage('{{ $code }}')" lang="{{ $code }}"
                                             aria-pressed="{{ $activeLanguage === $code ? 'true' : 'false' }}"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs sm:text-sm font-medium rounded-full transition-colors cursor-pointer {{ $activeLanguage === $code ? 'bg-[#3E9B90] text-white shadow' : 'text-gray-700 dark:text-gray-300 hover:text-[#3E9B90]' }}">
-                                            {{ \App\Models\Image::LANGUAGES[$code] }}
+                                            aria-label="{{ \App\Models\Image::LANGUAGES[$code] }} : {{ $count }} brochure(s)"
+                                            title="{{ \App\Models\Image::LANGUAGES[$code] }} : {{ $count }} brochure(s)"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs sm:text-sm font-medium rounded-full transition-colors cursor-pointer {{ $activeLanguage === $code ? 'bg-[#3E9B90] text-white shadow' : 'text-gray-700 dark:text-gray-300 hover:bg-[#3E9B90]/10' }}">
+                                            <x-flag :code="$code" class="w-5 h-3.5 sm:w-6 sm:h-4" />
                                             <span class="text-[10px] sm:text-xs {{ $activeLanguage === $code ? 'text-white/80' : 'text-gray-400' }}">{{ $count }}</span>
                                         </button>
                                     @endif
@@ -778,18 +780,19 @@
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-tight"
                                         x-text="v.title">{{ $current['title'] }}</h3>
 
-                                    {{-- Pastilles de langue (si la brochure existe en plusieurs langues) --}}
+                                    {{-- Drapeaux de langue (si la brochure existe en plusieurs langues) :
+                                         le drapeau choisi est entouré, les autres atténués --}}
                                     @if (count($cardEditions) > 1)
-                                        <div class="relative z-20 mt-1 flex flex-wrap gap-1" role="group" aria-label="Langues de la brochure">
+                                        <div class="relative z-20 mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Langues de la brochure">
                                             @foreach ($cardEditions as $code => $edition)
                                                 <button type="button" @click="lang = '{{ $code }}'"
                                                     :aria-pressed="lang === '{{ $code }}' ? 'true' : 'false'"
                                                     :class="lang === '{{ $code }}'
-                                                        ? 'bg-[#3E9B90] border-[#3E9B90] text-white'
-                                                        : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-gray-300 hover:border-[#3E9B90] hover:text-[#3E9B90]'"
-                                                    class="relative inline-flex items-center px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold leading-none rounded border transition-colors cursor-pointer"
-                                                    title="{{ \App\Models\Image::LANGUAGES[$code] }}">
-                                                    {{ strtoupper($code) }}
+                                                        ? 'ring-2 ring-[#3E9B90] opacity-100'
+                                                        : 'ring-1 ring-transparent opacity-50 hover:opacity-100'"
+                                                    class="relative inline-flex items-center justify-center p-0.5 rounded transition cursor-pointer"
+                                                    title="{{ \App\Models\Image::LANGUAGES[$code] }}" aria-label="{{ \App\Models\Image::LANGUAGES[$code] }}">
+                                                    <x-flag :code="$code" class="w-5 h-3.5 sm:w-6 sm:h-4" />
                                                     @auth
                                                         @if ($edition['outdated'])
                                                             <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-1 ring-white dark:ring-zinc-800"
