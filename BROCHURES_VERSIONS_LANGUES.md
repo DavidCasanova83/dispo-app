@@ -82,9 +82,18 @@ le PDF est remplacé.
 
 ```bash
 php artisan migrate
+php artisan app:deploy-command                   # AVANT la reprise : routes (cache), assets
 php artisan brochures:lier-versions              # aperçu : rien n'est modifié
 php artisan brochures:lier-versions --appliquer
 ```
+
+Le cache des routes doit connaître `/brochure/{slug}/{langue}` avant la reprise
+(`app:deploy-command` ou `route:clear`) : sinon la commande s'arrête sans rien
+modifier. Avant ce garde-fou (4/11/2026), elle enregistrait les rattachements
+puis échouait en refaisant `images.json` (« Route [brochure.permalink] not
+defined ») : il suffit alors de lancer `app:deploy-command` puis de relancer
+`brochures:lier-versions --appliquer`, qui ne refait rien de ce qui est déjà
+rattaché, refait le JSON et signale les sous-catégories vidées.
 
 La commande lit la langue dans les titres (« English - … », « English
 Version - … », « … IT », « … (EN) », nom du PDF `english-…` / `…-it`),
