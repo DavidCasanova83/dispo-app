@@ -194,6 +194,9 @@ test('le catalogue montre une carte par brochure, avec ses pastilles de langue',
 
     $component->assertViewHas('brochures', fn ($brochures) => $brochures->pluck('title')->sort()->values()->all() === ["Chambres d'hôtes", 'Hôtels'])
         ->assertSee('Langues de la brochure')
+        // Drapeaux (SVG) à la place des codes de langue, nommés pour les lecteurs d'écran
+        ->assertSeeHtml('aria-label="English"')
+        ->assertSeeHtml('fill="#012169"')
         ->assertViewHas('languageCounts', ['en' => 1, 'it' => 0]);
 });
 
