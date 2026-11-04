@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -317,7 +318,10 @@ class Image extends Model
     public function permalink(?string $language = null): ?string
     {
         $slug = $this->mainBrochure()->slug;
-        if (!$slug) {
+
+        // Route absente (cache des routes d'avant le déploiement) : pas d'adresse
+        // permanente plutôt qu'une erreur sur tout le catalogue.
+        if (!$slug || !Route::has('brochure.permalink')) {
             return null;
         }
 

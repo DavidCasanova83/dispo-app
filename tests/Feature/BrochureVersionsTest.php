@@ -344,3 +344,26 @@ test('admin, Mes brochures et statistiques montrent les versions sur la ligne de
     Livewire::actingAs($admin)->test(\App\Livewire\Admin\BrochureStatistics::class)
         ->assertSee('Par langue');
 });
+
+test('cache des routes périmé : la reprise ne modifie rien et le catalogue reste affiché', function () {
+    $main = brochure('Hôtels');
+    $document = brochure('English - Hôtels');
+    app('router')->setRoutes(new \Illuminate\Routing\RouteCollection);
+
+    $this->artisan('brochures:lier-versions', ['--appliquer' => true])->assertFailed();
+
+    expect($document->fresh()->version_of_id)->toBeNull()
+        ->and($main->permalink('en'))->toBeNull();
+});
+
+test('relancée après coup, la reprise signale encore la sous-catégorie vidée et son menu', function () {
+    $english = SubCategory::create(['name' => 'English version', 'category_id' => $this->category->id]);
+    \App\Models\BrochureMenuItem::create(['title' => 'English version', 'url' => '/brochures-oti-vt/guides-dhebergements/'.$english->slug]);
+    $main = brochure('Hôtels');
+    app(BrochureVersionService::class)->attach($main, brochure('English - Hôtels', ['sub_category_id' => $english->id]), 'en');
+    brochure("English Version - Magazine Sources d'Envies");
+
+    $this->artisan('brochures:lier-versions', ['--appliquer' => true])
+        ->expectsOutputToContain('English version')
+        ->assertSuccessful();
+});

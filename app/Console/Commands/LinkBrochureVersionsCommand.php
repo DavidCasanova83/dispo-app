@@ -10,7 +10,9 @@ use App\Services\BrochureVersionService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Reprise des brochures traduites saisies avant les versions linguistiques :
@@ -31,6 +33,16 @@ class LinkBrochureVersionsCommand extends Command
     public function handle(BrochureLanguageMatcher $matcher, BrochureVersionService $versions): int
     {
         $apply = (bool) $this->option('appliquer');
+
+        // Code déployé mais cache des routes d'avant : le JSON des brochures
+        // (adresses permanentes) ne peut pas être refait. Rien n'est modifié.
+        if (! Route::has('brochure.permalink')) {
+            $this->error('La route brochure.permalink est introuvable : le cache des routes date d\'avant le déploiement.');
+            $this->line('Lancer d\'abord « php artisan app:deploy-command » (ou « php artisan route:clear »), puis relancer cette commande.');
+
+            return self::FAILURE;
+        }
+
         $brochures = Image::main()->orderBy('id')->get();
 
         // 1. Langue de chaque brochure d'après son titre (et le nom de son PDF)
@@ -151,7 +163,6 @@ class LinkBrochureVersionsCommand extends Command
         }
 
         // 5. Application
-        $touchedSubCategoryIds = collect($chosen)->map(fn ($id) => $brochures->find($id)->sub_category_id)->filter()->unique();
         $linked = 0;
         DB::transaction(function () use ($chosen, $documents, $brochures, $bilingual, $versions, &$linked) {
             foreach ($chosen as $key => $documentId) {
@@ -177,14 +188,24 @@ class LinkBrochureVersionsCommand extends Command
             }
         });
 
-        Artisan::call('images:generate-json');
         $this->info("{$linked} version(s) rattachée(s), ".count($bilingual).' document(s) bilingue(s) mis à jour.');
+
+        // Les rattachements sont enregistrés : un échec ici ne doit pas cacher la suite.
+        try {
+            Artisan::call('images:generate-json');
+        } catch (Throwable $e) {
+            $this->warn('Fichier images.json non refait ('.$e->getMessage().') : lancer « php artisan images:generate-json ».');
+        }
 
         // 6. Sous-catégories vidées (ex. « English version » : les versions prennent
         //    le classement de leur brochure) et menus qui y mènent
-        $emptied = SubCategory::whereIn('id', $touchedSubCategoryIds)->whereDoesntHave('images')->get();
+        //    (toutes les sous-catégories vides : une reprise relancée les signale encore)
+        $emptied = SubCategory::whereDoesntHave('images')->get();
         foreach ($emptied as $subCategory) {
             $this->warn("La sous-catégorie « {$subCategory->name} » est vide : la supprimer dans Brochures.");
+            if (! $subCategory->slug) {
+                continue;
+            }
             BrochureMenuItem::where('url', 'like', '%/'.$subCategory->slug.'%')->get()
                 ->each(fn ($item) => $this->warn("  Menu « {$item->title} » ({$item->url}) : le faire pointer vers /brochures-oti-vt?langue=en (ou ?langue=it)."));
         }
